@@ -95,6 +95,15 @@ export const ReportPanel = ({
 
     const isLabor = inputs.moveType === "Labor";
 
+    const formatMetric = (val: React.ReactNode | number, unit: string) => (
+        <span className="tabular-nums whitespace-nowrap inline-flex items-baseline">
+            {typeof val === 'number' ? val.toLocaleString() : (val || 0)}
+            <span className="ml-1.5 text-[13px] font-bold text-gray-400 lowercase tracking-normal">
+                {unit}
+            </span>
+        </span>
+    );
+
     const heavyBadgeText = useMemo(() => {
         const arr = estimate.heavyItemNames || []; if (!arr.length) return null;
         const first = String(arr[0]).replace(/\s*\(.*?\)\s*/g, "").trim(); const lower = first.toLowerCase();
@@ -105,8 +114,8 @@ export const ReportPanel = ({
     return (
         <div className="flex-1 flex flex-col gap-6">
             <div className={`grid grid-cols-2 lg:grid-cols-4 gap-4 transition-opacity duration-300 ${isCalculating ? 'opacity-60' : 'opacity-100'}`}>
-                <MetricCard icon={Box} label="Volume" value={<AnimatedNumber value={estimate.finalVolume} />} sub="Cubic Feet" variant="blue" />
-                <MetricCard icon={estimate.splitRecommended ? CalendarDays : Clock} label={estimate.splitRecommended ? "Split Rec." : "Time Est."} value={<><AnimatedNumber value={estimate.timeMin} /> - <AnimatedNumber value={estimate.timeMax} suffix="h" /></>} sub={estimate.splitRecommended ? "SPLIT TO 2 DAYS" : "Est. Range"} variant={estimate.splitRecommended ? "red" : "purple"} isCritical={estimate.splitRecommended} />
+                <MetricCard icon={Box} label="Volume" value={formatMetric(<AnimatedNumber value={estimate.finalVolume} />, "cu ft")} sub="Based on Inventory" variant="blue" />
+                <MetricCard icon={estimate.splitRecommended ? CalendarDays : Clock} label={estimate.splitRecommended ? "Split Rec." : "Time Est."} value={<><AnimatedNumber value={estimate.timeMin} />–<AnimatedNumber value={estimate.timeMax} />h</>} sub={estimate.splitRecommended ? "SPLIT TO 2 DAYS" : "Est. Range"} variant={estimate.splitRecommended ? "red" : "purple"} isCritical={estimate.splitRecommended} />
                 {isLabor ? <MetricCard icon={Info} label="Service" value="Labor" sub="No Trucks" variant="gray" /> : <MetricCard icon={Truck} label="Trucks" value={<AnimatedNumber value={estimate.trucksFinal} />} sub={estimate.truckSizeLabel?.replace(/\s*Truck\s*/i, ' ').trim()} variant="orange" />}
                 <MetricCard icon={Users} label="Crew" value={<AnimatedNumber value={estimate.crew} />} sub="Movers" variant="emerald" advice={estimate.crewSuggestion} />
             </div>
@@ -116,7 +125,21 @@ export const ReportPanel = ({
                 <div className={`flex flex-col transition-opacity duration-300 ${isCalculating ? 'opacity-60' : 'opacity-100'}`}>
                     {/* CONFIDENCE + HEAVY */}
                     <div className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                        <ConfidenceDonut score={estimate.confidence?.score || 0} label={estimate.confidence?.label || ""} />
+                        <div className="group relative cursor-help inline-block self-start sm:self-auto">
+                            <ConfidenceDonut score={estimate.confidence?.score || 0} label={estimate.confidence?.label || ""} />
+
+                            {/* Elegant Glassmorphism Tooltip */}
+                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-56 p-3 bg-white/80 backdrop-blur-md border border-white/20 rounded-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-20 text-center shadow-[0_12px_40px_rgba(0,0,0,0.08)] pointer-events-none border-t-white/40">
+                                <div className="text-[12px] font-bold text-gray-900 mb-1">
+                                    <span className="text-emerald-500">{estimate.confidence?.score || 0}%</span> Match Accuracy
+                                </div>
+                                <div className="text-[10px] leading-relaxed text-gray-500 font-medium">
+                                    Based on {estimate.detectedQtyTotal || 0} items. {100 - (estimate.confidence?.score || 0)}% of volume is derived from approximate categorical matches.
+                                </div>
+                                {/* Tooltip Arrow (Glassy) */}
+                                <div className="absolute top-full left-1/2 -translate-x-1/2 w-3 h-3 bg-white/80 backdrop-blur-md border-r border-b border-white/20 rotate-45 -mt-[6px]"></div>
+                            </div>
+                        </div>
 
                         {heavyBadgeText && (
                             <div className="self-start sm:self-auto bg-red-50 text-red-600 px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5">
@@ -169,18 +192,17 @@ export const ReportPanel = ({
                                 <div className="grid grid-cols-3 gap-6">
                                     <div className="text-center">
                                         <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Items Volume</div>
-                                        <div className="text-2xl font-black text-gray-900 tabular-nums"><AnimatedNumber value={estimate.billableCF || 0} /></div>
-                                        <div className="text-[10px] font-medium text-gray-400 mt-0.5">Net Total, cf</div>
+                                        <div className="text-2xl font-black text-gray-900 tabular-nums">{formatMetric(<AnimatedNumber value={estimate.billableCF || 0} />, "cu ft")}</div>
+                                        <div className="text-[10px] font-medium text-gray-400 mt-0.5">Net Total</div>
                                     </div>
                                     <div className="text-center">
                                         <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Truck Load</div>
-                                        <div className="text-2xl font-black text-gray-900 tabular-nums"><AnimatedNumber value={estimate.truckSpaceCF || 0} prefix="~" /></div>
-                                        <div className="text-[10px] font-medium text-gray-400 mt-0.5">Actual Space, cf</div>
+                                        <div className="text-2xl font-black text-gray-900 tabular-nums">{formatMetric(<AnimatedNumber value={estimate.truckSpaceCF || 0} prefix="~" />, "cu ft")}</div>
+                                        <div className="text-[10px] font-medium text-gray-400 mt-0.5">Actual Space</div>
                                     </div>
                                     <div className="text-center">
                                         <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Est. Weight</div>
-                                        <div className="text-2xl font-black text-gray-900 tabular-nums"><AnimatedNumber value={estimate.weight || 0} /></div>
-                                        <div className="text-[10px] font-medium text-gray-400 mt-0.5">lbs</div>
+                                        <div className="text-2xl font-black text-gray-900 tabular-nums">{formatMetric(<AnimatedNumber value={estimate.weight || 0} />, "lbs")}</div>
                                     </div>
                                 </div>
                             </div>

@@ -1,6 +1,6 @@
 import React from 'react';
 import { EstimateInputs, NormalizedRow, EstimateResult } from '@/lib/types/estimator';
-import { Settings, MapPin, Trash2, Shield, User, Plus } from 'lucide-react';
+import { Settings, MapPin, Trash2, Shield, User, Plus, Weight } from 'lucide-react';
 import { GlassPanel } from './GlassPanel';
 import { Select } from './Select';
 import { InputLabel } from './InputLabel';
@@ -258,10 +258,15 @@ export const ConfigPanel = ({
                                             onChange={e => setNormalizedRows(prev => prev.map(r => r.id === row.id ? { ...r, cfUnit: Number(e.target.value) || 1 } : r))}
                                         />
                                         <div className="col-span-2 flex justify-center">
-                                            <input type="checkbox" className="w-4 h-4 rounded text-blue-600 border-gray-300 focus:ring-blue-500"
-                                                checked={row.flags.heavy}
-                                                onChange={e => setNormalizedRows(prev => prev.map(r => r.id === row.id ? { ...r, flags: { ...r.flags, heavy: e.target.checked } } : r))}
-                                            />
+                                            <label className="inline-flex items-center cursor-pointer group relative">
+                                                <input type="checkbox" className="sr-only"
+                                                    checked={row.flags.heavy}
+                                                    onChange={e => setNormalizedRows(prev => prev.map(r => r.id === row.id ? { ...r, flags: { ...r.flags, heavy: e.target.checked } } : r))}
+                                                />
+                                                <div className={`w-[22px] h-[22px] rounded-md border-[1.5px] flex items-center justify-center transition-all duration-200 ease-out shadow-sm ${row.flags.heavy ? 'border-gray-900 bg-gray-900' : 'border-gray-300 bg-white group-hover:border-gray-400'}`}>
+                                                    <Weight className={`w-3.5 h-3.5 transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${row.flags.heavy ? 'text-white scale-110' : 'text-gray-300'}`} strokeWidth={2.5} />
+                                                </div>
+                                            </label>
                                         </div>
                                         <button onClick={() => setNormalizedRows(prev => prev.filter(r => r.id !== row.id))}
                                             className="col-span-1 flex justify-center items-center text-gray-300 hover:text-red-500 transition-colors cursor-pointer">
