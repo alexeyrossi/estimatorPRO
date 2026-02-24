@@ -52,7 +52,7 @@ export const ConfidenceDonut = ({ score, label }: { score: number; label: string
     }, [score, circumference]);
 
     return (
-        <div className="flex items-center gap-5 bg-white border border-gray-100 rounded-[2rem] p-4 pr-6 shadow-sm">
+        <div className="flex items-center gap-5">
             <div className="relative flex-shrink-0" style={{ width: size, height: size }}>
                 <svg
                     width={size}
@@ -92,7 +92,7 @@ export const ConfidenceDonut = ({ score, label }: { score: number; label: string
                 <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">
                     Confidence
                 </span>
-                <span className={`inline-block px-3 py-1 rounded-xl text-[11px] font-bold border ${colors.text} ${colors.bg} ${colors.border}`}>
+                <span className={`inline-block px-3 py-1 rounded-xl text-[11px] font-bold ${colors.text} ${colors.bg}`}>
                     {label} Score
                 </span>
             </div>
