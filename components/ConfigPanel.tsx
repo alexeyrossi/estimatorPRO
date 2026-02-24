@@ -208,10 +208,10 @@ export const ConfigPanel = ({
                                 setInventoryMode("raw");
                             }
                         }}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium text-[12px] transition-colors ${inventoryMode === "normalized" ? "bg-blue-50 text-blue-700 hover:bg-blue-100" : "bg-gray-50 text-gray-500 hover:bg-gray-100 hover:text-gray-900"}`}>
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-colors ${inventoryMode === "normalized" ? "bg-blue-50 text-blue-700 hover:bg-blue-100" : "bg-gray-50 text-gray-500 hover:bg-gray-100 hover:text-gray-700"}`}>
                             {inventoryMode === "normalized"
                                 ? <><User className="w-4 h-4" strokeWidth={2} /> Client View</>
-                                : <><Shield className="w-4 h-4" strokeWidth={2} /> Manager</>}
+                                : <><Shield className="w-4 h-4" strokeWidth={2} /> Admin Mode</>}
                         </button>
                     )}
 
@@ -220,73 +220,76 @@ export const ConfigPanel = ({
                     </span>
                 </div>
 
-                {inventoryMode === "raw" ? (
-                    <div className="relative w-full">
-                        <textarea
-                            value={inputs.inventoryText}
-                            onChange={e => {
-                                const raw = e.target.value;
-                                const limited = limitInventoryText(raw);
-                                setInventoryClipped(limited.length !== raw.length);
-                                setInputs({ ...inputs, inventoryText: limited });
-                            }}
-                            className="block w-full h-56 bg-white border border-gray-200 rounded-2xl p-4 sm:p-5 text-[14px] font-mono leading-relaxed text-gray-800 outline-none resize-none shadow-sm focus:ring-4 focus:ring-blue-500/15 focus:border-blue-500 transition-all"
-                            placeholder="Paste inventory here (e.g. Living Room: Sofa, TV...)"
-                            style={{ WebkitOverflowScrolling: 'touch' }}
-                        />
-                    </div>
-                ) : (
-                    <div className="bg-white border border-gray-200 rounded-2xl p-3 shadow-sm">
-                        <div className="text-[10px] font-bold text-gray-400 mb-2 uppercase tracking-widest px-1">Inventory Editor</div>
-                        <div className="max-h-72 overflow-y-auto pr-1">
-                            <div className="grid grid-cols-12 gap-1 mb-1 px-1 text-[9px] text-gray-400 font-bold sticky top-0 bg-white z-10 pb-1 border-b border-gray-50">
-                                <div className="col-span-5">Item</div><div className="col-span-2 text-center">Qty</div><div className="col-span-2 text-center">CF/ea</div><div className="col-span-2 text-center">Heavy</div><div className="col-span-1"></div>
-                            </div>
-                            {normalizedRows.map(row => (
-                                <div key={row.id} className="grid grid-cols-12 gap-1 items-center mb-1 text-[10px] font-semibold">
-                                    <input className="col-span-5 rounded px-2 h-7 outline-none bg-gray-50 border-transparent hover:bg-gray-100 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
-                                        value={row.name}
-                                        onChange={e => setNormalizedRows(prev => prev.map(r => r.id === row.id ? { ...r, name: e.target.value } : r))}
-                                    />
-                                    <input type="number" className="col-span-2 rounded px-1 h-7 text-center outline-none bg-gray-50 border-transparent hover:bg-gray-100 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
-                                        value={row.qty as string | number}
-                                        onChange={e => handleRowQtyChange(row.id, e.target.value)}
-                                        onBlur={() => handleRowQtyChange(row.id, row.qty as any, true)}
-                                    />
-                                    <input type="number" className="col-span-2 rounded px-1 h-7 text-center outline-none bg-gray-50 border-transparent hover:bg-gray-100 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
-                                        value={row.cfUnit as string | number}
-                                        onChange={e => setNormalizedRows(prev => prev.map(r => r.id === row.id ? { ...r, cfUnit: Number(e.target.value) || 1 } : r))}
-                                    />
-                                    <div className="col-span-2 flex justify-center">
-                                        <input type="checkbox" className="w-4 h-4 rounded text-blue-600 border-gray-300 focus:ring-blue-500"
-                                            checked={row.flags.heavy}
-                                            onChange={e => setNormalizedRows(prev => prev.map(r => r.id === row.id ? { ...r, flags: { ...r.flags, heavy: e.target.checked } } : r))}
-                                        />
-                                    </div>
-                                    <button onClick={() => setNormalizedRows(prev => prev.filter(r => r.id !== row.id))}
-                                        className="col-span-1 flex justify-center items-center text-gray-300 hover:text-red-500 transition-colors cursor-pointer">
-                                        <Trash2 className="w-3.5 h-3.5" />
-                                    </button>
-                                </div>
-                            ))}
-                        </div>
-                        <div className="mt-2 pt-2 border-t border-gray-100 flex gap-2">
-                            <input className="flex-1 rounded-lg px-2 h-8 text-[11px] outline-none bg-gray-50 border-transparent hover:bg-gray-100 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
-                                placeholder="Add item (e.g. piano)"
-                                list="volumeSuggestions"
-                                value={addRowInput}
-                                onChange={e => setAddRowInput(e.target.value)}
-                                onKeyDown={e => { if (e.key === "Enter") handleAddRow(); }}
+                <div className="relative w-full">
+                    <div className={`transition-all duration-300 ${inventoryMode === "raw" ? "opacity-100" : "opacity-0 h-0 overflow-hidden absolute inset-x-0"}`}>
+                        <div className="relative w-full">
+                            <textarea
+                                value={inputs.inventoryText}
+                                onChange={e => {
+                                    const raw = e.target.value;
+                                    const limited = limitInventoryText(raw);
+                                    setInventoryClipped(limited.length !== raw.length);
+                                    setInputs({ ...inputs, inventoryText: limited });
+                                }}
+                                className="block w-full h-56 bg-white border border-gray-200 rounded-2xl p-4 sm:p-5 text-[14px] font-mono leading-relaxed text-gray-800 outline-none resize-none shadow-sm focus:ring-4 focus:ring-blue-500/15 focus:border-blue-500 transition-all"
+                                placeholder="Paste inventory here (e.g. Living Room: Sofa, TV...)"
+                                style={{ WebkitOverflowScrolling: 'touch' }}
                             />
-                            <datalist id="volumeSuggestions">
-                                {addRowInput.length > 1 && SORTED_KEYS.filter(k => k.toLowerCase().includes(addRowInput.toLowerCase())).slice(0, 20).map(k => <option key={k} value={k} />)}
-                            </datalist>
-                            <button onClick={handleAddRow} className="px-4 h-8 bg-gray-900 text-white rounded-lg text-[11px] font-bold active:scale-95 transition-all whitespace-nowrap flex items-center gap-1 shadow-sm">
-                                <Plus className="w-3.5 h-3.5" /> ADD
-                            </button>
                         </div>
                     </div>
-                )}
+                    <div className={`transition-all duration-300 ${inventoryMode === "normalized" ? "opacity-100" : "opacity-0 h-0 overflow-hidden absolute inset-x-0"}`}>
+                        <div className="bg-white border border-gray-200 rounded-2xl p-3 shadow-sm">
+                            <div className="text-[10px] font-bold text-gray-400 mb-2 uppercase tracking-widest px-1">Inventory Editor</div>
+                            <div className="max-h-72 overflow-y-auto pr-1">
+                                <div className="grid grid-cols-12 gap-1 mb-1 px-1 text-[9px] text-gray-400 font-bold sticky top-0 bg-white z-10 pb-1 border-b border-gray-50">
+                                    <div className="col-span-5">Item</div><div className="col-span-2 text-center">Qty</div><div className="col-span-2 text-center">CF/ea</div><div className="col-span-2 text-center">Heavy</div><div className="col-span-1"></div>
+                                </div>
+                                {normalizedRows.map(row => (
+                                    <div key={row.id} className="grid grid-cols-12 gap-1 items-center mb-1 text-[10px] font-semibold">
+                                        <input className="col-span-5 rounded px-2 h-7 outline-none bg-gray-50 border-transparent hover:bg-gray-100 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                                            value={row.name}
+                                            onChange={e => setNormalizedRows(prev => prev.map(r => r.id === row.id ? { ...r, name: e.target.value } : r))}
+                                        />
+                                        <input type="number" className="col-span-2 rounded px-1 h-7 text-center outline-none bg-gray-50 border-transparent hover:bg-gray-100 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                                            value={row.qty as string | number}
+                                            onChange={e => handleRowQtyChange(row.id, e.target.value)}
+                                            onBlur={() => handleRowQtyChange(row.id, row.qty as any, true)}
+                                        />
+                                        <input type="number" className="col-span-2 rounded px-1 h-7 text-center outline-none bg-gray-50 border-transparent hover:bg-gray-100 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                                            value={row.cfUnit as string | number}
+                                            onChange={e => setNormalizedRows(prev => prev.map(r => r.id === row.id ? { ...r, cfUnit: Number(e.target.value) || 1 } : r))}
+                                        />
+                                        <div className="col-span-2 flex justify-center">
+                                            <input type="checkbox" className="w-4 h-4 rounded text-blue-600 border-gray-300 focus:ring-blue-500"
+                                                checked={row.flags.heavy}
+                                                onChange={e => setNormalizedRows(prev => prev.map(r => r.id === row.id ? { ...r, flags: { ...r.flags, heavy: e.target.checked } } : r))}
+                                            />
+                                        </div>
+                                        <button onClick={() => setNormalizedRows(prev => prev.filter(r => r.id !== row.id))}
+                                            className="col-span-1 flex justify-center items-center text-gray-300 hover:text-red-500 transition-colors cursor-pointer">
+                                            <Trash2 className="w-3.5 h-3.5" />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="mt-2 pt-2 border-t border-gray-100 flex gap-2">
+                                <input className="flex-1 rounded-lg px-2 h-8 text-[11px] outline-none bg-gray-50 border-transparent hover:bg-gray-100 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                                    placeholder="Add item (e.g. piano)"
+                                    list="volumeSuggestions"
+                                    value={addRowInput}
+                                    onChange={e => setAddRowInput(e.target.value)}
+                                    onKeyDown={e => { if (e.key === "Enter") handleAddRow(); }}
+                                />
+                                <datalist id="volumeSuggestions">
+                                    {addRowInput.length > 1 && SORTED_KEYS.filter(k => k.toLowerCase().includes(addRowInput.toLowerCase())).slice(0, 20).map(k => <option key={k} value={k} />)}
+                                </datalist>
+                                <button onClick={handleAddRow} className="px-4 h-8 bg-gray-900 text-white rounded-lg text-[11px] font-bold active:scale-95 transition-all whitespace-nowrap flex items-center gap-1 shadow-sm">
+                                    <Plus className="w-3.5 h-3.5" /> ADD
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 {inventoryClipped && <div className="mt-3 text-[10px] text-orange-600 bg-orange-50 p-2.5 rounded-lg font-semibold border border-orange-100">Inventory clipped (limit reached).</div>}
             </div>
         </div></GlassPanel>

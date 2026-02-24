@@ -29,7 +29,7 @@ export const MetricCard = ({ icon: Icon, label, value, sub, variant = "gray", is
                 <span className={`text-[10px] font-bold uppercase tracking-widest ${isCritical ? 'text-red-500' : 'text-gray-400'}`}>{label}</span>
             </div>
             <div className="relative z-10 mt-4">
-                <div className={`text-2xl font-black tracking-tight ${isCritical ? 'text-red-800' : 'text-gray-900'}`}>{value}</div>
+                <div className={`text-2xl font-black tracking-tight tabular-nums ${isCritical ? 'text-red-800' : 'text-gray-900'}`}>{value}</div>
                 {sub && <div className={`text-[11px] font-semibold mt-0.5 ${isCritical ? 'text-red-600' : 'text-gray-400'}`}>{sub}</div>}
                 {advice && <div className="mt-2 text-[10px] bg-emerald-50 text-emerald-700 px-2 py-1 rounded-lg font-semibold inline-block border border-emerald-100">{advice}</div>}
             </div>

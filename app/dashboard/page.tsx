@@ -396,22 +396,26 @@ ${est.daMins > 0 ? `-Assembly: ~${est.daMins} min total` : ""}
                             <button
                                 onClick={handleSaveEstimate}
                                 disabled={!clientName.trim() || isSaving}
-                                className={`rounded-xl px-4 py-2 text-[14px] font-medium transition-all whitespace-nowrap active:scale-95 ${clientName.trim() ? 'bg-gray-900 text-white hover:bg-gray-800 shadow-sm' : 'bg-gray-400 text-white cursor-not-allowed'}`}
+                                className={`rounded-xl px-4 py-2 text-[14px] font-medium transition-all duration-300 whitespace-nowrap active:scale-95 w-[96px] flex justify-center items-center text-center ${saveStatus === 'success' ? 'bg-emerald-500 text-white' :
+                                    isSaving ? 'bg-gray-900 text-white animate-pulse' :
+                                        clientName.trim() ? 'bg-gray-900 text-white hover:bg-gray-800 shadow-sm' :
+                                            'bg-gray-400 text-white cursor-not-allowed'
+                                    }`}
                             >
-                                {isSaving ? "..." : saveStatus === "success" ? "✓ Saved" : "Save"}
+                                {saveStatus === 'success' ? '✓ Saved' : isSaving ? '...' : 'Save'}
                             </button>
                         </div>
 
                         {/* History Island */}
                         <button onClick={toggleHistory}
-                            className="bg-white rounded-[1.5rem] shadow-[0_4px_24px_rgba(0,0,0,0.03)] px-4 py-2 flex items-center gap-2 text-[14px] font-medium text-gray-700 transition-all duration-200 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:-translate-y-0.5 border border-transparent active:scale-95">
+                            className="bg-white rounded-[1.5rem] shadow-[0_4px_24px_rgba(0,0,0,0.03)] px-4 py-2 flex items-center gap-2 text-[12px] font-bold text-gray-400 hover:text-gray-600 transition-all duration-200 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:-translate-y-0.5 border border-transparent active:scale-95">
                             <ClipboardList className="w-4 h-4" strokeWidth={2} />
                             History
                         </button>
 
                         {/* Logout Island */}
                         <button onClick={() => signOutAction()}
-                            className="bg-white rounded-[1.5rem] shadow-[0_4px_24px_rgba(0,0,0,0.03)] px-4 py-2 flex items-center gap-2 text-[14px] font-medium text-gray-700 transition-all duration-200 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:-translate-y-0.5 border border-transparent active:scale-95 hover:text-red-600">
+                            className="bg-white rounded-[1.5rem] shadow-[0_4px_24px_rgba(0,0,0,0.03)] px-4 py-2 flex items-center gap-2 text-[12px] font-bold text-gray-400 hover:text-gray-600 transition-all duration-200 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:-translate-y-0.5 border border-transparent active:scale-95">
                             <LogOut className="w-4 h-4" strokeWidth={2} />
                             Logout
                         </button>
