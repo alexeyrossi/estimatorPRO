@@ -8,7 +8,6 @@ import { GlassPanel } from './GlassPanel';
 import { MetricCard } from './MetricCard';
 import { ConfidenceDonut } from './ConfidenceDonut';
 import { LDBrokerPanel } from './LDBrokerPanel';
-import { toCanvas } from 'html-to-image';
 import jsPDF from 'jspdf';
 
 
@@ -109,88 +108,211 @@ export const ReportPanel = ({
     );
 
     const handleDownloadPDF = async () => {
-        const element = document.getElementById('pdf-export-area');
-
-        if (!element) {
-            alert("Error: 'pdf-export-area' ID not found. Check the DOM.");
-            return;
-        }
-
         setIsGeneratingPDF(true);
-
-        // Temporarily hide action buttons
-        const hideElements = element.querySelectorAll('[data-no-pdf]');
-        hideElements.forEach((el) => {
-            (el as HTMLElement).style.display = 'none';
-        });
-
-        // Force fixed width for perfect A4 proportions
-        const originalWidth = element.style.width;
-        const originalMaxWidth = element.style.maxWidth;
-        element.style.width = '800px';
-        element.style.maxWidth = '800px';
-
         try {
-
-            // Wait for the browser to repaint the fixed width
-            await new Promise(resolve => setTimeout(resolve, 100));
-
-            const canvas = await toCanvas(element, {
-                pixelRatio: 2, // High resolution (Retina)
-                backgroundColor: '#ffffff', // Force white background
-                style: {
-                    transform: 'scale(1)',
-                    transformOrigin: 'top left'
-                }
-            });
-
-            const imgData = canvas.toDataURL('image/png');
             const pdf = new jsPDF('p', 'mm', 'a4');
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pageHeight = pdf.internal.pageSize.getHeight();
-            const imgHeight = (canvas.height * pdfWidth) / canvas.width;
+            const W = pdf.internal.pageSize.getWidth();
+            const H = pdf.internal.pageSize.getHeight();
+            const M = 16;
+            let y = M;
 
-            let heightLeft = imgHeight;
-            let position = 0;
-            const margin = 10;
+            const addText = (text: string, x: number, size: number, color: [number, number, number], weight: string = 'normal') => {
+                pdf.setFontSize(size);
+                pdf.setTextColor(...color);
+                pdf.setFont('helvetica', weight);
+                pdf.text(text, x, y);
+            };
 
-            // MULTI-PAGE LOGIC
-            pdf.addImage(imgData, 'PNG', 0, position + margin, pdfWidth, imgHeight);
-            heightLeft -= (pageHeight - margin * 2);
+            const drawLine = (y1: number) => {
+                pdf.setDrawColor(230);
+                pdf.setLineWidth(0.3);
+                pdf.line(M, y1, W - M, y1);
+            };
 
-            while (heightLeft > 0) {
-                position = heightLeft - imgHeight;
-                pdf.addPage();
-                pdf.addImage(imgData, 'PNG', 0, position + margin, pdfWidth, imgHeight);
-                heightLeft -= (pageHeight - margin * 2);
+            const checkPage = (needed: number) => {
+                if (y + needed > H - 20) {
+                    pdf.addPage();
+                    y = M;
+                }
+            };
+
+            // ========== HEADER ==========
+            addText('MOVING ESTIMATE', M, 22, [30, 30, 30], 'bold');
+            y += 7;
+            const today = new Date().toLocaleDateString('en-US', {
+                year: 'numeric', month: 'long', day: 'numeric'
+            });
+            addText(today, M, 9, [160, 160, 160]);
+
+            if (clientName) {
+                pdf.setFontSize(14);
+                pdf.setFont('helvetica', 'bold');
+                pdf.setTextColor(30, 30, 30);
+                pdf.text(clientName, W - M, y - 7, { align: 'right' });
+            }
+            const paramLine = [inputs.homeSize, `${inputs.distance} mi`, inputs.moveType]
+                .filter(Boolean).join(' · ');
+            pdf.setFontSize(9);
+            pdf.setFont('helvetica', 'normal');
+            pdf.setTextColor(160, 160, 160);
+            pdf.text(paramLine, W - M, y, { align: 'right' });
+
+            y += 4;
+            pdf.setDrawColor(30);
+            pdf.setLineWidth(0.6);
+            pdf.line(M, y, W - M, y);
+            y += 10;
+
+            // ========== METRICS ROW ==========
+            const metrics = [
+                { label: 'VOLUME', value: `${(estimate.finalVolume || 0).toLocaleString()} cf` },
+                { label: 'TIME EST.', value: `${estimate.timeMin || 0}\u2013${estimate.timeMax || 0}h` },
+                { label: 'TRUCKS', value: `${estimate.trucksFinal || 0}` },
+                { label: 'CREW', value: `${estimate.crew || 0} movers` },
+            ];
+            const colW = (W - M * 2) / 4;
+            metrics.forEach((m, i) => {
+                const x = M + i * colW;
+                pdf.setFontSize(8); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(160, 160, 160);
+                pdf.text(m.label, x, y);
+                pdf.setFontSize(18); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(30, 30, 30);
+                pdf.text(m.value, x, y + 8);
+            });
+            y += 16;
+            drawLine(y); y += 8;
+
+            // ========== CONFIDENCE + HEAVY ==========
+            pdf.setFontSize(14); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(16, 185, 129);
+            pdf.text(`${estimate.confidence?.score || 0}%`, M, y);
+            pdf.setFontSize(10); pdf.setTextColor(160, 160, 160);
+            pdf.text('Confidence', M + 18, y);
+
+            if (estimate.heavyItemNames?.length && estimate.heavyItemNames.length > 0) {
+                pdf.setFontSize(10); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(220, 50, 50);
+                pdf.text(`Heavy: ${estimate.heavyItemNames.join(', ')}`, W - M, y, { align: 'right' });
+            }
+            y += 6;
+
+            // ========== AUDIT NOTES ==========
+            if (estimate.auditSummary?.length && estimate.auditSummary.length > 0) {
+                y += 2;
+                pdf.setFontSize(9); pdf.setFont('helvetica', 'normal'); pdf.setTextColor(140, 140, 140);
+                estimate.auditSummary.forEach((tip: string) => {
+                    checkPage(6);
+                    pdf.text(tip, M, y);
+                    y += 5;
+                });
+            }
+            y += 2; drawLine(y); y += 8;
+
+            // ========== LD BREAKDOWN ==========
+            if (estimate.billableCF != null && estimate.billableCF > 0) {
+                checkPage(30);
+                pdf.setFontSize(8); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(59, 130, 246);
+                pdf.text('LONG DISTANCE BREAKDOWN', M, y);
+                y += 7;
+                const ldData = [
+                    { label: 'Items Volume', value: `${(estimate.billableCF || 0).toLocaleString()} cf` },
+                    { label: 'Truck Load', value: `~${(estimate.truckSpaceCF || 0).toLocaleString()} cf` },
+                    { label: 'Est. Weight', value: `${(estimate.weight || 0).toLocaleString()} lbs` },
+                ];
+                const ldColW = (W - M * 2) / 3;
+                ldData.forEach((d, i) => {
+                    const x = M + i * ldColW;
+                    pdf.setFontSize(8); pdf.setFont('helvetica', 'normal'); pdf.setTextColor(160, 160, 160);
+                    pdf.text(d.label, x, y);
+                    pdf.setFontSize(14); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(30, 30, 30);
+                    pdf.text(d.value, x, y + 6);
+                });
+                y += 14; drawLine(y); y += 8;
             }
 
-            // ADD PROFESSIONAL FOOTER
-            const totalPages = (pdf as any).internal.getNumberOfPages ? (pdf as any).internal.getNumberOfPages() : pdf.getNumberOfPages();
-            const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+            // ========== MATERIALS ==========
+            checkPage(20);
+            const matData = [
+                { label: 'Blankets', value: `${estimate.materials?.blankets || 0}` },
+                { label: 'Boxes', value: `~${estimate.materials?.boxes || 0}` },
+                { label: 'Wardrobes', value: `${estimate.materials?.wardrobes || 0}` },
+            ];
+            const matColW = (W - M * 2) / 3;
+            matData.forEach((d, i) => {
+                const x = M + i * matColW;
+                pdf.setFontSize(8); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(160, 160, 160);
+                pdf.text(d.label.toUpperCase(), x, y);
+                pdf.setFontSize(16); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(30, 30, 30);
+                pdf.text(d.value, x, y + 7);
+            });
+            y += 14; drawLine(y); y += 8;
 
+            // ========== INVENTORY TABLE ==========
+            if (estimate.parsedItems?.length && estimate.parsedItems.length > 0) {
+                checkPage(15);
+                pdf.setFontSize(8); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(160, 160, 160);
+                pdf.text(`DETECTED ITEMS (${estimate.detectedQtyTotal || estimate.parsedItems.length})`, M, y);
+                y += 6;
+
+                const half = Math.ceil(estimate.parsedItems.length / 2);
+                const col1 = estimate.parsedItems.slice(0, half);
+                const col2 = estimate.parsedItems.slice(half);
+                const tableW = (W - M * 2 - 8) / 2;
+
+                let maxY = y;
+                [col1, col2].forEach((col, ci) => {
+                    let localY = y;
+                    const xBase = M + ci * (tableW + 8);
+                    col.forEach(item => {
+                        checkPage(5);
+                        pdf.setFontSize(9); pdf.setFont('helvetica', 'normal'); pdf.setTextColor(80, 80, 80);
+                        pdf.text(item.name || '', xBase, localY);
+                        pdf.setFont('helvetica', 'bold'); pdf.setTextColor(30, 30, 30);
+                        pdf.text(`x${item.qty}`, xBase + tableW - 2, localY, { align: 'right' });
+                        localY += 5;
+                    });
+                    maxY = Math.max(maxY, localY);
+                });
+                y = maxY;
+                y += 2; drawLine(y); y += 8;
+            }
+
+            // ========== RISKS & TIPS ==========
+            const tips = [...(estimate.advice || [])];
+            const risks = (estimate.risks || []).filter((r: any) => r.text).map((r: any) => r.text);
+            const allNotes = [...tips, ...risks];
+
+            if (allNotes.length > 0) {
+                checkPage(10);
+                pdf.setFontSize(8); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(160, 160, 160);
+                pdf.text('NOTES & RECOMMENDATIONS', M, y);
+                y += 6;
+
+                allNotes.forEach((note: string) => {
+                    checkPage(6);
+                    pdf.setFontSize(9); pdf.setFont('helvetica', 'normal'); pdf.setTextColor(120, 120, 120);
+                    const lines = pdf.splitTextToSize(note, W - M * 2);
+                    lines.forEach((l: string) => { pdf.text(l, M, y); y += 4.5; });
+                });
+            }
+
+            // ========== FOOTER ON ALL PAGES ==========
+            const totalPages = pdf.getNumberOfPages();
             for (let i = 1; i <= totalPages; i++) {
                 pdf.setPage(i);
-                pdf.setFontSize(8);
-                pdf.setTextColor(150);
+                pdf.setFontSize(7); pdf.setFont('helvetica', 'normal'); pdf.setTextColor(180, 180, 180);
                 pdf.text(
                     `Generated ${today} | Estimator V11.59 PRO | Page ${i} of ${totalPages}`,
-                    pdfWidth / 2, pageHeight - 8, { align: 'center' }
+                    W / 2, H - 8, { align: 'center' }
                 );
             }
 
-            const fileName = clientName ? `Estimate_${clientName.replace(/\s+/g, '_')}.pdf` : 'Moving_Estimate.pdf';
-            pdf.save(fileName);
-        } catch (error) {
-            console.error("PDF Generation Error:", error);
-            alert("Failed to generate PDF. Check browser console for details.");
+            // ========== SAVE ==========
+            const fn = clientName
+                ? `Estimate_${clientName.replace(/\s+/g, '_')}.pdf`
+                : 'Moving_Estimate.pdf';
+            pdf.save(fn);
+
+        } catch (e) {
+            console.error('PDF error:', e);
         } finally {
-            // Restore original width and buttons
-            element.style.width = originalWidth;
-            element.style.maxWidth = originalMaxWidth;
-            hideElements.forEach((el) => {
-                (el as HTMLElement).style.display = '';
-            });
             setIsGeneratingPDF(false);
         }
     };
@@ -421,7 +543,7 @@ export const ReportPanel = ({
                                                     ? estimate.materials?.[k as "blankets" | "boxes" | "wardrobes"] || 0
                                                     : estimate[k as keyof EstimateResult] || 0
                                                     })`}
-                                                value={overrides[k] || ""}
+                                                value={overrides[k as keyof typeof overrides] || ""}
                                                 onChange={e => setOverrides({ ...overrides, [k]: e.target.value })}
                                                 className="text-[11px] font-bold p-3.5 rounded-xl bg-gray-800 text-white border border-gray-700 outline-none focus:bg-gray-700 focus:border-gray-500 placeholder:text-gray-500 transition-colors"
                                             />
@@ -463,6 +585,7 @@ export const ReportPanel = ({
                     </div>
                 </div>
             </div></GlassPanel>
+
         </div>
     );
 };
