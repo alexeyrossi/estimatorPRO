@@ -1,0 +1,1716 @@
+import React, { useMemo, useState, useEffect, useCallback, useRef } from "react";
+import {
+  Calculator, Settings, Truck, Clock, Users, Clipboard, Terminal, Box,
+  ChevronRight, Move, List, MapPin, Info, CalendarDays,
+  AlertTriangle, ChevronDown, ArrowUpFromLine,
+  AlignStartVertical, Check, Trash2, Lightbulb, Lock, Plus,
+  User, Shield, Activity, ShieldAlert
+} from "lucide-react";
+
+/**
+ * Estimator (Version 11.58.1 - "Clean Premium" Production)
+ * -----------------------------------------------------------------------------
+ * PATCH NOTES:
+ * 1. UI: Clean Premium (white inputs, deep shadows, crisp layout).
+ * 2. MOBILE UX: Perfect text scrolling + Floating Bar padding fix (no overlap).
+ * 3. ENGINE: Full module-level regex caching (Fragile, Blanket, DA, Numbers).
+ * 4. LOGIC: spaceCap Option 2 applied (6 crew allowed if > 2000cf in 2BDR).
+ * 5. SAFETY: SSR window checks added, strict type handling for distance/qty.
+ */
+
+/* =========================================================================
+   1. CORE PROTOCOL & CONSTANTS
+   ========================================================================= */
+
+const PROTOCOL = {
+  TRUCK_CAPACITY_SAFE: 1580,
+  TRUCK_MAX_THEORETICAL: 1650,
+  BORDERLINE_TRUCK_THRESHOLD: 0.88,
+  LD_WEIGHT_LIMIT: 12000,
+
+  MULTI_TRUCK_TIME_BUFFER: 1.10,
+  LD_TIER_BUFFER: 1.15,
+  HEAVY_PAYLOAD_SPEED_MULT: 0.85,
+  LARGE_VOLUME_DRAG: 1.15,
+  VOLUME_DRAG_THRESHOLD: 3500,
+  SPLIT_RISK_THRESHOLD: 12.5,
+
+  WEIGHT_STD: 7.0,
+  WEIGHT_SAFETY: 7.3,
+  LL_STANDARD: 0.15,
+  LL_LD: 0.10,
+  LL_IRREGULAR: 0.20,
+  LL_VAGUE: 0.10,
+  LL_CAP: 0.30,
+  HIDDEN_VOL_GARAGE: 150,
+  COMMERCIAL_BOX_RATIO: 0.05,
+  COMMERCIAL_STACK_FACTOR: 5,
+
+  SPEED_GROUND: 240,
+  SPEED_ELEVATOR: 210,
+  SPEED_STAIRS: 190,
+  SPEED_COMMERCIAL: 220,
+  COORDINATION_HRS: 0.5,
+  CREW_EFFICIENCY_HIGH: 0.90,
+  CREW_EFFICIENCY_LOW: 0.85,
+
+  ACCESS_MULT_ELEVATOR: 1.25,
+  ACCESS_MULT_STAIRS: 1.40,
+  STAIRS_FLIGHT_PENALTY: 0.08,
+
+  FRAGILE_DENSITY_THRESHOLD: 0.30,
+  FRAGILE_WRAP_MULT: 1.20,
+
+  BLANKET_DIVISOR: 35,
+  BLANKET_CAP_MULTIPLIER: 2.2,
+  MIN_BOXES: { 0: 10, 1: 20, 2: 35, 3: 50, 4: 70, 5: 90 },
+
+  MINS_PACK_BOX: 8,
+  MINS_WRAP_FURNITURE: 6,
+  MINS_DA_COMPLEX: 30,
+  MINS_DA_SIMPLE: 15,
+  MINS_DOCKING_PER_TRUCK: 30,
+  MINS_TRUCK_LOGISTICS: 10,
+
+  MAX_CREW_SIZE: 8,
+
+  VOL_EST_SMALL: 5,
+  VOL_EST_MEDIUM: 20,
+  VOL_EST_LARGE: 30,
+};
+
+const BLANKETS_TABLE = {
+  "sectional": 6, "sectional sofa": 6,
+  "sofa": 3, "couch": 3, "sleeper sofa": 4, "loveseat": 2,
+  "recliner": 2, "armchair": 2, "accent chair": 2,
+  "king bed": 3, "queen bed": 3, "full bed": 2, "twin bed": 2,
+  "adjustable bed": 3, "adjustable base": 3,
+  "headboard": 1, "footboard": 1,
+  "dresser": 2, "chest of drawers": 2, "bureau": 2, "triple dresser": 3,
+  "armoire": 4, "wardrobe": 3, "china cabinet": 4, "hutch": 3,
+  "dining table": 2, "kitchen table": 2, "conference table": 4,
+  "tv": 1, "tv stand": 2, "media console": 2, "entertainment center": 3,
+  "fridge": 2, "refrigerator": 2, "washer": 1, "dryer": 1,
+  "piano": 3, "upright piano": 3, "grand piano": 5,
+  "grandfather clock": 2,
+  "mirror": 1, "artwork": 1, "glass": 1
+};
+
+const DA_TIME_TABLE = {
+  "king bed": 25, "cal king bed": 25, "queen bed": 20, "full bed": 18,
+  "double bed": 18, "twin bed": 15, "bunk bed": 45, "loft bed": 45,
+  "adjustable bed": 40, "adjustable base": 40,
+  "crib": 20, "daybed": 15, "murphy bed": 60,
+  "sectional": 20, "sectional sofa": 20, "sleeper sofa": 15, "sofa bed": 15,
+  "treadmill": 30, "elliptical": 35, "peloton": 20, "exercise bike": 15,
+  "rowing machine": 20, "multi gym": 60, "weight bench": 15, "bowflex": 45,
+  "dining table": 15, "kitchen table": 12, "conference table": 20,
+  "desk": 15, "l desk": 25, "standing desk": 20, "executive desk": 20,
+  "armoire": 25, "wardrobe": 20, "china cabinet": 15, "hutch": 15,
+  "pool table": 180, "arcade machine": 10, "pinball machine": 15,
+  "trampoline": 40, "trampoline large": 60, "playset": 120,
+  "piano": 0, "safe": 0
+};
+
+const EFFORT_MULTIPLIER = {
+  "piano": 5.0, "safe": 4.0, "pool table": 4.5,
+  "marble": 3.0, "stone": 3.0, "arcade": 3.0,
+  "sectional": 1.5, "fridge": 1.5, "treadmill": 2.0,
+  "adjustable": 2.0, "rolling toolbox": 2.0,
+  "box": 0.5, "bin": 0.5, "bag": 0.3
+};
+
+const HV_TABLE = [
+  { label: "Studio", min: 200, add: 200 },
+  { label: "1BDR",   min: 300, add: 200 },
+  { label: "2BDR",   min: 500, add: 300 },
+  { label: "3BDR",   min: 750, add: 400 },
+  { label: "4BDR",   min: 1000, add: 500 },
+  { label: "5BDR+",  min: 1300, add: 600 },
+];
+
+const FRAGILE_KEYWORDS = ["mirror", "glass", "china", "lamp", "tv", "artwork", "picture", "wine", "vase", "crystal", "antique", "statue", "marble", "stone", "arcade", "pinball", "clock", "plant"];
+
+const LIFT_GATE_ITEMS = [
+  "piano", "grand piano", "baby grand", "upright piano",
+  "safe", "gun safe", "large safe",
+  "arcade machine", "pinball", "slot machine", "copier", "large copier",
+  "pool table", "billiards table",
+  "riding mower", "motorcycle", "pallet", "skid", "crate",
+  "marble", "stone", "granite", "commercial fridge", "server rack", "machinery",
+  "large statue", "fountain", "lathe", "milling machine",
+  "grandfather clock", "clock large",
+  "treadmill", "elliptical", "rowing machine", "multi gym", "tool chest", "workbench",
+  "adjustable bed", "adjustable base", "sleep number",
+  "hot tub", "jacuzzi", "rolling toolbox"
+];
+
+const LEAGUE_1_ITEMS = [
+    "treadmill", "elliptical", "peloton", "exercise bike", "spin bike",
+    "rowing machine", "multi gym", "weight bench",
+    "washer", "dryer", "stove", "dishwasher",
+    "fridge", "refrigerator", "commercial fridge",
+    "tool chest", "workbench", "rolling toolbox",
+    "adjustable bed", "adjustable base", "sleep number"
+];
+const LEAGUE_2_ITEMS = [
+    "grand piano", "baby grand piano", "upright piano", "piano",
+    "safe", "gun safe", "large safe",
+    "pool table", "marble table", "stone table",
+    "hot tub", "jacuzzi",
+    "arcade machine", "pinball machine", "slot machine",
+    "grandfather clock", "riding mower", "server rack"
+];
+
+/* =========================================================================
+   2. DATA TABLES
+   ========================================================================= */
+
+const VOLUME_TABLE = {
+  // --- Furniture ---
+  "bed": 60, "shelf": 20, "shelves": 20, "rack": 20, "patio": 20, "patio item": 20,
+  "shelving unit": 20,
+  "plastic": 10, "linen": 10, "clothes": 10, "misc": 10, "item": 10,
+  "table": 25, "tables": 25,
+  "sectional": 120, "sectional sofa": 120, "l shape sofa": 120,
+  "sleeper sofa": 80, "sofa bed": 80, "sofa": 60, "couch": 60, "loveseat": 40,
+  "futon": 55, "daybed": 55, "chaise": 25, "recliner": 25, "armchair": 25, "easy chair": 25,
+  "chair": 7, "dining chair": 7, "office chair": 10, "folding chair": 3,
+  "accent chair": 15, "occasional chair": 15,
+  "bench": 15, "storage bench": 20, "entry bench": 15,
+  "ottoman": 10, "bean bag": 10, "bar stool": 5, "stool": 5, "seat": 7,
+  "dining table": 35, "kitchen table": 30, "dining bench": 20,
+  "coffee table": 15, "coffee table set": 25, "end table": 5, "side table": 5, "console table": 20,
+  "tv stand": 20, "media console": 25, "entertainment center": 50,
+  "cabinet": 25, "hutch": 35, "curio cabinet": 35, "glass cabinet": 40,
+  "china cabinet": 40,
+  "buffet": 30, "sideboard": 30, "credenza": 35, "bar cabinet": 25, "bar cart": 10, "trunk": 15,
+  "chest": 35, "chest of drawers": 35,
+  "rug": 10, "lamp": 5, "artwork": 5, "picture": 5, "floor lamp": 8, "table lamp": 5,
+  "painting": 5, "canvas": 5, "frame": 5,
+  "cal king bed": 75, "king bed": 70, "queen bed": 60, "full bed": 50, "double bed": 50, "twin bed": 40,
+  "bunk bed": 90, "loft bed": 90, "crib": 30,
+  "mattress": 25, "boxspring": 15, "bed frame": 15, "headboard": 10, "footboard": 5, "bed slats": 5, "mattress topper": 5,
+  "adjustable bed": 40, "adjustable base": 40,
+  "dresser": 35, "tall dresser": 35, "triple dresser": 50, "bureau": 35,
+  "nightstand": 10, "wardrobe": 40, "armoire": 50,
+  "vanity": 30, "vanity stool": 5, "makeup table": 25,
+  "changing table": 15, "shoe rack": 8, "drawer unit": 15, "plastic drawer unit": 15,
+  "mirror full length": 10, "mirror": 8, "glass": 5,
+
+  // --- Kids & Sport ---
+  "stroller": 15, "double stroller": 25, "baby carriage": 20, "pram": 15, "buggy": 15,
+  "car seat": 5, "booster seat": 5,
+  "pack n play": 10, "playpen": 10,
+  "high chair": 10, "toy box": 10, "dollhouse": 15,
+  "bicycle kids": 5, "tricycle": 5, "scooter": 3, "wagon": 10,
+  "trampoline": 30, "trampoline large": 60, "skateboard": 2,
+  "pet cage": 15, "dog crate": 15, "cat tree": 15, "animal pen": 20,
+  "yoga mat": 2,
+
+  // --- Office & Electronics ---
+  "desk": 35, "l desk": 50, "standing desk": 35, "standing desk converter": 8, "executive desk": 45,
+  "chair mat": 2, "bookshelf": 20, "bookcase": 20, "file cabinet": 20,
+  "computer": 5, "computer tower": 5, "monitor": 5, "computer monitor": 5, "dual monitor": 8,
+  "monitor stand": 2, "printer": 10, "scanner": 5, "shredder": 8, "multifunction printer": 35,
+  "tv": 10, "speaker": 4, "soundbar": 5, "subwoofer": 8,
+  "server rack": 45, "electronics": 10, "equipment": 15,
+
+  // --- Appliances & Household ---
+  "fridge": 60, "refrigerator": 60, "commercial fridge": 80,
+  "freezer": 30, "chest freezer": 30, "upright freezer": 40, "deep freezer": 30,
+  "washer": 30, "dryer": 30, "stove": 30, "dishwasher": 25,
+  "wine cooler": 15, "wine fridge": 15, "mini fridge": 10, "ice maker": 10,
+  "microwave": 10, "mini oven": 10,
+  "air fryer": 5, "toaster": 3, "blender": 3, "coffee maker": 3, "kitchen appliance": 5,
+  "air conditioner": 20, "portable ac": 20, "dehumidifier": 10, "fan": 5,
+  "tower fan": 5, "box fan": 5, "floor fan": 5,
+  "heater": 10, "radiator": 10, "space heater": 5,
+  "vacuum": 5, "roomba": 5, "dyson": 5, "ironing board": 5,
+  "water dispenser": 10,
+
+  // --- Gym ---
+  "treadmill": 40, "elliptical": 60, "peloton": 35, "exercise bike": 35, "spin bike": 35,
+  "rowing machine": 45, "multi gym": 80, "weight bench": 30, "weight rack": 25,
+  "dumbbells": 10, "weight plates": 10,
+
+  // --- Outdoor & Garage ---
+  "bike": 10, "bicycle": 10, "motorcycle": 50,
+  "bbq": 35, "grill": 35, "smoker": 80, "fire pit": 20,
+  "patio set": 150, "outdoor table": 40, "outdoor chair": 10, "patio umbrella": 20,
+  "ladder": 10, "step ladder": 5, "extension ladder": 15, "step stool": 5,
+  "hose": 5, "garden hose": 5, "cooler": 10, "yeti": 10, "ice chest": 10,
+  "lawn mower": 20, "riding mower": 60, "leaf blower": 5, "weed whacker": 5, "wheelbarrow": 20,
+  "shovel": 2, "rake": 2, "garden tools bundle": 10,
+  "tool chest": 50, "workbench": 40, "storage cabinet": 30, "garage cabinet": 30,
+  "metal rack": 25, "garage shelving": 25, "rolling toolbox": 20,
+  "small tool box": 5, "tire": 10, "saw": 5, "sewing machine": 5,
+  "generator": 15, "golf bag": 8,
+  "surfboard": 10, "paddle board": 15, "sup": 15, "kayak": 25, "canoe": 30, "ski bag": 5,
+  "camping gear": 15, "tent": 5,
+  "plant": 10, "large plant": 10, "small plant": 5,
+
+  // --- Heavy/Specialty ---
+  "statue": 15, "large statue": 40, "fountain": 30, "bird bath": 10,
+  "arcade machine": 50, "pinball machine": 40, "slot machine": 40, "jukebox": 50,
+  "pool table": 80,
+  "piano": 60, "upright piano": 60, "baby grand piano": 120, "grand piano": 150,
+  "safe": 30, "gun safe": 60, "large safe": 80,
+  "grandfather clock": 40, "clock large": 25,
+  "restaurant table": 25, "bar chair": 7, "bar equipment": 20, "keg": 15, "tap system": 20,
+  "sink": 15, "wash station": 25, "commercial sink": 25, "commercial grill": 80,
+  "copier": 45, "copier large": 60, "plotter": 35, "vending machine": 65,
+  "conference table": 50, "display cabinet": 40,
+  "pallet": 50, "skid": 50, "crate": 20, "commercial bin": 15,
+  "marble table": 60, "stone table": 60,
+  "hot tub": 80, "jacuzzi": 80,
+
+  // --- Boxes & Storage ---
+  "boxes": 5, "box": 5, "bin": 5, "tote": 5,
+  "small box": 3, "medium box": 5, "large box": 6,
+  "plastic bin": 5, "storage bin": 5, "trash can": 5, "garbage bin": 5, "waste basket": 5,
+  "laundry basket": 5, "hamper": 5,
+  "dish barrel": 10, "dish box": 10,
+  "suitcase": 10, "luggage": 10, "duffle bag": 5, "travel bag": 5,
+  "wardrobe box": 15, "wardrobe carton": 15,
+  "tv box": 10, "picture box": 10, "art crate": 15,
+  "aquarium": 25, "fish tank": 25, "aquarium stand": 15,
+  "christmas decor": 5, "christmas stuff": 5,
+  "kitchen items": 5, "pantry items": 5,
+  "pillow": 5, "towel": 5, "bag": 5
+};
+
+const STRICT_NO_BLANKET_ITEMS = [
+  "box", "bin", "tote", "pack", "bag", "luggage", "suitcase", "crate", "carton",
+  "ladder", "hose", "sink", "equipment", "electronics", "vacuum", "fan", "microwave",
+  "generator", "compressor", "lawn mower", "aquarium", "plant", "rug", "tools",
+  "dumbbells", "plates", "lamp", "pallet", "skid", "trash", "bucket", "toy",
+  "bicycle", "tricycle", "scooter", "wagon", "stroller",
+  "kayak", "canoe", "surfboard",
+  "garden", "shovel", "rake", "wheelbarrow", "mower", "tent", "camping",
+  "leaf blower", "weed whacker", "pet cage", "dog crate",
+  "linen", "clothes", "plastic", "tire", "hamper", "basket", "yeti", "cooler",
+  "dish barrel", "pillow", "towel", "christmas"
+];
+
+const ABBREVIATIONS = {
+    "tbl": "table", "chr": "chair", "cab": "cabinet", "ctr": "center",
+    "ent": "entertainment", "exec": "executive", "pbo": "", "cp": "",
+    "reg": "", "osz": "large", "std": "", "k/d": "", "kd": "",
+    "uprt": "upright", "frig": "fridge", "ref": "fridge", "sect": "sectional",
+    "ctn": "box", "carton": "box", "dp": "dish barrel", "dishpack": "dish barrel",
+    "uph": "", "occ": "accent", "wdrb": "wardrobe", "arm": "armoire",
+    "hdbd": "headboard", "ftbd": "footboard", "mrbl": "marble", "gl": "glass",
+    "kng": "king", "qn": "queen", "dbl": "double", "twn": "twin",
+    "med": "medium", "sm": "small", "lg": "large", "flat screen": "",
+    "t.v.": "tv", "appliance": "kitchen appliance", "appliances": "kitchen appliance"
+};
+
+const INVERSIONS = [
+    { src: /table,\s*coffee/i, dest: "coffee table" },
+    { src: /table,\s*end/i, dest: "end table" },
+    { src: /table,\s*dining/i, dest: "dining table" },
+    { src: /bed,\s*headboard/i, dest: "headboard" },
+    { src: /bed,\s*footboard/i, dest: "footboard" },
+    { src: /fan,\s*floor/i, dest: "floor fan" },
+    { src: /dresser,\s*triple/i, dest: "triple dresser" },
+    { src: /mirror,\s*regular/i, dest: "mirror" },
+    { src: /work\s*bench,\s*reg\.?/i, dest: "workbench" },
+    { src: /box,\s*lg/i, dest: "large box" },
+    { src: /box,\s*med/i, dest: "medium box" },
+    { src: /box,\s*sm(?:all)?/i, dest: "small box" },
+    { src: /plastic\s*bin,\s*lg/i, dest: "large plastic bin" },
+    { src: /suitcase,\s*lg/i, dest: "large suitcase" }
+];
+
+const ALIAS_RULES = [
+  { re: /\b(tv|television)\s*\d{2,3}\b/i, to: "tv" },
+  { re: /\b(lg|samsung|sony|tcl|vizio|hisense|panasonic|sharp|philips)\s*\d{2,3}\b/i, to: "tv" },
+  { re: /\bweight\s*plates?\b/i, to: "weight plates" },
+  { re: /\b(printer)\s*\/\s*(copier)\b/i, to: "multifunction printer" },
+  { re: /\bmfp\b/i, to: "multifunction printer" },
+  { re: /\b(tv|television)\s+(stand|unit)\b/i, to: "tv stand" },
+  { re: /\b(tv|television)\s+(console|credenza|cabinet)\b/i, to: "media console" },
+  { re: /\b(sleeper|pull[-\s]?out)\s*(sofa|couch)\b/i, to: "sleeper sofa" },
+  { re: /\bsofa\s*bed\b/i, to: "sofa bed" },
+  { re: /\bfuton\b/i, to: "futon" },
+  { re: /\bday\s*bed\b/i, to: "daybed" },
+  { re: /\bchaise\s*(lounge)?\b/i, to: "chaise" },
+  { re: /\bstorage\s*bench\b/i, to: "storage bench" },
+  { re: /\b(entry|entryway)\s*bench\b/i, to: "entry bench" },
+  { re: /\bbar\s*cart\b/i, to: "bar cart" },
+  { re: /\bcoffee\s*table\s*set\b/i, to: "coffee table set" },
+  { re: /\b(entertainment)\s*(unit|center)\b/i, to: "entertainment center" },
+  { re: /\bdining\s*bench\b/i, to: "dining bench" },
+  { re: /\bbar\s*cabinet\b/i, to: "bar cabinet" },
+  { re: /\bglass\s*cabinet\b/i, to: "glass cabinet" },
+  { re: /\bside\s*board\b/i, to: "sideboard" },
+  { re: /\bbuffet\s*(table)?\b/i, to: "buffet" },
+  { re: /\bchina\s*(hutch|cabinet)\b/i, to: "china cabinet" },
+  { re: /\bdisplay\s*(case|cabinet)\b/i, to: "display cabinet" },
+  { re: /\bcurio\b/i, to: "curio cabinet" },
+  { re: /\bcredenza\b/i, to: "credenza" },
+  { re: /\bcrib\b/i, to: "crib" },
+  { re: /\bchanging\s*table\b/i, to: "changing table" },
+  { re: /\bvanity\b/i, to: "vanity" },
+  { re: /\bfull\s*length\s*mirror\b/i, to: "mirror full length" },
+  { re: /\bshoe\s*rack\b/i, to: "shoe rack" },
+  { re: /\bplastic\s*drawer(s)?\b/i, to: "plastic drawer unit" },
+  { re: /\bdrawer\s*unit\b/i, to: "drawer unit" },
+  { re: /\bmattress\s*topper\b/i, to: "mattress topper" },
+  { re: /\bbed\s*slats?\b/i, to: "bed slats" },
+  { re: /\bnight\s*stand(s)?\b/i, to: "nightstand" },
+  { re: /\b(chest)\s*of\s*drawers\b/i, to: "chest of drawers" },
+  { re: /\bchest\s*drawers\b/i, to: "chest of drawers" },
+  { re: /\bdresser\b.*\bmirror\b/i, to: "dresser" },
+  { re: /\bmake\s*up\s*table\b/i, to: "makeup table" },
+  { re: /\bstanding\s*desk\s*converter\b/i, to: "standing desk converter" },
+  { re: /\b(printer)\b/i, to: "printer" },
+  { re: /\bscanner\b/i, to: "scanner" },
+  { re: /\bshredder\b/i, to: "shredder" },
+  { re: /\bpc\s*tower\b|\bcomputer\s*tower\b/i, to: "computer tower" },
+  { re: /\bmonitor\b|\bcomputer\s*screen\b/i, to: "computer monitor" },
+  { re: /\bsound\s*bar\b/i, to: "soundbar" },
+  { re: /\bsub\s*woofer\b|\bsubwoofer\b/i, to: "subwoofer" },
+  { re: /\b(conference)\s*(room\s*)?table\b/i, to: "conference table" },
+  { re: /\boffice\s*table\b/i, to: "conference table" },
+  { re: /\b(copy\s*machine|xerox)\b/i, to: "copier" },
+  { re: /\bupright\s*freezer\b/i, to: "upright freezer" },
+  { re: /\bdeep\s*freezer\b/i, to: "deep freezer" },
+  { re: /\bwine\s*cooler\b/i, to: "wine cooler" },
+  { re: /\bwine\s*(refrigerator|fridge)\b/i, to: "wine fridge" },
+  { re: /\bice\s*maker\b/i, to: "ice maker" },
+  { re: /\bmicrowave\b/i, to: "microwave" },
+  { re: /\b(toaster\s*oven|mini\s*oven)\b/i, to: "mini oven" },
+  { re: /\bportable\s*ac\b|\bportable\s*air\s*conditioner\b/i, to: "portable ac" },
+  { re: /\bair\s*conditioner\b/i, to: "air conditioner" },
+  { re: /\bdehumidifier\b/i, to: "dehumidifier" },
+  { re: /\bfan\b/i, to: "fan" },
+  { re: /\bmini\s*(refrigerator|fridge)\b/i, to: "mini fridge" },
+  { re: /\browing\s*machine\b|\brower\b/i, to: "rowing machine" },
+  { re: /\bexercise\s*bike\b|\bspin\s*bike\b/i, to: "exercise bike" },
+  { re: /\bweight\s*bench\b|\bworkout\s*bench\b/i, to: "weight bench" },
+  { re: /\bweight\s*rack\b/i, to: "weight rack" },
+  { re: /\bdumbbells?\b/i, to: "dumbbells" },
+  { re: /\bstorage\s*cabinet\b/i, to: "storage cabinet" },
+  { re: /\bgarage\s*cabinet\b/i, to: "garage cabinet" },
+  { re: /\bpatio\s*umbrella\b/i, to: "patio umbrella" },
+  { re: /\bfire\s*pit\b/i, to: "fire pit" },
+  { re: /\bcooler\b/i, to: "cooler" },
+  { re: /\bgenerator\b/i, to: "generator" },
+  { re: /\blawn\s*mower\b/i, to: "lawn mower" },
+  { re: /\bgolf\s*bag\b/i, to: "golf bag" },
+  { re: /\b(bbq\s*grill|barbecue)\b/i, to: "bbq" },
+  { re: /\b(metal)\s*(shelving|shelf|rack)\b/i, to: "metal rack" },
+  { re: /\b(garage)\s*(shelving|shelf|rack)\b/i, to: "garage shelving" },
+  { re: /\b(shelves|shelving)\b/i, to: "shelving unit" },
+  { re: /\bstorage\s*rack\b/i, to: "rack" },
+  { re: /\baquarium\b|\bfish\s*tank\b/i, to: "aquarium" },
+  { re: /\bart\s*crate\b/i, to: "art crate" },
+  { re: /\bpicture\s*box\b/i, to: "picture box" },
+  { re: /\btv\s*box\b/i, to: "tv box" },
+  { re: /\bwardrobe\s*carton(s)?\b/i, to: "wardrobe carton" },
+  { re: /\bwardrobe\s*box(es)?\b/i, to: "wardrobe box" },
+  { re: /\bpbo\b/i, to: "box" },
+  { re: /\b(books|records|vinyl|cds|dvds)\b/i, to: "box" },
+  { re: /\b(kitchen\s*items|pantry\s*items|misc\s*items)\b/i, to: "boxes" },
+  { re: /\b(sup|paddle\s*board)\b/i, to: "paddle board" },
+  { re: /\b(lawnmower)\b/i, to: "lawn mower" },
+  { re: /\b(skid)\b/i, to: "pallet" },
+  { re: /\b(trash\s*can|garbage\s*bin|waste\s*basket)\b/i, to: "trash can" },
+  { re: /\b(pet\s*cage|dog\s*cage)\b/i, to: "pet cage" },
+  { re: /\b(trampoline)\b/i, to: "trampoline" },
+  { re: /\b(pinball)\b/i, to: "pinball machine" },
+  { re: /\b(slot\s*machine)\b/i, to: "slot machine" },
+  { re: /\b(grandfather\s*clock)\b/i, to: "grandfather clock" },
+  { re: /\b(roomba|dyson|shark)\b/i, to: "vacuum" },
+  { re: /\b(air\s*fryer|instapot|crockpot)\b/i, to: "air fryer" },
+  { re: /\b(adjustable\s*base|sleep\s*number|tempurpedic(\s*base)?)\b/i, to: "adjustable base" },
+  { re: /\bcomputer\s*chair\b/i, to: "office chair" },
+  { re: /\badjustable\s*bed\s*frame\b/i, to: "adjustable base" },
+  { re: /\bdbl\/qn\b/i, to: "full bed" },
+  { re: /\blarge\s*plastic\s*bin\b/i, to: "plastic bin" },
+  { re: /\blove\s*seat\b/i, to: "loveseat" },
+  { re: /\bconsole\b/i, to: "media console" },
+  { re: /^stand$/i, to: "tv stand" },
+  { re: /\bclosets?\b/i, to: "wardrobe box" },
+  { re: /\bdrawers?\b/i, to: "chest of drawers" },
+  { re: /\b(seats?|seating)\b/i, to: "chair" },
+  { re: /\b(pots|pans|dishes)\b/i, to: "kitchen items" },
+  { re: /\b(christmas|xmas)\s*(stuff|decor(ations)?)\b/i, to: "christmas decor" },
+  { re: /\bpantry\b/i, to: "pantry items" },
+  { re: /\b(bags?|luggage)\b/i, to: "bag" },
+  { re: /\b(towels?|linens?)\b/i, to: "towel" },
+  { re: /\bpillows?\b/i, to: "pillow" },
+  { re: /\bgarden\s*tools\b/i, to: "garden tools bundle" }
+];
+
+/* =========================================================================
+   3. UTILS, CACHES & HELPERS
+   ========================================================================= */
+
+const reEscape = (s) => s.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&");
+
+const BLANKET_KEYS = Object.keys(BLANKETS_TABLE).sort((a, b) => b.length - a.length);
+const DA_KEYS = Object.keys(DA_TIME_TABLE).sort((a, b) => b.length - a.length);
+const SORTED_KEYS = Object.keys(VOLUME_TABLE).sort((a, b) => b.length - a.length);
+
+function buildKeyRegex(key) {
+  if (key === "tv") return /\btv('?s)?\b/i;
+  const parts = key.split(" ");
+  const last = parts[parts.length - 1];
+  const head = parts.slice(0, -1).join(" ");
+  let lastRe = "";
+  if (last.endsWith("s")) lastRe = reEscape(last);
+  else lastRe = `${reEscape(last)}(?:s|es)?`;
+  const full = head ? `${reEscape(head)}\\s+${lastRe}` : lastRe;
+  return new RegExp(`\\b${full}\\b`, "i");
+}
+
+// CACHED REGEX PATTERNS (Performance boost)
+const KEY_REGEX = Object.fromEntries(SORTED_KEYS.map((k) => [k, buildKeyRegex(k)]));
+const BLANKET_REGEX_CACHE = Object.fromEntries(BLANKET_KEYS.map(k => [k, buildKeyRegex(k)]));
+const DA_REGEX_CACHE = Object.fromEntries(DA_KEYS.map(k => [k, buildKeyRegex(k)]));
+const FRAGILE_REGEX_CACHE = FRAGILE_KEYWORDS.map(k => new RegExp(`\\b${reEscape(k)}\\b`, "i"));
+
+const NUMBER_MAP = {
+  "one": 1, "two": 2, "three": 3, "four": 4, "five": 5,
+  "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
+  "eleven": 11, "twelve": 12, "dozen": 12,
+  "multiple": 5, "several": 3, "few": 3, "pair": 2, "couple": 2,
+  "half dozen": 6
+};
+const NUMBERS_REGEX_CACHE = Object.keys(NUMBER_MAP).map(key => ({
+  re: new RegExp(`\\b${key}\\b`, "gi"),
+  val: NUMBER_MAP[key]
+}));
+
+function matchLongestKey(nameLower, keys, cache) {
+  for (const k of keys) {
+    if (cache[k].test(nameLower)) return k;
+  }
+  return null;
+}
+
+const IRREGULAR_SIGNALS = [
+  "sectional", "bike", "bicycle", "peloton", "treadmill", "elliptical",
+  "rowing", "rower", "weights", "plates", "dumbbell",
+  "kayak", "bbq", "grill", "smoker", "patio", "umbrella", "outdoor",
+  "large mirror", "piano", "safe", "generator", "statue", "arcade",
+  "riding mower", "trampoline", "surfboard", "pallet", "skid",
+  "adjustable"
+];
+
+const VAGUE_SIGNALS = ["misc", "miscellaneous", "some boxes", "garage stuff", "storage stuff", "tools", "seasonal", "attic", "shed", "stuff"];
+const DA_COMPLEX = ["bed", "bunk", "crib", "sectional", "gym", "treadmill", "elliptical", "peloton", "armoire", "wardrobe", "sleeper", "sofa bed", "pool table", "arcade", "trampoline", "adjustable"];
+const DA_SIMPLE = ["table", "desk", "crib"];
+
+const SIZE_UNIT_PATTERNS = [
+  /\b(?:inch|inches)\b/i, /\d\s*(?:in)\b/i, /\b(?:ft|feet|foot)\b/i,
+  /\d\s*(?:cm)\b/i, /\d\s*(?:mm)\b/i, /["″]/,
+];
+
+function looksLikeSizeNotQty(rawTok = "", cleanTok = "") {
+  const s = (rawTok || "").toLowerCase();
+  if (/\b(monitor|screen)s?\b/.test(cleanTok)) {
+      if (SIZE_UNIT_PATTERNS.some(re => re.test(s))) return true;
+      return false;
+  }
+  if (/\b(tv|television)s?\b/.test(cleanTok)) {
+      const m = s.match(/[:=]?\s*(\d{2,3})\b/);
+      if (m) { const val = parseInt(m[1], 10); if (val >= 30 && val <= 100) return true; }
+      return false;
+  }
+  if (/[:=]\s*\d+/.test(s)) return false;
+  if (/\b(\~|≈|approx|approximately|total|qty|count|pcs|items|ea)\b/i.test(s)) return false;
+  if (/\b\d+\s*[-–]\s*\d+\b/.test(s)) return false;
+  if (/\b(?:qty|count|pcs)\s*[:=]?\s*\d+\b/i.test(s)) return false;
+  if (/\b(?:x\s*\d+|\d+\s*x)\b/i.test(s)) return false;
+  if (SIZE_UNIT_PATTERNS.some(re => re.test(s))) return true;
+  if (/\b\d+\s*'\b/.test(s)) return true;
+  if (/\b\d+\s*x\s*\d+(\s*x\s*\d+)?\b/i.test(s)) return true;
+  if (/\b(rug|carpet|mat|mirror)s?\b/.test(cleanTok)) {
+      const m = s.match(/\b(\d{2,3})\b\s*$/);
+      if (m) { const n = parseInt(m[1], 10); if (n >= 20) return true; }
+  }
+  return false;
+}
+
+function extractWeightLbs(rawTok = "") {
+  const s = (rawTok || "").toLowerCase();
+  let m = s.match(/(\d{1,4})\s*(?:lb|lbs|pound|pounds)\b/);
+  if (m) return parseInt(m[1], 10);
+  m = s.match(/(\d{1,4})\s*(?:kg|kgs)\b/);
+  if (m) return Math.round(parseInt(m[1], 10) * 2.20462);
+  return null;
+}
+
+function roundUpTo(n, step) {
+  const x = Number(n); const s = Number(step);
+  if (!Number.isFinite(x) || !Number.isFinite(s) || s <= 0) return n;
+  return Math.ceil(x / s) * s;
+}
+
+function uid() { return Math.random().toString(36).slice(2) + Date.now().toString(36); }
+
+function clampInt(n, min = 0, max = 999) {
+  const x = Number(n);
+  if (!Number.isFinite(x)) return min;
+  return Math.max(min, Math.min(max, Math.round(x)));
+}
+
+function parseOverrideValue(val, min = 0, max = 9999) {
+  const str = String(val || "").trim();
+  if (str === "") return null;
+  const num = Number(str);
+  if (!Number.isFinite(num)) return null;
+  return Math.max(min, Math.min(max, Math.round(num)));
+}
+
+function normalizeTextNumbers(text) {
+  let s = (text || "").toLowerCase();
+  NUMBERS_REGEX_CACHE.forEach(({re, val}) => {
+     s = s.replace(re, val);
+  });
+  return s;
+}
+
+function scrubNoise(s) {
+  return (s || "")
+    .replace(/\b\d+(\.\d+)?\s*(lb|lbs|pound|pounds|kg|kgs|in|inch|inches|ft|feet|foot|cm|mm)\b/gi, " ")
+    .replace(/\b\d+(\.\d+)?\s*['′](?=\s|$)/g, " ")
+    .replace(/\b\d+(\.\d+)?\s*["″](?=\s|$)/g, " ")
+    .replace(/['′"″]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function extractQty(text) {
+  const s = (text || "").toLowerCase().trim();
+  const safeParse = (str) => { const val = parseInt(str, 10); return Math.min(500, Math.max(1, val)); };
+  let m = s.match(/\((\d+)\)\s*$/); if (m) return safeParse(m[1]);
+  m = s.match(/\bx\s*(\d+)\b/i); if (m) return safeParse(m[1]);
+  m = s.match(/\b(\d+)\s*x\b/i); if (m) return safeParse(m[1]);
+  if (/\b\d+\s*x\s*\d+(\s*x\s*\d+)?\b/.test(s)) return 1;
+  m = s.match(/\bset\s+of\s+(\d+)\b/); if (m) return safeParse(m[1]);
+  m = s.match(/\bpair\s+of\b/); if (m) return 2;
+  m = s.match(/(?:[:=\s]*[~≈-]+\s*|\s+)(\d+)(?:\s*[-–]\s*(\d+))?\s*(?:total|pcs|items|ea|est|approx)?\s*$/i);
+  if (m) return Math.max(safeParse(m[1]), m[2] ? safeParse(m[2]) : 0);
+  m = s.match(/\b(\d+)\s*dozen\b/); if (m) return Math.min(500, safeParse(m[1]) * 12);
+  m = s.match(/^(\d+)\s*-\s*(\d+)\b/); if (m) return safeParse(m[2]);
+  m = s.match(/^(\d+)\b/); if (m) return safeParse(m[1]);
+  m = s.match(/:\s*(\d+)\s*$/); if (m) return safeParse(m[1]);
+  m = s.match(/\b(qty|count|pcs)\s*(\d+)\s*$/); if (m) return safeParse(m[2]);
+  m = s.match(/\bx(\d+)\b/i); if (m) return safeParse(m[1]);
+  return 1;
+}
+
+function applyAliasesRegex(t) {
+  const s = (t || "").toLowerCase();
+  for (const rule of ALIAS_RULES) {
+    if (rule.re.test(s)) return rule.to;
+  }
+  return t;
+}
+
+function preProcessLine(line) {
+  let s = line;
+  INVERSIONS.forEach(inv => { s = s.replace(inv.src, inv.dest); });
+  s = s.replace(/\bt\.v\./gi, "tv");
+  s = s.replace(/\bflat\s+screen\b/gi, "");
+  s = s.replace(/\bw\/d\b/gi, "washer & dryer");
+  const tokens = s.split(/([\s,]+)/);
+  const processed = tokens.map(tok => {
+      const lower = tok.toLowerCase().replace(/\.$/, "");
+      // SAFE object call
+      if (Object.prototype.hasOwnProperty.call(ABBREVIATIONS, lower)) {
+          return ABBREVIATIONS[lower];
+      }
+      return tok;
+  });
+  s = processed.join("");
+  s = s.replace(/\s+(w\/|with|plus)\s+/gi, " & ");
+  return s;
+}
+
+function normalizeRowsFromText(text) {
+  const parsed = parseInventory(text);
+  const rows = (parsed.detectedItems || []).map(it => {
+    const cfUnit = Math.max(1, Math.round((it.cf || 0) / Math.max(1, it.qty || 1)));
+    const nameLower = (it.name || "").toLowerCase();
+    const rawLower = (it.raw || "").toLowerCase();
+    const isHeavy = it.isWeightHeavy || LIFT_GATE_ITEMS.some(lg => nameLower.includes(lg) || rawLower.includes(lg));
+    return {
+      id: uid(), name: it.name, qty: clampInt(it.qty, 1, 500), cfUnit,
+      raw: it.raw || "", room: it.room || "", flags: { heavy: !!isHeavy, heavyWeight: !!it.isWeightHeavy }
+    };
+  });
+  return { rows, unmapped: 0 };
+}
+
+function summarizeNormalizedRows(rows, rawTextForSignals = "") {
+  // SAFE fallbacks for empty inputs during edit
+  const validRows = (rows || []).filter(r => {
+      const q = parseInt(r.qty, 10) || 0;
+      return q > 0;
+  });
+  const detectedItems = validRows.map(r => ({
+    name: r.name, qty: clampInt(r.qty, 1, 500), cf: Math.max(1, Math.round((r.cfUnit || 1) * clampInt(r.qty, 1, 500))),
+    raw: r.raw || "", room: r.room || "", isWeightHeavy: !!r.flags?.heavyWeight, isManualHeavy: !!r.flags?.heavy
+  }));
+  const totalVol = (detectedItems || []).reduce((a, it) => a + (it.cf || 0), 0);
+  const detectedQtyTotal = (detectedItems || []).reduce((a, it) => a + (it.qty || 0), 0);
+  const boxCount = detectedItems.reduce((a, it) => {
+    const n = (it.name || "").toLowerCase();
+    return (n.includes("box") || n.includes("bin") || n.includes("tote")) ? a + it.qty : a;
+  }, 0);
+  const heavyCount = validRows.reduce((a, r) => a + (r.flags?.heavy ? clampInt(r.qty, 1, 500) : 0), 0);
+
+  let daComplexQty = 0, daSimpleQty = 0;
+  detectedItems.forEach(it => {
+      const n = (it.name || "").toLowerCase();
+      // SAFE Bed Unit Check
+      const isBedUnit = n.includes("bed") && !n.includes("frame") && !n.includes("mattress") && !n.includes("boxspring") && !n.includes("slat");
+      if (isBedUnit) daComplexQty += it.qty;
+      else if (DA_COMPLEX.some(s => n.includes(s))) daComplexQty += it.qty;
+      else if (DA_SIMPLE.some(s => n.includes(s))) daSimpleQty += it.qty;
+  });
+
+  let furnitureCount = 0, noBlanketVol = 0;
+  detectedItems.forEach(it => {
+    const n = (it.name || "").toLowerCase();
+    if (STRICT_NO_BLANKET_ITEMS.some(nb => n.includes(nb))) noBlanketVol += it.cf;
+    else furnitureCount += it.qty;
+  });
+  const irregularCount = detectedItems.reduce((a, it) => IRREGULAR_SIGNALS.some(s => (it.name||"").toLowerCase().includes(s)) ? a + it.qty : a, 0);
+  const rawLower = (rawTextForSignals || "").toLowerCase();
+
+  return {
+    detectedItems, totalVol, boxCount, heavyCount, furnitureCount, detectedQtyTotal, noBlanketVol,
+    irregularCount, daComplexQty, daSimpleQty, unrecognized: [],
+    estimatedItemCount: validRows.reduce((a, r) => a + (/\(est\)$/.test((r.name || "").toLowerCase()) ? clampInt(r.qty, 1, 500) : 0), 0),
+    hasVague: VAGUE_SIGNALS.some(s => rawLower.includes(s)),
+    mentionsGarageOrAttic: /\bgarage\b|\bpatio\b|\bchristmas\b|\battic\b|\bshed\b/i.test(rawLower)
+  };
+}
+
+function parseInventory(text) {
+  const rawNormalized = normalizeTextNumbers(text);
+  const rawLines = rawNormalized.replace(/\r/g, "").split("\n").filter(l => l.trim().length > 0);
+
+  let totalVol = 0, boxCount = 0, heavyCount = 0, detectedQtyTotal = 0, noBlanketVol = 0;
+  let daComplexQty = 0, daSimpleQty = 0, furnitureCount = 0;
+  let irregularCount = 0, estimatedItemCount = 0;
+
+  const detectedItems = [];
+  const unrecognized = [];
+  const tokens = [];
+  let currentRoom = "";
+
+  rawLines.forEach(line => {
+    const processedLine = preProcessLine(line);
+    let clean = processedLine.replace(/^[-*•>:]+\s*/, "");
+    const isProtectedItem = /^(room divider|roomba|dining table|office chair|kitchen island|patio heater)\b/i.test(clean);
+    const ROOM_ONLY = /^(living|dining|kitchen|master|bedroom|bath|garage|patio|study|office|basement|attic|nursery|guest|closet|laundry|den|foyer|hallway|mudroom|sunroom|bonus)(\s+room|\s+area)?(\s*\/[\w\s\-&\#\(\)\'\.,]+)?\s*:?$/i;
+    const ROOM_PREFIX = /^(living|dining|kitchen|master|bedroom|bath|garage|patio|study|office|basement|attic|nursery|guest|closet|laundry|den|foyer|hallway|mudroom|sunroom|bonus)\b/i;
+
+    if (!isProtectedItem) {
+        if (ROOM_ONLY.test(clean) && !/[0-9]/.test(clean)) {
+             currentRoom = clean.replace(/:$/, "").split("/")[0].trim(); clean = "";
+        } else {
+             const colonHdr = clean.match(/^(.+?)\s*:\s*(.*)$/);
+             if (colonHdr && ROOM_PREFIX.test(colonHdr[1])) { currentRoom = colonHdr[1].trim(); clean = colonHdr[2] || ""; } 
+             else if (/^(master|bedroom|bath)\s*\d+$/i.test(clean)) { currentRoom = clean.trim(); clean = ""; }
+        }
+    }
+    if (!clean.trim()) return;
+    clean = clean.replace(/\s+(w\/|with|plus|\+|and|&)\s+/gi, " & ");
+    const lineTokens = clean.split(/[,;•+]+|&/gi).map(x => x.trim()).filter(Boolean);
+    lineTokens.forEach(tok => tokens.push({ text: tok, room: currentRoom }));
+  });
+
+  tokens.forEach(({ text: tok, room }) => {
+    const rawTok = (tok || "").trim();
+    let t = scrubNoise(rawTok.toLowerCase());
+    if (!t) return;
+
+    let qty = 1;
+    const colonMatch = rawTok.match(/[:=]\s*(\d+)/);
+    if (colonMatch) {
+      const hasQtyWord = /\b(qty|count|pcs|items|ea)\b/i.test(rawTok);
+      const sizeLike = looksLikeSizeNotQty(rawTok, t);
+      qty = (sizeLike && !hasQtyWord) ? 1 : Math.min(500, Math.max(1, parseInt(colonMatch[1], 10)));
+    } else {
+      qty = looksLikeSizeNotQty(rawTok, t) ? 1 : extractQty(t);
+    }
+
+    const aliasFromRaw = applyAliasesRegex(rawTok.toLowerCase());
+    const wLbs = extractWeightLbs(rawTok);
+    const isWeightHeavy = wLbs && wLbs >= 300;
+
+    if (aliasFromRaw !== rawTok.toLowerCase() && aliasFromRaw !== t) t = aliasFromRaw;
+
+    let tClean = t
+      .replace(/^\s*x\s*\d+\s*/i, "")
+      .replace(/^\s*\d+\s*x\s*/i, "")
+      .replace(/\s*x\s*\d+\s*$/i, "")
+      .replace(/\s*\(\s*\d+\s*\)\s*$/i, "")
+      .trim();
+
+    let cleanName = tClean
+      .replace(new RegExp(`^${qty}\\s*(-|x)?\\s*`, "i"), "")
+      .replace(new RegExp(`[:\\s]+${qty}\\s*$`, "i"), "")
+      .replace(/\b(qty|count|pcs|items|ea|est|approx)\b/gi, "")
+      .replace(/\s+/g, " ").trim();
+
+    cleanName = applyAliasesRegex(cleanName);
+
+    let matchedAny = false;
+    for (const key of SORTED_KEYS) {
+      if (KEY_REGEX[key].test(cleanName)) {
+        matchedAny = true;
+        const cf = VOLUME_TABLE[key] * qty;
+        totalVol += cf; detectedQtyTotal += qty;
+        detectedItems.push({ name: key, qty, cf, raw: rawTok, room, wLbs, isWeightHeavy, isManualHeavy: false });
+        if (key.includes("box") || key.includes("bin") || key.includes("tote")) boxCount += qty;
+        if (LIFT_GATE_ITEMS.some(h => key.includes(h)) || isWeightHeavy) heavyCount += qty;
+        if (IRREGULAR_SIGNALS.some(s => key.includes(s))) irregularCount += qty;
+        
+        // SAFE Bed Unit Check
+        const isBedUnit = key.includes("bed") && !key.includes("frame") && !key.includes("mattress") && !key.includes("boxspring") && !key.includes("slat");
+        if (isBedUnit) daComplexQty += qty;
+        else if (DA_COMPLEX.some(s => key.includes(s))) daComplexQty += qty;
+        else if (DA_SIMPLE.some(s => key.includes(s))) daSimpleQty += qty;
+
+        if (!STRICT_NO_BLANKET_ITEMS.some(nb => key.includes(nb))) furnitureCount += qty;
+        else noBlanketVol += cf;
+        break;
+      }
+    }
+
+    if (!matchedAny) {
+      let estVol = PROTOCOL.VOL_EST_MEDIUM;
+      const lowerName = cleanName.toLowerCase();
+      let isBoxLike = false;
+      if (/box|bin|tote|bag|pack|basket|shoe|lamp|small|mini/i.test(lowerName)) { estVol = PROTOCOL.VOL_EST_SMALL; isBoxLike = true; } 
+      else if (/table|desk|cabinet|shelf|rack|stand|unit|dresser/i.test(lowerName)) { estVol = PROTOCOL.VOL_EST_LARGE; }
+
+      estVol = estVol * qty;
+      totalVol += estVol; detectedQtyTotal += qty;
+      if (!isBoxLike) furnitureCount += qty;
+      estimatedItemCount += qty;
+      detectedItems.push({ name: `${cleanName} (est)`, qty, cf: estVol, raw: rawTok, room, wLbs, isWeightHeavy, isManualHeavy: false });
+      if (cleanName.length > 2 && !/^(item|qty|pcs|total|set|of)$/i.test(cleanName)) unrecognized.push(cleanName);
+    }
+  });
+
+  const rawLower = (text || "").toLowerCase();
+  return {
+    detectedItems, totalVol, boxCount, heavyCount, furnitureCount, detectedQtyTotal, noBlanketVol,
+    irregularCount, daComplexQty, daSimpleQty, unrecognized, estimatedItemCount,
+    hasVague: VAGUE_SIGNALS.some(s => rawLower.includes(s)),
+    mentionsGarageOrAttic: /\bgarage\b|\bpatio\b|\bchristmas\b|\battic\b|\bshed\b/i.test(rawLower)
+  };
+}
+
+function buildEstimate(inputs) {
+  try {
+    const logs = [], risks = [], auditSummary = [], advice = [];
+    const o = inputs?.overrides || {};
+    const overridesApplied = [];
+
+    const isCommercial = inputs.homeSize === "Commercial";
+    const isLaborOnly = inputs.moveType === "Labor";
+    const isLD = inputs.moveType === "LD"; 
+    const bedroomCount = isCommercial ? 0 : (parseInt(inputs.homeSize) || 0);
+    const scopeLabel = isCommercial ? "Commercial" : inputs.homeSize === "0" ? "Studio / Less" : `${bedroomCount} BDR`;
+
+    const useNormalized = inputs.inventoryMode === "normalized" && Array.isArray(inputs.normalizedRows) && inputs.normalizedRows.length > 0;
+    const parsed = useNormalized
+      ? summarizeNormalizedRows(inputs.normalizedRows, inputs.inventoryText)
+      : parseInventory(inputs.inventoryText);
+
+    const items = (parsed.detectedItems || []);
+    const countBy = (re) => items.reduce((a, it) => a + (re.test((it.name || "").toLowerCase()) ? it.qty : 0), 0);
+
+    logs.push(`Config: ${inputs.moveType}, ${scopeLabel}`);
+    logs.push(`Inventory: ${parsed.detectedQtyTotal} items. Vol: ${parsed.totalVol} cf.`);
+
+    let fragileCount = 0;
+    (parsed.detectedItems || []).forEach(it => {
+        const n = it.name.toLowerCase();
+        if (/\btv\b/.test(n) && /\btv stand\b|\bmedia console\b|\bentertainment center\b/.test(n)) return;
+        if (FRAGILE_REGEX_CACHE.some(re => re.test(n))) fragileCount += it.qty;
+    });
+    const fragileDensity = parsed.detectedQtyTotal > 0 ? (fragileCount / parsed.detectedQtyTotal) : 0;
+
+    let hiddenVolume = 0;
+    let missingBoxesCount = 0;
+    const isTinyScope = bedroomCount === 0 && (parsed.totalVol < 120);
+
+    if (!isCommercial) {
+      if (!isTinyScope && !isLD) {
+          const hvRow = HV_TABLE[Math.min(bedroomCount, 5)];
+          if (parsed.totalVol < hvRow.min) {
+              hiddenVolume += hvRow.add;
+              logs.push(`Volume Check: +${hvRow.add} cf added.`);
+              auditSummary.push(`Added +${hvRow.add} cf (low volume for ${hvRow.label}).`);
+          }
+      }
+      const minBoxes = PROTOCOL.MIN_BOXES[Math.min(bedroomCount, 5)] || 10;
+      if (inputs.packingLevel !== "None" && !isTinyScope) {
+        if (parsed.boxCount < minBoxes) {
+          missingBoxesCount = minBoxes - parsed.boxCount;
+          hiddenVolume += missingBoxesCount * 5;
+          auditSummary.push(`Added ${missingBoxesCount} boxes (min expected).`);
+        }
+      } else if (!isTinyScope) {
+        const softCap = Math.min(minBoxes, parsed.boxCount + 10);
+        if (parsed.boxCount < softCap) {
+          missingBoxesCount = softCap - parsed.boxCount;
+          hiddenVolume += missingBoxesCount * 5;
+          auditSummary.push(`Soft top-up +${missingBoxesCount} boxes.`);
+        }
+      }
+    } else {
+      if (parsed.boxCount === 0 && parsed.totalVol > 500) {
+          missingBoxesCount = Math.ceil(parsed.totalVol * PROTOCOL.COMMERCIAL_BOX_RATIO / 5);
+          hiddenVolume += missingBoxesCount * 5;
+      }
+    }
+
+    if (parsed.mentionsGarageOrAttic) {
+      hiddenVolume += PROTOCOL.HIDDEN_VOL_GARAGE;
+      auditSummary.push(`Added +${PROTOCOL.HIDDEN_VOL_GARAGE} cf (zones mentioned).`);
+    }
+
+    let llPct = isLD ? PROTOCOL.LL_LD : PROTOCOL.LL_STANDARD;
+    const irregularRatio = parsed.detectedQtyTotal > 0 ? (parsed.irregularCount / parsed.detectedQtyTotal) : 0;
+    if (parsed.hasVague) { llPct += PROTOCOL.LL_VAGUE; auditSummary.push("Loose load increased (vague)."); }
+    if (irregularRatio > 0.15) { llPct += PROTOCOL.LL_IRREGULAR; auditSummary.push("Loose load +20% (bulky items)."); } 
+    else if (parsed.irregularCount > 0) llPct += 0.05;
+    llPct = Math.min(PROTOCOL.LL_CAP, llPct);
+
+    const volumeBeforeLL = parsed.totalVol + hiddenVolume;
+    let finalVolume = Math.ceil(volumeBeforeLL * (1 + llPct));
+
+    let volumeOverridden = false;
+    if (o.volume !== undefined && o.volume !== null) {
+      const v = parseOverrideValue(o.volume, 1, 10000);
+      if (v !== null) { finalVolume = v; overridesApplied.push("volume"); auditSummary.push(`Manager Override: Volume = ${finalVolume} cf`); volumeOverridden = true; }
+    }
+    if (!volumeOverridden) finalVolume = roundUpTo(finalVolume, 25);
+
+    const weight = Math.round(finalVolume * PROTOCOL.WEIGHT_STD);
+    logs.push(`Final Vol: ${volumeBeforeLL} cf + ${Math.round(llPct*100)}% LL = ${finalVolume} cf.`);
+
+    let effortScore = 0;
+    (parsed.detectedItems || []).forEach(it => {
+      const n = (it.name || "").toLowerCase();
+      const mult = Object.entries(EFFORT_MULTIPLIER).find(([k]) => n.includes(k));
+      effortScore += (it.cf || 0) * (mult ? mult[1] : 1.0);
+    });
+
+    let trucksFinal = 0;
+    let truckSizeLabel = "N/A";
+    let highCapRisk = false;
+
+    const norm = (s) => (s || "").toLowerCase();
+    const hasPallets = (parsed.detectedItems || []).some(it => { const n = norm(it.name); const r = norm(it.raw); return n.includes("pallet") || n.includes("skid") || r.includes("pallet") || r.includes("skid"); });
+    const hasHeavy = (parsed.detectedItems || []).some(it => { const n = norm(it.name); const r = norm(it.raw); return LIFT_GATE_ITEMS.some(lg => n.includes(lg) || r.includes(lg)); });
+    const hasHeavyByWeight = (parsed.detectedItems || []).some(it => it.isWeightHeavy);
+    const manualHeavy = useNormalized && inputs.normalizedRows.some(r => r.flags?.heavy);
+
+    let truckFeatureLabel = "";
+    if (hasHeavy || hasPallets || manualHeavy || hasHeavyByWeight) {
+        truckFeatureLabel = " + Lift-gate";
+        if (hasPallets) advice.push("Commercial: Palletjack & Lift-gate required for skids.");
+        if (hasHeavyByWeight) advice.push("Item >300lb detected: Heavy lifting gear needed.");
+    }
+
+    if (!isLaborOnly) {
+      const safeCapacity = PROTOCOL.TRUCK_CAPACITY_SAFE;
+      trucksFinal = Math.max(1, Math.ceil(finalVolume / safeCapacity));
+      if (trucksFinal === 1 && finalVolume >= Math.floor(safeCapacity * PROTOCOL.BORDERLINE_TRUCK_THRESHOLD)) {
+          trucksFinal = 2; highCapRisk = true;
+          risks.push({ text: "Borderline capacity: 2 trucks recommended.", level: "caution" });
+      }
+      if (trucksFinal >= 2) truckSizeLabel = "26ft Truck";
+      else if (finalVolume < 800) truckSizeLabel = "18ft Truck";
+      else if (finalVolume < 1300) truckSizeLabel = "24ft Truck";
+      else truckSizeLabel = "26ft Truck";
+      truckSizeLabel += truckFeatureLabel;
+
+      if (finalVolume > 4000) advice.push("Large Move: Recommend splitting into 2 days OR 6+ movers.");
+      if (inputs.moveType === "LD") {
+          const wTrucks = Math.ceil(weight / PROTOCOL.LD_WEIGHT_LIMIT);
+          if (wTrucks > trucksFinal) { trucksFinal = wTrucks; auditSummary.push("Extra truck added (weight limit)."); }
+      }
+    }
+
+    if (!isLaborOnly && o.trucks !== undefined && o.trucks !== null) {
+      const t = parseOverrideValue(o.trucks, 1, 20);
+      if (t !== null) {
+        trucksFinal = t; highCapRisk = false;
+        let label = trucksFinal >= 2 ? "26ft Truck" : finalVolume < 800 ? "18ft Truck" : finalVolume < 1300 ? "24ft Truck" : "26ft Truck";
+        truckSizeLabel = label + truckFeatureLabel; overridesApplied.push("trucks"); auditSummary.push(`Manager Override: Trucks = ${trucksFinal}`);
+      }
+    }
+
+    const baseFloor = isLaborOnly ? 10 : 20;
+    const itemFloor = Math.ceil((parsed.furnitureCount || 0) / 2);
+    let blankets = 0;
+    (parsed.detectedItems || []).forEach(it => {
+        const n = (it.name || "").toLowerCase();
+        let b = 0;
+        const k = matchLongestKey(n, BLANKET_KEYS, BLANKET_REGEX_CACHE);
+        if (k) b = BLANKETS_TABLE[k];
+        else if (!STRICT_NO_BLANKET_ITEMS.some(nb => n.includes(nb))) b = 1;
+
+        const isChairLike = (n.includes("chair") || n.includes("stool")) && !n.includes("chair mat") && !n.includes("mat");
+        const isArmchair = n.includes("arm") || n.includes("recliner") || n.includes("sofa");
+        if (isCommercial && isChairLike && !isArmchair) blankets += Math.ceil(it.qty / PROTOCOL.COMMERCIAL_STACK_FACTOR);
+        else blankets += b * it.qty;
+    });
+
+    const noBlanketCF = (parsed.detectedItems || []).reduce((a, it) => STRICT_NO_BLANKET_ITEMS.some(nb => (it.name||"").toLowerCase().includes(nb)) ? a + (it.cf || 0) : a, 0);
+    const noBlanketWithLL = Math.round((noBlanketCF + (missingBoxesCount * 5)) * (1 + llPct));
+    const blanketVolume = Math.max(0, finalVolume - noBlanketWithLL);
+
+    blankets = Math.max(blankets, Math.ceil(blanketVolume / PROTOCOL.BLANKET_DIVISOR));
+    const cap = Math.min(Math.ceil((parsed.furnitureCount || 0) * PROTOCOL.BLANKET_CAP_MULTIPLIER) + 15, Math.ceil(blanketVolume / 12));
+    blankets = roundUpTo(Math.max(Math.min(blankets, cap), Math.max(baseFloor, itemFloor)), 5);
+
+    let speedOrigin = isCommercial ? PROTOCOL.SPEED_COMMERCIAL : PROTOCOL.SPEED_GROUND;
+    let speedDest = isCommercial ? PROTOCOL.SPEED_COMMERCIAL : PROTOCOL.SPEED_GROUND;
+
+    if (!isCommercial) {
+        if (inputs.accessOrigin === "elevator") speedOrigin = PROTOCOL.SPEED_ELEVATOR;
+        else if (inputs.accessOrigin === "stairs") speedOrigin = Math.round(PROTOCOL.SPEED_STAIRS * Math.max(0.5, 1 - ((Math.min(6, Math.max(1, parseInt(inputs.stairsFlightsOrigin) || 1)) - 1) * PROTOCOL.STAIRS_FLIGHT_PENALTY)));
+
+        if (inputs.accessDest === "elevator") speedDest = PROTOCOL.SPEED_ELEVATOR;
+        else if (inputs.accessDest === "stairs") speedDest = Math.round(PROTOCOL.SPEED_STAIRS * Math.max(0.5, 1 - ((Math.min(6, Math.max(1, parseInt(inputs.stairsFlightsDest) || 1)) - 1) * PROTOCOL.STAIRS_FLIGHT_PENALTY)));
+    }
+    if (isLaborOnly && inputs.accessOrigin === "stairs") speedOrigin = Math.round(speedOrigin * 0.85);
+    if (inputs.moveType === "LD" && finalVolume * PROTOCOL.WEIGHT_SAFETY > 10000) speedOrigin *= PROTOCOL.HEAVY_PAYLOAD_SPEED_MULT;
+
+    let movementManHours = isLaborOnly || inputs.moveType === "LD" ? (finalVolume / speedOrigin) : (finalVolume / speedOrigin) + (finalVolume / speedDest);
+    if (highCapRisk) movementManHours *= PROTOCOL.MULTI_TRUCK_TIME_BUFFER;
+    if (inputs.moveType === "LD") movementManHours *= PROTOCOL.LD_TIER_BUFFER;
+
+    const isChairLikeFn = (name) => /chair|stool|bench|seat/i.test(name) && !/arm|reclin|sofa|couch/i.test(name);
+    let wrapMinsTotal = (parsed.detectedItems || []).reduce((acc, it) => {
+        const cfUnit = it.cf / Math.max(1, it.qty);
+        let mins = cfUnit > 15 ? 10 : 5;
+        if (isCommercial && isChairLikeFn(it.name)) mins = 1.0;
+        return acc + (mins * it.qty);
+    }, 0);
+    
+    if (fragileDensity > PROTOCOL.FRAGILE_DENSITY_THRESHOLD) wrapMinsTotal = Math.round(wrapMinsTotal * PROTOCOL.FRAGILE_WRAP_MULT);
+
+    let daMins = 0;
+    (parsed.detectedItems || []).forEach(it => {
+        const n = (it.name || "").toLowerCase();
+        const k = matchLongestKey(n, DA_KEYS, DA_REGEX_CACHE);
+        if (k) daMins += DA_TIME_TABLE[k] * it.qty;
+        else {
+            // SAFE Bed Unit Check
+            const isBedUnit = n.includes("bed") && !n.includes("frame") && !n.includes("mattress") && !n.includes("boxspring") && !n.includes("slat");
+            if (isBedUnit) daMins += (isCommercial ? 20 : PROTOCOL.MINS_DA_COMPLEX) * it.qty;
+            else if (DA_COMPLEX.some(s => n.includes(s))) daMins += (isCommercial ? 20 : PROTOCOL.MINS_DA_COMPLEX) * it.qty;
+            else if (DA_SIMPLE.some(s => n.includes(s))) daMins += (isCommercial ? 5 : PROTOCOL.MINS_DA_SIMPLE) * it.qty;
+        }
+    });
+
+    const totalBoxes = parsed.boxCount + missingBoxesCount;
+    let packingAddonMH = 0;
+    if (inputs.packingLevel === "Full") { packingAddonMH = (totalBoxes * PROTOCOL.MINS_PACK_BOX) / 60; advice.push(`Tip: Pre-packing loose items saves time.`); }
+    else if (inputs.packingLevel === "Partial") packingAddonMH = 2.0 + (Math.min(totalBoxes, Math.max(10, Math.ceil(totalBoxes * 0.25))) * 0.08);
+
+    const totalManHours = movementManHours + (daMins / 60) + (wrapMinsTotal / 60) + packingAddonMH;
+
+    let crew = Math.max(2, Math.ceil(Math.sqrt(finalVolume / 100)));
+    if (finalVolume >= 800 || trucksFinal > 1 || bedroomCount >= 3) crew = Math.max(3, crew);
+    if (bedroomCount >= 4) crew = Math.max(4, crew);
+    if (bedroomCount >= 5) crew = Math.max(5, crew);
+
+    const anyHeavySignal = parsed.heavyCount > 0 || hasHeavy || manualHeavy || hasHeavyByWeight;
+    if (anyHeavySignal) crew = Math.max(crew, 3);
+
+    let league = 0; const leagueItems = { l1: [], l2: [] };
+    (parsed.detectedItems || []).forEach(it => {
+        const n = (it.name || "").toLowerCase(), r = (it.raw || "").toLowerCase();
+        if (LEAGUE_2_ITEMS.some(lg => n.includes(lg) || r.includes(lg))) { league = 2; leagueItems.l2.push(it.name); }
+        else if (LEAGUE_1_ITEMS.some(lg => n.includes(lg) || r.includes(lg))) { if (league < 1) league = 1; leagueItems.l1.push(it.name); }
+    });
+    if (league === 2) crew = Math.max(crew, 4); 
+    if (finalVolume > 3000) crew = Math.max(crew, 6);
+    if (finalVolume > 4000) crew = Math.max(crew, 7);
+    if (inputs.packingLevel === "Full" && bedroomCount >= 3) crew = Math.max(crew, 4);
+    if (!isLaborOnly && trucksFinal >= 2) crew = Math.max(crew, 5);
+    if (crew > PROTOCOL.MAX_CREW_SIZE) crew = PROTOCOL.MAX_CREW_SIZE;
+
+    const distVal = parseInt(inputs.distance, 10) || 0;
+    const effectiveDist = (inputs.moveType === "LD" || isLaborOnly) ? 0 : distVal;
+    const fixedTime = (effectiveDist > 0 ? (effectiveDist / 30) + 0.6 : 0) + PROTOCOL.COORDINATION_HRS + (!isLaborOnly ? (trucksFinal * PROTOCOL.MINS_DOCKING_PER_TRUCK) / 60 : 0) + ((!isLaborOnly && trucksFinal >= 2) ? (trucksFinal * PROTOCOL.MINS_TRUCK_LOGISTICS) / 60 : 0);
+
+    // SAFE spaceCap Logic (Option 2 applied)
+    const isSmallHome = !isCommercial && bedroomCount <= 2;
+    let spaceCap = PROTOCOL.MAX_CREW_SIZE;
+    
+    if (isSmallHome) {
+        if (finalVolume > 2000) {
+            spaceCap = 6;
+        } else if (anyHeavySignal || finalVolume > 1500) {
+            spaceCap = 5;
+        } else {
+            spaceCap = 4;
+        }
+        if (crew > spaceCap) crew = spaceCap;
+    }
+
+    const crewHardCap = Math.min(spaceCap, (isCommercial ? PROTOCOL.MAX_CREW_SIZE : finalVolume < 2600 ? 6 : finalVolume < 3400 ? 7 : PROTOCOL.MAX_CREW_SIZE));
+
+    const computeDuration = (crewVal) => ((totalManHours / (crewVal * (crewVal > 6 ? PROTOCOL.CREW_EFFICIENCY_LOW : crewVal > 4 ? PROTOCOL.CREW_EFFICIENCY_HIGH : 1.0))) * (finalVolume > PROTOCOL.VOLUME_DRAG_THRESHOLD ? PROTOCOL.LARGE_VOLUME_DRAG : 1.0)) + fixedTime;
+
+    let calcDuration = computeDuration(crew);
+    const SAFE_DAY_LIMIT = (inputs.moveType === "Local" || inputs.moveType === "Storage") && inputs.packingLevel === "Full" ? 11.5 : 10.5;
+
+    while (crew < crewHardCap) {
+      const nextDuration = computeDuration(crew + 1);
+      const timeSaved = calcDuration - nextDuration;
+      if (calcDuration <= SAFE_DAY_LIMIT && timeSaved < 1.0) break;
+      if (Math.ceil(calcDuration * 1.1) < PROTOCOL.SPLIT_RISK_THRESHOLD && timeSaved < 0.5) break;
+      crew++; calcDuration = nextDuration;
+    }
+
+    let crewSuggestion = (calcDuration > 8.0 && crew < crewHardCap && (calcDuration - computeDuration(crew + 1)) >= 0.5) ? `+1 Mover saves ~${(calcDuration - computeDuration(crew + 1)).toFixed(1)}h` : null;
+
+    const boxDensity = parsed.detectedQtyTotal > 0 ? (parsed.boxCount || 0) / parsed.detectedQtyTotal : 0;
+    if (boxDensity > 0.60 && inputs.accessOrigin === "ground" && (inputs.moveType !== "Local" || inputs.accessDest === "ground") && finalVolume < 1200 && league < 2 && !overridesApplied.includes("crew") && crew > 3) { crew = 3; calcDuration = computeDuration(crew); }
+    if (!isLaborOnly && trucksFinal === 1 && /^18ft|^16ft/.test(truckSizeLabel) && league < 2 && !overridesApplied.includes("crew") && crew > 3) { crew = 3; calcDuration = computeDuration(crew); }
+
+    let timeMin = Math.max(3, Math.floor(calcDuration));
+    let timeMax = Math.max(timeMin + 1, Math.ceil(calcDuration * 1.1));
+    let splitRecommended = false;
+
+    if (isSmallHome && timeMax > 12.0 && crew === spaceCap) { advice.push("Space Constraint: Duration is high. 2-Day Split HIGHLY Recommended."); splitRecommended = true; } 
+    else if (timeMax >= PROTOCOL.SPLIT_RISK_THRESHOLD && crew === PROTOCOL.MAX_CREW_SIZE) { advice.push("Extremely long duration. 2-Day Split Recommended."); splitRecommended = true; }
+
+    if (o.crew !== undefined && o.crew !== null) { const c = parseOverrideValue(o.crew, 2, 20); if (c !== null) { crew = c; crewSuggestion = null; overridesApplied.push("crew"); } }
+    if (!((o.timeMin !== undefined && o.timeMin !== null) || (o.timeMax !== undefined && o.timeMax !== null)) && overridesApplied.includes("crew")) { const d = computeDuration(crew); timeMin = Math.max(3, Math.floor(d)); timeMax = Math.max(timeMin + 1, Math.ceil(d * 1.1)); }
+    if (o.timeMin !== undefined && o.timeMin !== null) { const tm = parseOverrideValue(o.timeMin, 1, 99); if (tm !== null) { timeMin = tm; overridesApplied.push("timeMin"); } }
+    if (o.timeMax !== undefined && o.timeMax !== null) { const tx = parseOverrideValue(o.timeMax, 1, 99); if (tx !== null) { timeMax = tx; overridesApplied.push("timeMax"); } }
+    if (timeMax >= 13) splitRecommended = true;
+
+    let confidenceScore = 100; const reasons = [];
+    const estimatedRatio = (parsed.estimatedItemCount || 0) / Math.max(1, parsed.detectedQtyTotal);
+    if (estimatedRatio > 0.05) { const penalty = Math.min(30, Math.round(estimatedRatio * 40)); confidenceScore -= penalty; reasons.push(`Estimated items: ${Math.round(estimatedRatio * 100)}% (-${penalty})`); }
+    if (estimatedRatio > 0.40) { confidenceScore = Math.min(confidenceScore, 50); reasons.push("Too many unrecognized items (Low Confidence)."); }
+    if (parsed.hasVague) { confidenceScore -= 7; reasons.push("Vague inventory description."); }
+    confidenceScore = Math.max(40, Math.min(100, confidenceScore));
+    const confidenceLabel = confidenceScore >= 80 ? "High" : confidenceScore >= 60 ? "Medium" : "Low";
+
+    const uniqueAdvice = []; const seenAdvice = new Set();
+    if (inputs.packingLevel !== "None") advice.push(isCommercial ? "Comm. Packing: Label all boxes by office/room number." : "Packing: Personal valuables & documents must be moved by client.");
+    if (finalVolume > 1800 && trucksFinal === 1) advice.push("High Volume: Ensure parking spot is 40ft+ for large truck maneuvering.");
+    advice.forEach(a => { if (splitRecommended && a.includes("Large Move")) return; if (!seenAdvice.has(a)) { seenAdvice.add(a); uniqueAdvice.push(a); } });
+
+    let boxesBring = parsed.boxCount || 0;
+    const minBoxesBySize = !isCommercial ? (PROTOCOL.MIN_BOXES[Math.min(bedroomCount, 5)] || 10) : 20;
+    if (inputs.packingLevel === "Full") boxesBring = Math.max(boxesBring, minBoxesBySize) + 10 + (Math.max(1, trucksFinal) * 5);
+    else if (inputs.packingLevel === "Partial") boxesBring = Math.max(boxesBring, isCommercial ? 25 : Math.max(25, Math.ceil(minBoxesBySize * 0.35)));
+    else boxesBring = Math.max(boxesBring, isCommercial ? 15 : 10);
+    
+    if (fragileCount > 5) boxesBring += 5;
+    if (parsed.hasVague) boxesBring += 5;
+
+    boxesBring = roundUpTo(Math.ceil(Math.min(boxesBring, inputs.packingLevel === "Full" ? Math.ceil(finalVolume / 12 + 40) : Math.ceil(finalVolume / 20 + 20))), 10);
+
+    let wardrobes = roundUpTo(!isCommercial ? (bedroomCount * 4) : 0, 5);
+
+    if (o.blankets !== undefined && o.blankets !== null) { const b = parseOverrideValue(o.blankets, 0, 500); if (b !== null) { blankets = b; overridesApplied.push("blankets"); auditSummary.push(`Manager Override: Blankets = ${blankets}`); } }
+    if (o.boxes !== undefined && o.boxes !== null) { const bx = parseOverrideValue(o.boxes, 0, 500); if (bx !== null) { boxesBring = bx; overridesApplied.push("boxes"); auditSummary.push(`Manager Override: Boxes = ${boxesBring}`); } }
+
+    const smartEquipment = [];
+    if (hasPallets) smartEquipment.push("Pallet Jack");
+    if (countBy(/piano/i) > 0) smartEquipment.push("Piano Board");
+    if (countBy(/fridge|washer|dryer|safe/i) > 0) smartEquipment.push("Appliance Dolly");
+    if (fragileCount > 2) smartEquipment.push("Protective Wrap");
+
+    const heavyMap = new Map();
+    (parsed.detectedItems || []).forEach(it => {
+      const isLiftGate = LIFT_GATE_ITEMS.some(lg => (it.name || "").toLowerCase().includes(lg));
+      if (!isLiftGate && !it.isWeightHeavy && !it.isManualHeavy) return;
+      const label = (!isLiftGate && it.isWeightHeavy) ? `${it.name} (>300lb)` : it.name;
+      heavyMap.set(label, (heavyMap.get(label) || 0) + (it.qty || 1));
+    });
+
+    return {
+      finalVolume, weight, trucksFinal, truckSizeLabel, crew, timeMin, timeMax,
+      logs, risks, splitRecommended, crewSuggestion, parsedItems: parsed.detectedItems,
+      detectedQtyTotal: parsed.detectedQtyTotal, unrecognized: parsed.unrecognized,
+      materials: { blankets, boxes: boxesBring, wardrobes }, smartEquipment, homeLabel: scopeLabel,
+      confidence: { score: confidenceScore, label: confidenceLabel, reasons }, auditSummary, advice: uniqueAdvice, overridesApplied,
+      unrecognizedDetails: parsed.unrecognized.slice(0, 10), effortScore: Math.round(effortScore),
+      deadheadMiles: effectiveDist, isDDT: inputs.moveType === "Local" && distVal > 10,
+      totalManHours: Math.round(totalManHours * 10) / 10, daMins: Math.round(daMins),
+      anyHeavySignal, heavyItemNames: [...heavyMap.entries()].map(([name, qty]) => qty > 1 ? `${name} x${qty}` : name),
+      league, leagueItems, boxDensity: Math.round(boxDensity * 100)
+    };
+  } catch (err) {
+    console.error("Engine Crash:", err);
+    return {
+      finalVolume: 0, weight: 0, trucksFinal: 0, truckSizeLabel: "Error", crew: 0, timeMin: 0, timeMax: 0,
+      logs: ["Critical Engine Error"], risks: [{ text: "System Error. Reset config.", level: "critical" }],
+      splitRecommended: false, crewSuggestion: null, parsedItems: [], detectedQtyTotal: 0, unrecognized: [],
+      materials: { blankets: 0, boxes: 0, wardrobes: 0 }, smartEquipment: [], homeLabel: "Error",
+      confidence: { score: 0, label: "Error", reasons: [] }, auditSummary: [], advice: [], overridesApplied: [], unrecognizedDetails: [], anyHeavySignal: false, heavyItemNames: [],
+      league: 0, leagueItems: { l1: [], l2: [] }, boxDensity: 0
+    };
+  }
+}
+
+function useDebounce(value, delay) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+  useEffect(() => { const h = setTimeout(() => setDebouncedValue(value), delay); return () => clearTimeout(h); }, [value, delay]);
+  return debouncedValue;
+}
+
+/* =========================================================================
+   6. UI COMPONENTS (Clean Premium)
+   ========================================================================= */
+
+const GlassPanel = ({ children, className = "" }) => (
+  <div className={`bg-white border border-gray-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)] rounded-[2rem] ${className}`}>
+    {children}
+  </div>
+);
+
+const InputLabel = ({ label }) => <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1 mb-1.5 block">{label}</label>;
+
+const Select = ({ id, value, onChange, options, disabled }) => (
+  <div className="relative">
+    <select id={id} value={value} onChange={onChange} disabled={disabled} className={`w-full appearance-none bg-white border border-gray-200 rounded-2xl px-4 py-3.5 text-sm font-semibold text-gray-900 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}>
+      {options.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+    </select>
+    {!disabled && <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none opacity-40"><ChevronDown className="w-4 h-4" /></div>}
+  </div>
+);
+
+const MetricCard = ({ icon: Icon, label, value, sub, variant = "gray", isCritical, advice }) => {
+  const style = isCritical ? { bg: "bg-red-500", light: "bg-red-50", text: "text-red-600" } :
+    (variant === "red" ? { bg: "bg-red-500", text: "text-red-600", light: "bg-red-50" } :
+    variant === "blue" ? { bg: "bg-blue-500", text: "text-blue-600", light: "bg-blue-50" } :
+    variant === "orange" ? { bg: "bg-orange-500", text: "text-orange-600", light: "bg-orange-50" } :
+    variant === "emerald" ? { bg: "bg-emerald-500", text: "text-emerald-600", light: "bg-emerald-50" } :
+    variant === "purple" ? { bg: "bg-purple-500", text: "text-purple-600", light: "bg-purple-50" } :
+    { bg: "bg-gray-500", text: "text-gray-600", light: "bg-gray-50" });
+
+  return (
+    <div className={`relative overflow-hidden p-5 rounded-[1.5rem] bg-white border shadow-[0_2px_10px_rgba(0,0,0,0.02)] flex flex-col gap-3 transition-all duration-300 group hover:shadow-md hover:-translate-y-0.5 ${isCritical ? 'border-red-100 bg-red-50/30' : 'border-gray-100'}`}>
+      <div className={`absolute -right-6 -top-6 w-32 h-32 rounded-full blur-3xl opacity-0 group-hover:opacity-15 transition-opacity duration-500 ${style.bg}`} />
+      
+      <div className="relative z-10 flex items-center gap-2">
+        <div className={`p-2 rounded-xl ${isCritical ? 'bg-red-100 text-red-600' : `${style.light} ${style.text}`}`}><Icon className="w-4 h-4" /></div>
+        <span className={`text-[10px] font-bold uppercase tracking-widest ${isCritical ? 'text-red-500' : 'text-gray-400'}`}>{label}</span>
+      </div>
+      <div className="relative z-10">
+        <div className={`text-2xl font-black tracking-tight ${isCritical ? 'text-red-800' : 'text-gray-900'}`}>{value}</div>
+        {sub && <div className={`text-[11px] font-semibold mt-0.5 ${isCritical ? 'text-red-600' : 'text-gray-400'}`}>{sub}</div>}
+        {advice && <div className="mt-2 text-[10px] bg-emerald-50 text-emerald-700 px-2 py-1 rounded-lg font-semibold inline-block border border-emerald-100">{advice}</div>}
+      </div>
+    </div>
+  );
+};
+
+const AccessSegmented = ({ value, onChange }) => {
+  const options = [{ id: "ground", label: "Ground", icon: Move }, { id: "elevator", label: "Elevator", icon: ArrowUpFromLine }, { id: "stairs", label: "Stairs", icon: AlignStartVertical }];
+  const idx = Math.max(0, options.findIndex((o) => o.id === value));
+  return (
+    <div className="relative w-full rounded-2xl bg-[#F5F7FA] border border-gray-200/50 p-1 flex items-center">
+      <div className="absolute top-1 bottom-1 rounded-xl bg-white shadow-sm ring-1 ring-black/5 transition-transform duration-300 ease-out" style={{ width: `calc((100% - 8px) / 3)`, transform: `translateX(${idx * 100}%)` }} />
+      <div className="relative z-10 grid grid-cols-3 gap-1 w-full">
+        {options.map((opt) => (
+          <button key={opt.id} type="button" onClick={() => onChange(opt.id)} className={`h-8 rounded-xl flex items-center justify-center gap-1.5 px-1 text-[11px] font-bold transition-colors duration-200 ${opt.id === value ? "text-gray-900" : "text-gray-500 hover:text-gray-700"}`}>
+            <opt.icon className={`w-3.5 h-3.5 shrink-0 ${opt.id === value ? "text-blue-600" : "text-current"}`} /><span className="leading-none truncate">{opt.label}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+function useAnimatedNumber(target, durationMs = 1500) {
+  const [val, setVal] = useState(0);
+  useEffect(() => {
+    let start = null, rafId = 0; const from = 0, to = Math.max(0, Math.min(100, target));
+    const step = (timestamp) => {
+      if (!start) start = timestamp;
+      const progress = Math.min(1, (timestamp - start) / durationMs);
+      setVal(Math.round(from + (to - from) * (1 - Math.pow(1 - progress, 3))));
+      if (progress < 1) rafId = requestAnimationFrame(step);
+    };
+    rafId = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(rafId);
+  }, [target, durationMs]);
+  return val;
+}
+
+const ConfidenceDonut = ({ score, label }) => {
+  const animScore = useAnimatedNumber(score);
+  const size = 68, stroke = 6, radius = 30, c = 2 * Math.PI * radius;
+  const dash = (animScore / 100) * c;
+  const colors = label === "High" ? { ring: "stroke-emerald-400", text: "text-emerald-700", bg: "bg-emerald-50 border-emerald-200" } : label === "Medium" ? { ring: "stroke-amber-400", text: "text-amber-700", bg: "bg-amber-50 border-amber-200" } : { ring: "stroke-red-400", text: "text-red-700", bg: "bg-red-50 border-red-200" };
+  
+  return (
+    <div className="flex items-center gap-5 bg-white border border-gray-100 rounded-[2rem] p-4 pr-6 shadow-sm">
+      <div className="relative flex-shrink-0 drop-shadow-sm" style={{ width: size, height: size }}>
+        <svg width={size} height={size} className="transform -rotate-90">
+          <circle cx={size/2} cy={size/2} r={radius} fill="none" stroke="#F3F4F6" strokeWidth={stroke} />
+          <circle cx={size/2} cy={size/2} r={radius} fill="none" className={`${colors.ring} transition-all duration-1000 ease-out`} strokeWidth={stroke} strokeLinecap="round" strokeDasharray={`${dash} ${c}`} />
+        </svg>
+        <div className="absolute inset-0 flex items-center justify-center">
+            <span className="text-[15px] font-black text-gray-800">{animScore}</span>
+        </div>
+      </div>
+      <div className="flex flex-col">
+        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Confidence</span>
+        <span className={`inline-block px-3 py-1 rounded-xl text-[11px] font-bold border ${colors.text} ${colors.bg}`}>{label} Score</span>
+      </div>
+    </div>
+  );
+};
+
+const SmallInput = ({ value, onChange, placeholder }) => (
+    <div className="ml-2 flex items-center gap-1.5">
+        <span className="text-[10px] font-bold text-gray-400 uppercase">FL:</span>
+        <input
+            type="number" inputMode="numeric" min="1" max="10"
+            className="w-10 h-8 text-center text-xs font-bold bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none shadow-sm"
+            placeholder={placeholder} value={value || ""} onChange={e => onChange(Math.max(1, parseInt(e.target.value) || 1))}
+        />
+    </div>
+);
+
+/* =========================================================================
+   7. MAIN APP
+   ========================================================================= */
+
+const DEFAULT_INVENTORY = "";
+const STORAGE_KEY = "estimator_fixed_v11_58";
+const STORAGE_KEY_MANAGER = "estimator_fixed_v11_58_manager";
+
+export default function App() {
+  const [activeTab, setActiveTab] = useState("config");
+  const [showDetails, setShowDetails] = useState(false);
+  const [copyStatus, setCopyStatus] = useState("idle");
+  const [inventoryClipped, setInventoryClipped] = useState(false);
+
+  const [adminMode, setAdminMode] = useState(false);
+  const [secretClicks, setSecretClicks] = useState(0);
+  const [inventoryMode, setInventoryMode] = useState("raw");
+  const [normalizedRows, setNormalizedRows] = useState([]);
+  const [overrides, setOverrides] = useState({});
+  const [addRowInput, setAddRowInput] = useState("");
+
+  const [inputs, setInputs] = useState(() => {
+    // SSR Safe Check
+    if (typeof window === "undefined") {
+      return { homeSize: "3", moveType: "Local", distance: "15", packingLevel: "None", accessOrigin: "ground", accessDest: "ground", inventoryText: DEFAULT_INVENTORY, stairsFlightsOrigin: 1, stairsFlightsDest: 1 };
+    }
+
+    try {
+      const configSaved = localStorage.getItem(`${STORAGE_KEY}_config`);
+      const textSaved = localStorage.getItem(`${STORAGE_KEY}_text`);
+      const legacySaved = localStorage.getItem(STORAGE_KEY);
+
+      let base = {
+        homeSize: "3", moveType: "Local", distance: "15", packingLevel: "None",
+        accessOrigin: "ground", accessDest: "ground", inventoryText: DEFAULT_INVENTORY,
+        stairsFlightsOrigin: 1, stairsFlightsDest: 1
+      };
+      if (configSaved) { 
+          base = { ...base, ...JSON.parse(configSaved) }; 
+          base.inventoryText = textSaved || ""; 
+      } 
+      else if (legacySaved) { 
+          base = { ...base, ...JSON.parse(legacySaved) }; 
+      }
+      return base;
+    } catch (err) {
+      return { homeSize: "3", moveType: "Local", distance: "15", packingLevel: "None", accessOrigin: "ground", accessDest: "ground", inventoryText: DEFAULT_INVENTORY, stairsFlightsOrigin: 1, stairsFlightsDest: 1 };
+    }
+  });
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY_MANAGER);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (typeof parsed?.adminMode === "boolean") setAdminMode(parsed.adminMode);
+      if (parsed?.inventoryMode === "raw" || parsed?.inventoryMode === "normalized") setInventoryMode(parsed.inventoryMode);
+      if (Array.isArray(parsed?.normalizedRows)) setNormalizedRows(parsed.normalizedRows);
+      if (parsed?.overrides && typeof parsed.overrides === "object") setOverrides(parsed.overrides);
+    } catch {}
+  }, []);
+
+  // СОХРАНЕНИЕ 1: Легкие конфиги
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const configToSave = { ...inputs }; delete configToSave.inventoryText;
+    const t = setTimeout(() => { try { localStorage.setItem(`${STORAGE_KEY}_config`, JSON.stringify(configToSave)); } catch (e) {} }, 350);
+    return () => clearTimeout(t);
+  }, [inputs.homeSize, inputs.moveType, inputs.distance, inputs.packingLevel, inputs.accessOrigin, inputs.accessDest, inputs.stairsFlightsOrigin, inputs.stairsFlightsDest]);
+
+  const debouncedInventoryText = useDebounce(inputs.inventoryText, 250);
+
+  // СОХРАНЕНИЕ 2: Тяжелый текст
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const t = setTimeout(() => { try { localStorage.setItem(`${STORAGE_KEY}_text`, debouncedInventoryText); } catch (e) {} }, 1000);
+    return () => clearTimeout(t);
+  }, [debouncedInventoryText]);
+
+  // СОХРАНЕНИЕ 3: Менеджер
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const t = setTimeout(() => { try { localStorage.setItem(STORAGE_KEY_MANAGER, JSON.stringify({ adminMode, inventoryMode, normalizedRows, overrides })); } catch {} }, 350);
+    return () => clearTimeout(t);
+  }, [adminMode, inventoryMode, normalizedRows, overrides]);
+
+  const timerRef = useRef(null);
+  const handleSecretClick = () => {
+      clearTimeout(timerRef.current);
+      setSecretClicks(prev => { if (prev + 1 === 5) { setAdminMode(m => !m); return 0; } return prev + 1; });
+      timerRef.current = setTimeout(() => setSecretClicks(0), 2000);
+  };
+  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
+
+  const handleClearInventory = useCallback(() => { setInputs(prev => ({ ...prev, inventoryText: "" })); setNormalizedRows([]); setInventoryMode("raw"); setOverrides({}); }, []);
+
+  const handleAddRow = () => {
+      const name = addRowInput.trim().toLowerCase(); if (!name) return;
+      const alias = applyAliasesRegex(name);
+      const volKey = SORTED_KEYS.find(k => KEY_REGEX[k].test(alias)) || null;
+      const resolvedName = volKey || `${name} (est)`;
+      setNormalizedRows(prev => [...prev, { id: uid(), name: resolvedName, qty: 1, cfUnit: volKey ? VOLUME_TABLE[volKey] : 25, raw: name, flags: { heavy: LIFT_GATE_ITEMS.some(lg => resolvedName.includes(lg)), heavyWeight: false } }]);
+      setAddRowInput("");
+  };
+
+  const limitInventoryText = (val) => {
+      const MAX_CHARS = 12000;
+      let v = val ?? "";
+      if (v.length > MAX_CHARS) v = v.slice(0, MAX_CHARS);
+      return v;
+  }
+
+  const estimate = useMemo(() => buildEstimate({ ...inputs, inventoryText: debouncedInventoryText, inventoryMode, normalizedRows, overrides }), [inputs, debouncedInventoryText, inventoryMode, normalizedRows, overrides]);
+  const autoEstimate = useMemo(() => adminMode ? buildEstimate({ ...inputs, inventoryText: debouncedInventoryText, inventoryMode, normalizedRows, overrides: {} }) : { finalVolume: 0, trucksFinal: 0, crew: 0, timeMin: 0, timeMax: 0, materials: { blankets: 0, boxes: 0 } }, [inputs, debouncedInventoryText, inventoryMode, normalizedRows, adminMode]);
+
+  const isLabor = inputs.moveType === "Labor";
+
+  const handleCopy = async () => {
+    const truckText = isLabor ? "N/A" : `${estimate.trucksFinal} x ${estimate.truckSizeLabel}`;
+    const splitText = estimate.splitRecommended ? "(SPLIT TO 2 DAYS)" : "";
+    const matList = [];
+    if (estimate.materials.blankets) matList.push(`${estimate.materials.blankets} blankets`);
+    if (estimate.materials.wardrobes) matList.push(`${estimate.materials.wardrobes} wardrobes`);
+    if (estimate.materials.boxes) matList.push(`~${estimate.materials.boxes} boxes`);
+    const packingLine = `PACKING: ${matList.join(", ")}${estimate.smartEquipment.length > 0 ? `, ${estimate.smartEquipment.join(", ")}` : ""}`;
+    const ddtStr = estimate.isDDT ? "(DDT)" : "";
+    const packStr = inputs.packingLevel === "None" ? "No packing" : `${inputs.packingLevel} packing`;
+    const heavyStr = estimate.heavyItemNames.length > 0 ? `\nHeavy items: ${estimate.heavyItemNames.join(", ")}` : "";
+    
+    const text = `${estimate.homeLabel} / ${inputs.moveType} Move / ${isLabor ? "N/A" : `${inputs.distance} miles`} ${ddtStr} / ${packStr}${heavyStr}
+🚚 Trucks: ${truckText}
+👥 Crew: ${estimate.crew} Movers
+⏱ Time: ${estimate.timeMin} - ${estimate.timeMax} Hours ${splitText}
+📦 Volume: ${estimate.finalVolume} cf
+
+${packingLine}
+
+🛡 NOTES & RISKS
+${estimate.risks.length > 0 ? estimate.risks.map(r => `-${r.text}`).join("\n") : "-Standard residential move."}
+-Access: ${inputs.accessOrigin === "stairs" ? `stairs (${inputs.stairsFlightsOrigin || 1} fl)` : inputs.accessOrigin} (Origin) -> ${inputs.accessDest === "stairs" ? `stairs (${inputs.stairsFlightsDest || 1} fl)` : inputs.accessDest} (Dest)
+${estimate.daMins > 0 ? `-Assembly: ~${estimate.daMins} min total` : ""}
+-Confidence: ${estimate.confidence.label} (${estimate.confidence.score}%)`;
+
+    const performCopy = () => { setCopyStatus("success"); setTimeout(() => setCopyStatus("idle"), 2000); };
+    if (navigator.clipboard && window.isSecureContext) { try { await navigator.clipboard.writeText(text); performCopy(); return; } catch (err) {} }
+    const ta = document.createElement("textarea"); ta.value = text; ta.style.position = "absolute"; ta.style.left = "-9999px"; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); performCopy(); } catch (err) {} document.body.removeChild(ta);
+  };
+
+  const heavyBadgeText = useMemo(() => {
+      const arr = estimate.heavyItemNames || []; if (!arr.length) return null;
+      const first = String(arr[0]).replace(/\s*\(.*?\)\s*/g, "").trim(); const lower = first.toLowerCase();
+      let label = lower.includes("piano") ? "PIANO" : lower.includes("safe") ? "SAFE" : lower.includes("pool") ? "POOL TABLE" : lower.includes("clock") ? "CLOCK" : lower.includes("copier") ? "COPIER" : lower.includes("treadmill") ? "TREADMILL" : lower.includes("gym") ? "GYM EQUIP" : first.toUpperCase();
+      return `HEAVY: ${label}${arr.length > 1 ? ` +${arr.length - 1}` : ""}`;
+  }, [estimate.heavyItemNames]);
+
+  return (
+    <div className="min-h-screen bg-[#F5F7FA] text-gray-900 font-sans p-4 md:p-8 flex flex-col items-center selection:bg-blue-100">
+      <div className="w-full max-w-6xl mb-8 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <div onClick={handleSecretClick} className="w-12 h-12 rounded-[1rem] bg-gray-900 flex items-center justify-center relative overflow-hidden group cursor-pointer active:scale-95 transition-transform shadow-[0_4px_16px_rgba(0,0,0,0.15)]">
+            <Truck className="w-6 h-6 absolute -left-[2px] text-gray-400 group-hover:text-white transition-colors" />
+            <div className="absolute right-1 bottom-1 bg-white text-gray-900 rounded-[4px] p-0.5 shadow-sm">
+              <Calculator className="w-3.5 h-3.5" />
+            </div>
+          </div>
+          <div>
+            <h1 className="text-xl font-black text-gray-900 leading-none tracking-tight">Estimator</h1>
+            <span className="text-[11px] font-bold text-gray-400 tracking-wide">Version 11.58.1 PRO</span>
+          </div>
+        </div>
+        <div className="md:hidden flex bg-white border border-gray-200 p-1.5 rounded-2xl shadow-sm">
+           {["config", "report"].map(t => <button key={t} onClick={() => setActiveTab(t)} className={`px-5 py-2 text-xs font-bold rounded-xl transition-all ${activeTab === t ? "bg-gray-100 shadow-sm text-black" : "text-gray-400 hover:text-gray-600"}`}>{t === "config" ? "Config" : "Report"}</button>)}
+        </div>
+      </div>
+
+      <div className="w-full max-w-6xl flex flex-col md:flex-row gap-8 pb-24 md:pb-8">
+        {/* LEFT: CONFIGURATION */}
+        <div className={`w-full md:w-[420px] flex-shrink-0 flex flex-col gap-6 ${activeTab === "config" ? "block" : "hidden md:flex"}`}>
+          <GlassPanel><div className="p-7 flex-1 flex flex-col space-y-6">
+            <div className="flex items-center gap-2 mb-2 pb-5 border-b border-gray-100"><Settings className="w-4 h-4 text-gray-400" /><span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Parameters</span></div>
+            <div className="grid grid-cols-2 gap-4">
+              <div><InputLabel label="Size" /><Select id="homeSize" value={inputs.homeSize} onChange={e => setInputs({...inputs, homeSize: e.target.value})} options={[{value: "0", label: "Studio / Less"}, {value: "1", label: "1 BDR"}, {value: "2", label: "2 BDR"}, {value: "3", label: "3 BDR"}, {value: "4", label: "4 BDR"}, {value: "5", label: "5+ BDR"}, {value: "Commercial", label: "Commercial"}]} /></div>
+              <div>
+                  <InputLabel label="Distance" />
+                  <div className={`relative ${isLabor ? 'opacity-50 pointer-events-none' : ''}`}>
+                      <input
+                          type="text" inputMode="numeric" disabled={isLabor} value={inputs.distance}
+                          onChange={e => {
+                              const val = e.target.value.replace(/\D/g, '').replace(/^0+(?=\d)/, '');
+                              setInputs({...inputs, distance: val});
+                          }}
+                          className="w-full bg-white border border-gray-200 rounded-2xl px-4 py-3.5 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm"
+                      />
+                      <MapPin className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 pointer-events-none" />
+                  </div>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+                <div>
+                    <InputLabel label="Service" />
+                    <Select id="moveType" value={inputs.moveType} 
+                            onChange={e => {
+                                const v = e.target.value;
+                                setInputs(prev => {
+                                    const next = { ...prev, moveType: v };
+                                    if (v !== "Local" && prev.accessDest !== "ground") { next.accessDest = "ground"; next.stairsFlightsDest = 1; }
+                                    return next;
+                                });
+                            }} 
+                            options={[{value: "Local", label: "Local"}, {value: "LD", label: "Long Distance"}, {value: "Labor", label: "Labor Only"}, {value: "Storage", label: "Storage"}]} />
+                </div>
+                <div><InputLabel label="Packing" /><Select id="packingLevel" value={inputs.packingLevel} onChange={e => setInputs({...inputs, packingLevel: e.target.value})} options={[{value: "None", label: "No Packing"}, {value: "Partial", label: "Partial"}, {value: "Full", label: "Full Packing"}]} /></div>
+            </div>
+
+            <div className="space-y-4 pt-2">
+                <div>
+                    <InputLabel label={inputs.moveType === "Local" ? "Origin Access" : "Location Access"} />
+                    <div className="flex items-center gap-3 w-full">
+                        <AccessSegmented value={inputs.accessOrigin} onChange={(v) => setInputs({...inputs, accessOrigin: v})} />
+                        {inputs.accessOrigin === "stairs" && <SmallInput value={inputs.stairsFlightsOrigin} onChange={v => setInputs({...inputs, stairsFlightsOrigin: v})} placeholder="1" />}
+                    </div>
+                </div>
+                {inputs.moveType === "Local" && (
+                    <div>
+                        <InputLabel label="Destination Access" />
+                        <div className="flex items-center gap-3 w-full">
+                            <AccessSegmented value={inputs.accessDest} onChange={(v) => setInputs({...inputs, accessDest: v})} />
+                            {inputs.accessDest === "stairs" && <SmallInput value={inputs.stairsFlightsDest} onChange={v => setInputs({...inputs, stairsFlightsDest: v})} placeholder="1" />}
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            <div className="flex-1 flex flex-col relative pt-3 border-t border-gray-100">
+              <div className="flex flex-wrap justify-between items-end gap-2 mb-3 ml-1">
+                <InputLabel label="Inventory" />
+                <div className="flex items-center gap-2">
+                    {(inputs.inventoryText.length > 0 || normalizedRows.length > 0) && (
+                      <button
+                        onClick={handleClearInventory}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-200 bg-red-50 text-[10px] font-bold text-red-600 hover:bg-red-600 hover:text-white transition-all shadow-sm"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" /> <span className="hidden sm:inline">CLEAR</span>
+                      </button>
+                    )}
+
+                    {adminMode && (
+                        <button onClick={() => {
+                            if(inventoryMode === "raw") {
+                                const { rows } = normalizeRowsFromText(inputs.inventoryText);
+                                setNormalizedRows(rows); setInventoryMode("normalized");
+                            } else {
+                                setInventoryMode("raw");
+                            }
+                        }} className={`flex items-center gap-1.5 text-[10px] px-3 py-1.5 rounded-lg border font-bold transition-all shadow-sm ${inventoryMode === "normalized" ? "bg-blue-50 text-blue-700 border-blue-200" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"}`}>
+                            {inventoryMode === "normalized"
+                              ? <><User className="w-3.5 h-3.5"/> <span className="hidden sm:inline">Client View</span></>
+                              : <><Shield className="w-3.5 h-3.5"/> <span className="hidden sm:inline">Manager Mode</span></>}
+                        </button>
+                    )}
+                    <span className={`text-[11px] px-3 py-1.5 rounded-lg font-bold transition-all whitespace-nowrap shadow-sm border ${estimate.detectedQtyTotal > 0 ? 'bg-blue-600 text-white border-blue-700' : 'bg-gray-50 text-gray-400 border-gray-200'}`}>
+                        {estimate.detectedQtyTotal} items
+                    </span>
+                </div>
+              </div>
+
+              <div className="relative w-full">
+                <textarea
+                    value={inputs.inventoryText}
+                    onChange={e => {
+                        const raw = e.target.value;
+                        const limited = limitInventoryText(raw);
+                        setInventoryClipped(limited.length !== raw.length);
+                        setInputs({...inputs, inventoryText: limited});
+                    }}
+                    className="block w-full h-56 bg-white border border-gray-200 rounded-2xl p-4 sm:p-5 text-[14px] font-mono leading-relaxed text-gray-800 outline-none resize-none shadow-sm focus:ring-4 focus:ring-blue-500/15 focus:border-blue-500 transition-all"
+                    placeholder="Paste inventory here (e.g. Living Room: Sofa, TV...)"
+                    style={{ WebkitOverflowScrolling: 'touch' }}
+                />
+              </div>
+
+              {adminMode && inventoryMode === "normalized" && (
+                  <div className="mt-3 bg-white border border-gray-200 rounded-2xl p-3 shadow-sm">
+                      <div className="text-[10px] font-bold text-gray-400 mb-2 uppercase tracking-widest px-1">Inventory Editor</div>
+                      <div className="max-h-64 overflow-y-auto pr-1">
+                        <div className="grid grid-cols-12 gap-1 mb-1 px-1 text-[9px] text-gray-400 font-bold sticky top-0 bg-white z-10 pb-1 border-b border-gray-50">
+                            <div className="col-span-5">Item</div><div className="col-span-2 text-center">Qty</div><div className="col-span-2 text-center">CF/ea</div><div className="col-span-2 text-center">Heavy</div><div className="col-span-1"></div>
+                        </div>
+                        {normalizedRows.map(row => (
+                            <div key={row.id} className="grid grid-cols-12 gap-1 items-center mb-1 text-[10px] font-semibold">
+                                <input className="col-span-5 bg-white border border-gray-200 shadow-sm rounded px-2 h-7 outline-none focus:border-blue-400" value={row.name} onChange={e => setNormalizedRows(prev => prev.map(r => r.id === row.id ? {...r, name: e.target.value} : r))} />
+                                <input className="col-span-2 bg-white border border-gray-200 shadow-sm rounded px-1 h-7 text-center outline-none focus:border-blue-400" value={row.qty === "" ? "" : row.qty} onChange={e => { const v = e.target.value; if (v === "") return setNormalizedRows(prev => prev.map(r => r.id === row.id ? { ...r, qty: "" } : r)); const num = parseInt(v, 10); setNormalizedRows(prev => prev.map(r => r.id === row.id ? { ...r, qty: Number.isFinite(num) ? Math.max(1, num) : 1 } : r)); }} onBlur={() => setNormalizedRows(prev => prev.map(r => r.id === row.id ? { ...r, qty: r.qty === "" ? 1 : Math.max(1, parseInt(r.qty, 10) || 1) } : r))} />
+                                <input className="col-span-2 bg-white border border-gray-200 shadow-sm rounded px-1 h-7 text-center outline-none focus:border-blue-400" value={row.cfUnit === "" ? "" : row.cfUnit} onChange={e => { const v = e.target.value; if (v === "") return setNormalizedRows(prev => prev.map(r => r.id === row.id ? { ...r, cfUnit: "" } : r)); const num = parseInt(v, 10); setNormalizedRows(prev => prev.map(r => r.id === row.id ? { ...r, cfUnit: Number.isFinite(num) ? Math.max(1, num) : 1 } : r)); }} onBlur={() => setNormalizedRows(prev => prev.map(r => r.id === row.id ? { ...r, cfUnit: r.cfUnit === "" ? 1 : Math.max(1, parseInt(r.cfUnit, 10) || 1) } : r))} />
+                                <div className="col-span-2 flex justify-center"><input type="checkbox" className="w-4 h-4 rounded text-blue-600 border-gray-300 focus:ring-blue-500" checked={row.flags.heavy} onChange={e => setNormalizedRows(prev => prev.map(r => r.id === row.id ? {...r, flags:{...r.flags, heavy:e.target.checked}} : r))} /></div>
+                                <button onClick={() => setNormalizedRows(prev => prev.filter(r => r.id !== row.id))} className="col-span-1 flex justify-end text-red-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
+                            </div>
+                        ))}
+                      </div>
+                      <div className="mt-2 pt-2 border-t border-gray-100 flex gap-2">
+                          <input className="flex-1 bg-white border border-gray-200 shadow-sm rounded-lg px-2 h-8 text-[11px] outline-none focus:border-blue-400" placeholder="Add item (e.g. piano)" list="volumeSuggestions" value={addRowInput} onChange={e => setAddRowInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter") handleAddRow(); }} />
+                          <datalist id="volumeSuggestions">{addRowInput.length > 1 && SORTED_KEYS.filter(k => k.includes(addRowInput.toLowerCase())).slice(0, 20).map(k => <option key={k} value={k} />)}</datalist>
+                          <button onClick={handleAddRow} className="px-4 h-8 bg-gray-900 text-white rounded-lg text-[11px] font-bold active:scale-95 transition-all whitespace-nowrap flex items-center gap-1 shadow-sm"><Plus className="w-3.5 h-3.5" /> ADD</button>
+                      </div>
+                  </div>
+              )}
+              {inventoryClipped && <div className="mt-3 text-[10px] text-orange-600 bg-orange-50 p-2.5 rounded-lg font-semibold border border-orange-100">Inventory clipped (limit reached).</div>}
+            </div>
+          </div></GlassPanel>
+        </div>
+
+        <div className={`flex-1 flex flex-col gap-6 ${activeTab === "report" ? "block" : "hidden md:flex"}`}>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <MetricCard icon={Box} label="Volume" value={estimate.finalVolume} sub="Cubic Feet" variant="blue" />
+                <MetricCard icon={estimate.splitRecommended ? CalendarDays : Clock} label={estimate.splitRecommended ? "Split Rec." : "Time Est."} value={`${estimate.timeMin}-${estimate.timeMax}h`} sub={estimate.splitRecommended ? "SPLIT TO 2 DAYS" : "Est. Range"} variant={estimate.splitRecommended ? "red" : "purple"} isCritical={estimate.splitRecommended} />
+                {isLabor ? <MetricCard icon={Info} label="Service" value="Labor" sub="No Trucks" variant="gray" /> : <MetricCard icon={Truck} label="Trucks" value={estimate.trucksFinal} sub={estimate.truckSizeLabel} variant="orange" />}
+                <MetricCard icon={Users} label="Crew" value={estimate.crew} sub="Movers" variant="emerald" advice={estimate.crewSuggestion} />
+            </div>
+
+            <GlassPanel><div className="p-7 flex flex-col gap-6 pb-32 md:pb-7">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <ConfidenceDonut score={estimate.confidence.score} label={estimate.confidence.label} />
+                    
+                    {heavyBadgeText && (
+                        <div className="self-start sm:self-auto px-4 py-2 rounded-2xl bg-white border border-red-100 shadow-[0_2px_8px_rgba(239,68,68,0.1)] text-[10px] font-bold text-red-600 uppercase tracking-widest flex items-center gap-2">
+                            <ShieldAlert className="w-4 h-4" /> {heavyBadgeText}
+                        </div>
+                    )}
+                </div>
+
+                {estimate.unrecognizedDetails?.length > 0 && (
+                    <div className="bg-white rounded-3xl p-5 border border-amber-100 shadow-[0_2px_12px_rgba(245,158,11,0.05)]">
+                        <div className="flex items-center gap-2 mb-2"><AlertTriangle className="w-4 h-4 text-amber-500" /><span className="text-[10px] font-bold text-amber-600 uppercase tracking-widest">Estimated Items ({estimate.unrecognizedDetails.length})</span></div>
+                        <p className="text-[11px] text-gray-500 mb-3 font-medium">These items weren't recognized. Smart Fallback applied (Box=5cf, Table=30cf).</p>
+                        <div className="flex flex-wrap gap-2">{estimate.unrecognizedDetails.map((name, i) => <span key={i} className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 border border-amber-100 rounded-xl text-[10px] font-bold text-amber-800 shadow-sm"><span className="w-1.5 h-1.5 rounded-full bg-amber-400" />{name}</span>)}</div>
+                    </div>
+                )}
+
+                {estimate.auditSummary.length > 0 && <div className="bg-white rounded-3xl p-5 border border-gray-100 shadow-[0_2px_12px_rgba(0,0,0,0.02)] text-[11px] font-semibold text-gray-500 space-y-1.5">{estimate.auditSummary.map((x, i) => <div key={i}>• {x}</div>)}</div>}
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
+                    <div className="bg-white p-5 rounded-3xl border border-gray-100 shadow-[0_4px_16px_rgba(0,0,0,0.03)] flex justify-between items-center"><span className="text-xs font-bold text-gray-400">Blankets</span><span className="text-lg font-black text-blue-600">{estimate.materials.blankets}</span></div>
+                    <div className="bg-white p-5 rounded-3xl border border-gray-100 shadow-[0_4px_16px_rgba(0,0,0,0.03)] flex justify-between items-center"><span className="text-xs font-bold text-gray-400">Boxes</span><span className="text-lg font-black text-blue-600">~{estimate.materials.boxes}</span></div>
+                    <div className="bg-white p-5 rounded-3xl border border-gray-100 shadow-[0_4px_16px_rgba(0,0,0,0.03)] flex justify-between items-center"><span className="text-xs font-bold text-gray-400">Wardrobes</span><span className="text-lg font-black text-blue-600">{estimate.materials.wardrobes}</span></div>
+                </div>
+
+                {estimate.advice.length > 0 && (
+                  <div className="space-y-3 pt-2">
+                      <div className="flex items-center gap-2"><Lightbulb className="w-4 h-4 text-amber-500" /><span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Smart Tips</span></div>
+                      <div className="bg-white border border-gray-100 rounded-3xl p-5 text-[11px] text-gray-700 space-y-2 font-bold leading-relaxed shadow-sm">{estimate.advice.map((x, i) => <div key={i} className="flex gap-2"><span className="text-amber-500">•</span><span>{x}</span></div>)}</div>
+                  </div>
+                )}
+
+                {estimate.risks.length > 0 && (
+                  <div className="space-y-3 pt-2">
+                      <div className="flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-red-500" /><span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Risk Factors</span></div>
+                      <div className="space-y-2">{estimate.risks.map((r, i) => <div key={i} className={`p-4 rounded-3xl text-[11px] font-bold leading-snug flex items-start gap-2 shadow-sm border ${r.level === 'critical' ? 'bg-red-50 border-red-100 text-red-700' : 'bg-orange-50 border-orange-100 text-orange-800'}`}><span>• {r.text}</span></div>)}</div>
+                  </div>
+                )}
+
+                {/* FLOATING BOTTOM BAR FOR MOBILE */}
+                <div className="fixed bottom-4 left-4 right-4 md:static md:p-0 md:mt-2 md:border-t md:border-gray-100 md:pt-6 flex gap-3 z-50">
+                    <button onClick={handleCopy} className="flex-1 md:flex-none md:w-[220px] flex items-center justify-center gap-2 px-6 py-4 rounded-2xl text-[12px] font-bold transition-all duration-300 bg-gray-900 text-white hover:bg-black active:scale-95 shadow-[0_8px_20px_rgba(0,0,0,0.15)] whitespace-nowrap overflow-hidden">
+                        {copyStatus === 'success' ? <><Check className="w-4 h-4 text-emerald-400 shrink-0" /><span className="truncate">COPIED SUCCESSFULLY</span></> : <><Clipboard className="w-4 h-4 shrink-0" /><span className="truncate">COPY REPORT</span></>}
+                    </button>
+                    <button onClick={() => setShowDetails(v => !v)} className="flex-none flex items-center justify-center gap-2 bg-white hover:bg-gray-50 border border-gray-200 shadow-[0_8px_20px_rgba(0,0,0,0.05)] text-gray-700 px-6 py-4 rounded-2xl text-[12px] font-bold active:scale-95 transition-all w-auto">
+                        {showDetails ? <ChevronDown className="w-4 h-4 shrink-0" /> : <ChevronRight className="w-4 h-4 shrink-0" />}{showDetails ? "Hide" : "Details"}
+                    </button>
+                </div>
+
+                {showDetails && (
+                  <div className="pt-8 mt-4 border-t border-gray-100 animate-in fade-in slide-in-from-top-4 duration-500">
+                      {adminMode && (
+                          <div className="mb-6 bg-gray-900 rounded-[2rem] p-6 shadow-lg">
+                              <div className="text-[10px] font-bold text-gray-400 mb-4 uppercase tracking-widest flex items-center gap-2"><Lock className="w-4 h-4 text-white" /> Manager Overrides</div>
+                              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                  {["volume", "trucks", "crew", "timeMin", "timeMax", "blankets", "boxes"].map(k => (
+                                    <input key={k} placeholder={`${k.charAt(0).toUpperCase() + k.slice(1)} (${autoEstimate[k] || autoEstimate.materials?.[k] || 0})`} value={overrides[k] || ""} onChange={e => setOverrides({...overrides, [k]: e.target.value})} className="text-[11px] font-bold p-3.5 rounded-xl bg-gray-800 text-white border border-gray-700 outline-none focus:bg-gray-700 focus:border-gray-500 placeholder:text-gray-500 transition-colors" />
+                                  ))}
+                              </div>
+                          </div>
+                      )}
+
+                      <div className="space-y-8">
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-2"><List className="w-4 h-4 text-gray-400" /><span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Detected Items</span></div>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-64 overflow-y-auto pr-2 pb-2">
+                              {estimate.parsedItems.map((item, i) => (
+                                  <div key={i} className="flex justify-between items-center bg-white border border-gray-100 px-4 py-3 rounded-[1rem] shadow-[0_2px_8px_rgba(0,0,0,0.02)] hover:border-gray-200 transition-colors">
+                                    <span className="font-bold text-gray-700 text-[11px] truncate mr-2">
+                                        {item.name}
+                                        {item.room && <span className="text-gray-400 ml-1 font-semibold text-[9px]">[{item.room}]</span>}
+                                        {item.isWeightHeavy && <span className="text-red-500 ml-1 font-black text-[9px]">(HEAVY)</span>}
+                                    </span>
+                                    <span className="text-gray-500 whitespace-nowrap text-[11px] font-mono font-medium flex items-center gap-2">
+                                        <span>x{item.qty}</span>
+                                        <span className="text-gray-200">|</span>
+                                        <span className="font-bold text-gray-600">{item.cf}cf</span>
+                                    </span>
+                                  </div>
+                              ))}
+                            </div>
+
+                          </div>
+                          <div className="space-y-3">
+                             <div className="flex items-center gap-2"><Terminal className="w-4 h-4 text-gray-400" /><span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Engine Logic</span></div>
+                             <div className="p-6 bg-gray-900 rounded-[2rem] text-[11px] font-mono font-medium text-gray-300 space-y-2.5 max-h-64 overflow-y-auto shadow-inner">
+                               {estimate.logs.map((log, i) => <div key={i} className="flex gap-3"><span className="text-gray-600 w-5 shrink-0 text-right">{i + 1}.</span><span>{log}</span></div>)}
+                             </div>
+                          </div>
+                          {estimate.overridesApplied?.length > 0 && <div className="mt-4 bg-white rounded-2xl p-4 text-[11px] text-gray-500 font-bold border border-gray-100 shadow-sm">Overrides Applied: {estimate.overridesApplied.join(", ")}</div>}
+                      </div>
+                  </div>
+                )}
+            </div></GlassPanel>
+        </div>
+      </div>
+    </div>
+  );
+}
