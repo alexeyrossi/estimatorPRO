@@ -8,6 +8,8 @@ import { GlassPanel } from './GlassPanel';
 import { MetricCard } from './MetricCard';
 import { ConfidenceDonut } from './ConfidenceDonut';
 import { LDBrokerPanel } from './LDBrokerPanel';
+import { toCanvas } from 'html-to-image';
+import jsPDF from 'jspdf';
 
 
 
@@ -93,6 +95,8 @@ export const ReportPanel = ({
     setOverrides
 }: ReportPanelProps) => {
 
+    const [isGeneratingPDF, setIsGeneratingPDF] = React.useState(false);
+
     const isLabor = inputs.moveType === "Labor";
 
     const formatMetric = (val: React.ReactNode | number, unit: string) => (
@@ -104,6 +108,93 @@ export const ReportPanel = ({
         </span>
     );
 
+    const handleDownloadPDF = async () => {
+        const element = document.getElementById('pdf-export-area');
+
+        if (!element) {
+            alert("Error: 'pdf-export-area' ID not found. Check the DOM.");
+            return;
+        }
+
+        setIsGeneratingPDF(true);
+
+        // Temporarily hide action buttons
+        const hideElements = element.querySelectorAll('[data-no-pdf]');
+        hideElements.forEach((el) => {
+            (el as HTMLElement).style.display = 'none';
+        });
+
+        // Force fixed width for perfect A4 proportions
+        const originalWidth = element.style.width;
+        const originalMaxWidth = element.style.maxWidth;
+        element.style.width = '800px';
+        element.style.maxWidth = '800px';
+
+        try {
+
+            // Wait for the browser to repaint the fixed width
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            const canvas = await toCanvas(element, {
+                pixelRatio: 2, // High resolution (Retina)
+                backgroundColor: '#ffffff', // Force white background
+                style: {
+                    transform: 'scale(1)',
+                    transformOrigin: 'top left'
+                }
+            });
+
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pageHeight = pdf.internal.pageSize.getHeight();
+            const imgHeight = (canvas.height * pdfWidth) / canvas.width;
+
+            let heightLeft = imgHeight;
+            let position = 0;
+            const margin = 10;
+
+            // MULTI-PAGE LOGIC
+            pdf.addImage(imgData, 'PNG', 0, position + margin, pdfWidth, imgHeight);
+            heightLeft -= (pageHeight - margin * 2);
+
+            while (heightLeft > 0) {
+                position = heightLeft - imgHeight;
+                pdf.addPage();
+                pdf.addImage(imgData, 'PNG', 0, position + margin, pdfWidth, imgHeight);
+                heightLeft -= (pageHeight - margin * 2);
+            }
+
+            // ADD PROFESSIONAL FOOTER
+            const totalPages = (pdf as any).internal.getNumberOfPages ? (pdf as any).internal.getNumberOfPages() : pdf.getNumberOfPages();
+            const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+            for (let i = 1; i <= totalPages; i++) {
+                pdf.setPage(i);
+                pdf.setFontSize(8);
+                pdf.setTextColor(150);
+                pdf.text(
+                    `Generated ${today} | Estimator V11.59 PRO | Page ${i} of ${totalPages}`,
+                    pdfWidth / 2, pageHeight - 8, { align: 'center' }
+                );
+            }
+
+            const fileName = clientName ? `Estimate_${clientName.replace(/\s+/g, '_')}.pdf` : 'Moving_Estimate.pdf';
+            pdf.save(fileName);
+        } catch (error) {
+            console.error("PDF Generation Error:", error);
+            alert("Failed to generate PDF. Check browser console for details.");
+        } finally {
+            // Restore original width and buttons
+            element.style.width = originalWidth;
+            element.style.maxWidth = originalMaxWidth;
+            hideElements.forEach((el) => {
+                (el as HTMLElement).style.display = '';
+            });
+            setIsGeneratingPDF(false);
+        }
+    };
+
     const heavyBadgeText = useMemo(() => {
         const arr = estimate.heavyItemNames || []; if (!arr.length) return null;
         const first = String(arr[0]).replace(/\s*\(.*?\)\s*/g, "").trim(); const lower = first.toLowerCase();
@@ -112,7 +203,7 @@ export const ReportPanel = ({
     }, [estimate.heavyItemNames]);
 
     return (
-        <div className="flex-1 flex flex-col gap-6">
+        <div id="pdf-export-area" className="flex-1 flex flex-col gap-6">
             <div className={`grid grid-cols-2 lg:grid-cols-4 gap-4 transition-opacity duration-300 ${isCalculating ? 'opacity-60' : 'opacity-100'}`}>
                 <MetricCard icon={Box} label="Volume" value={formatMetric(<AnimatedNumber value={estimate.finalVolume} />, "cu ft")} sub="Based on Inventory" variant="blue" />
                 <MetricCard icon={estimate.splitRecommended ? CalendarDays : Clock} label={estimate.splitRecommended ? "Split Rec." : "Time Est."} value={<><AnimatedNumber value={estimate.timeMin} />–<AnimatedNumber value={estimate.timeMax} />h</>} sub={estimate.splitRecommended ? "SPLIT TO 2 DAYS" : "Est. Range"} variant={estimate.splitRecommended ? "red" : "purple"} isCritical={estimate.splitRecommended} />
@@ -282,17 +373,35 @@ export const ReportPanel = ({
                 </div>
 
                 {/* ACTION BAR */}
-                <div className="border-t border-gray-100 mt-2" />
-                <div className="flex items-center gap-3 pt-4">
-                    <button onClick={handleCopy} className={`flex-1 md:flex-none md:w-[220px] flex items-center justify-center gap-2 px-6 py-4 rounded-2xl text-[12px] font-bold transition-all duration-300 active:scale-[0.98] shadow-[0_8px_20px_rgba(0,0,0,0.15)] whitespace-nowrap overflow-hidden ${copyStatus === 'success' ? 'bg-emerald-500 text-white' : 'bg-gray-900 text-white hover:bg-black'}`}>
-                        {copyStatus === 'success' ? <><Check className="w-4 h-4 shrink-0" /><span className="truncate">✓ Copied!</span></> : <><Clipboard className="w-4 h-4 shrink-0" /><span className="truncate">COPY REPORT</span></>}
-                    </button>
+                <div data-no-pdf className="flex flex-col mt-2">
+                    <div className="border-t border-gray-100" />
+                    <div className="flex items-center justify-between w-full pt-4">
+                        <div className="flex items-center gap-3">
+                            <button onClick={handleCopy} className={`flex-1 md:flex-none md:w-[220px] flex items-center justify-center gap-2 px-6 py-4 rounded-xl text-[12px] font-bold transition-all duration-300 active:scale-[0.98] shadow-[0_8px_20px_rgba(0,0,0,0.15)] whitespace-nowrap overflow-hidden ${copyStatus === 'success' ? 'bg-emerald-500 text-white' : 'bg-gray-900 text-white hover:bg-black'}`}>
+                                {copyStatus === 'success' ? <><Check className="w-4 h-4 shrink-0" /><span className="truncate">✓ Copied!</span></> : <><Clipboard className="w-4 h-4 shrink-0" /><span className="truncate">COPY REPORT</span></>}
+                            </button>
+                            <button
+                                onClick={handleDownloadPDF}
+                                disabled={isGeneratingPDF}
+                                className={`flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-[14px] font-bold transition-all duration-200 text-gray-500 hover:text-gray-900 hover:bg-gray-100 active:scale-[0.98] ${isGeneratingPDF ? 'opacity-70 cursor-wait' : ''}`}
+                            >
+                                {isGeneratingPDF ? (
+                                    'Generating...'
+                                ) : (
+                                    <>
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+                                        PDF
+                                    </>
+                                )}
+                            </button>
+                        </div>
 
-                    <button onClick={() => setShowDetails(!showDetails)}
-                        className="flex items-center gap-2 text-[12px] font-bold text-gray-400 hover:text-gray-600 transition-colors py-2 px-1 ml-auto">
-                        <ChevronRight className={`w-4 h-4 transition-transform duration-300 ${showDetails ? 'rotate-90' : ''}`} />
-                        <span>{showDetails ? 'Hide' : 'Details'}</span>
-                    </button>
+                        <button onClick={() => setShowDetails(!showDetails)}
+                            className="flex items-center gap-2 text-[12px] font-bold text-gray-400 hover:text-gray-600 transition-colors py-2 px-1 ml-auto">
+                            <ChevronRight className={`w-4 h-4 transition-transform duration-300 ${showDetails ? 'rotate-90' : ''}`} />
+                            <span>{showDetails ? 'Hide' : 'Details'}</span>
+                        </button>
+                    </div>
                 </div>
 
                 <div className={`grid transition-all duration-500 ease-in-out ${showDetails ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
