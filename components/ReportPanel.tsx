@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { EstimateInputs, EstimateResult } from '@/lib/types/estimator';
 import {
     Box, Truck, Clock, ShieldCheck, History, Info, ChevronRight, ArrowUpFromLine,
-    CalendarDays, Users, ShieldAlert, AlertTriangle, Lightbulb, Check, Clipboard, ChevronDown, Lock, List, Terminal
+    CalendarDays, Users, ShieldAlert, AlertTriangle, Lightbulb, Check, Clipboard, ChevronDown, Lock, List, Terminal, Weight
 } from 'lucide-react';
 import { GlassPanel } from './GlassPanel';
 import { MetricCard } from './MetricCard';
@@ -355,8 +355,11 @@ export const ReportPanel = ({
                         </div>
 
                         {heavyBadgeText && (
-                            <div className="self-start sm:self-auto bg-red-50 text-red-600 px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5">
-                                <ShieldAlert className="w-4 h-4" /> {heavyBadgeText}
+                            <div className="inline-flex items-center gap-2 px-3 py-1 bg-red-500/10 backdrop-blur-md rounded-full select-none">
+                                <Weight className="w-3.5 h-3.5 text-red-500" strokeWidth={2.5} />
+                                <span className="text-[10px] font-bold text-red-600 uppercase tracking-wider">
+                                    {heavyBadgeText}
+                                </span>
                             </div>
                         )}
                     </div>
