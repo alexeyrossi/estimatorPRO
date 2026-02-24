@@ -454,7 +454,7 @@ ${est.daMins > 0 ? `-Assembly: ~${est.daMins} min total` : ""}
                         ) : historyItems.length === 0 ? (
                             <div className="text-center py-8 text-[11px] text-gray-400 font-semibold">No saved estimates yet</div>
                         ) : (
-                            <div className="custom-scrollbar flex flex-wrap gap-3 max-h-[260px] overflow-y-auto pr-1 mb-2">
+                            <div className="flex flex-wrap gap-3 max-h-[260px] overflow-y-auto pr-1 mb-2">
                                 {historyItems.map(item => (
                                     <div key={item.id} className="relative group">
                                         <button onClick={() => handleLoadEstimate(item.id)}
