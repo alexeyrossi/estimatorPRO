@@ -3,7 +3,7 @@
 import { EstimateInputs, EstimateResult, NormalizedRow } from "../../lib/types/estimator";
 import { buildEstimate } from "../../lib/engine";
 import { normalizeRowsFromText, applyAliasesRegex } from "../../lib/parser";
-import { SORTED_KEYS, KEY_REGEX, VOLUME_TABLE, LIFT_GATE_ITEMS } from "../../lib/dictionaries";
+import { SORTED_KEYS, KEY_REGEX, VOLUME_TABLE, TRUE_HEAVY_ITEMS } from "../../lib/dictionaries";
 import { createClient } from "../../lib/supabase/server";
 
 export async function getEstimate(inputs: EstimateInputs, normalizedRows?: NormalizedRow[], overrides?: Record<string, string>): Promise<EstimateResult> {
@@ -38,7 +38,7 @@ export async function resolveItemAction(name: string): Promise<{ resolvedName: s
   const volKey = SORTED_KEYS.find(k => KEY_REGEX[k as keyof typeof KEY_REGEX].test(alias)) || null;
   const resolvedName = volKey || `${name} (est)`;
   const cfUnit = volKey ? VOLUME_TABLE[volKey as keyof typeof VOLUME_TABLE] : 25;
-  const isHeavy = LIFT_GATE_ITEMS.some(lg => resolvedName.includes(lg));
+  const isHeavy = TRUE_HEAVY_ITEMS.some(h => resolvedName.includes(h));
   return { resolvedName, cfUnit, isHeavy };
 }
 

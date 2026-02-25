@@ -6,6 +6,7 @@ import {
   SORTED_KEYS,
   KEY_REGEX,
   LIFT_GATE_ITEMS,
+  TRUE_HEAVY_ITEMS,
   VOLUME_TABLE,
   IRREGULAR_SIGNALS,
   VAGUE_SIGNALS,
@@ -153,7 +154,7 @@ export function normalizeRowsFromText(text: string) {
     const cfUnit = Math.max(1, Math.round((it.cf || 0) / Math.max(1, it.qty || 1)));
     const nameLower = (it.name || "").toLowerCase();
     const rawLower = (it.raw || "").toLowerCase();
-    const isHeavy = it.isWeightHeavy || LIFT_GATE_ITEMS.some(lg => nameLower.includes(lg) || rawLower.includes(lg));
+    const isHeavy = it.isWeightHeavy || TRUE_HEAVY_ITEMS.some(h => nameLower.includes(h) || rawLower.includes(h));
     return {
       id: uid(), name: it.name, qty: clampInt(it.qty, 1, 500), cfUnit,
       raw: it.raw || "", room: it.room || "", flags: { heavy: !!isHeavy, heavyWeight: !!it.isWeightHeavy }

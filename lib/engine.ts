@@ -40,14 +40,18 @@ export function buildEstimate(inputs: EstimateInputs, normalizedRows?: Normalize
     // Deep merge flags from previous normalizedRows if available (preserving Client View manual flags)
     if (!useNormalized) {
       parsed.detectedItems = parsed.detectedItems.map(item => {
-        let finalHeavy = item.isWeightHeavy || TRUE_HEAVY_ITEMS.some(h => item.name.toLowerCase().includes(h));
+        const n = item.name.toLowerCase();
+        const isTrueHeavy = item.isWeightHeavy || TRUE_HEAVY_ITEMS.some(h => n.includes(h));
+        let finalHeavy = isTrueHeavy;
 
         if (normalizedRows && normalizedRows.length > 0) {
           const existingRow = normalizedRows.find(
-            r => r.name.toLowerCase() === item.name.toLowerCase() && (r.room || "").toLowerCase() === (item.room || "").toLowerCase()
+            r => r.name.toLowerCase() === n && (r.room || "").toLowerCase() === (item.room || "").toLowerCase()
           );
           if (existingRow && existingRow.flags) {
-            finalHeavy = !!existingRow.flags.heavy;
+            // Only trust the stored heavy flag if the item is actually a TRUE_HEAVY_ITEM or has heavy weight.
+            // This prevents stale flags from old saves (e.g. workbench) from persisting incorrectly.
+            finalHeavy = isTrueHeavy ? !!existingRow.flags.heavy : false;
             return { ...item, isManualHeavy: finalHeavy, flags: { ...item.flags, ...existingRow.flags, heavy: finalHeavy } };
           }
         }

@@ -562,7 +562,7 @@ export const ReportPanel = ({
                                                     })`}
                                                 value={overrides[k as keyof typeof overrides] || ""}
                                                 onChange={e => setOverrides({ ...overrides, [k]: e.target.value })}
-                                                className="text-[11px] font-bold p-3.5 rounded-xl bg-gray-800 text-white border border-gray-700 outline-none focus:bg-gray-700 focus:border-gray-500 placeholder:text-gray-500 transition-colors"
+                                                className="text-[11px] font-bold p-3.5 rounded-xl bg-gray-800 text-white border border-transparent outline-none focus:bg-gray-700 placeholder:text-gray-500 transition-colors"
                                             />
                                         ))}
                                     </div>
