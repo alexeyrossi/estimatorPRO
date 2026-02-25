@@ -170,7 +170,7 @@ export function summarizeNormalizedRows(rows: NormalizedRow[], rawTextForSignals
   });
   const detectedItems = validRows.map(r => ({
     name: r.name, qty: clampInt(r.qty, 1, 500), cf: Math.max(1, Math.round((r.cfUnit || 1) * clampInt(r.qty, 1, 500))),
-    raw: r.raw || "", room: r.room || "", isWeightHeavy: !!r.flags?.heavyWeight, isManualHeavy: !!r.flags?.heavy, wLbs: null
+    raw: r.raw || "", room: r.room || "", isWeightHeavy: !!r.flags?.heavyWeight, isManualHeavy: !!r.flags?.heavy, wLbs: null, flags: r.flags
   }));
   const totalVol = (detectedItems || []).reduce((a, it) => a + (it.cf || 0), 0);
   const detectedQtyTotal = (detectedItems || []).reduce((a, it) => a + (it.qty || 0), 0);
@@ -307,7 +307,7 @@ export function parseInventory(text: string) {
         matchedAny = true;
         const cf = VOLUME_TABLE[key as keyof typeof VOLUME_TABLE] * qty;
         totalVol += cf; detectedQtyTotal += qty;
-        detectedItems.push({ name: key, qty, cf, raw: rawTok, room, wLbs, isWeightHeavy: !!isWeightHeavy, isManualHeavy: false });
+        detectedItems.push({ name: key, qty, cf, raw: rawTok, room, wLbs, isWeightHeavy: !!isWeightHeavy, isManualHeavy: false, flags: { heavy: !!isWeightHeavy, heavyWeight: !!isWeightHeavy } });
         if (key.includes("box") || key.includes("bin") || key.includes("tote")) boxCount += qty;
         if (LIFT_GATE_ITEMS.some(h => key.includes(h)) || isWeightHeavy) heavyCount += qty;
         if (IRREGULAR_SIGNALS.some(s => key.includes(s))) irregularCount += qty;
@@ -335,7 +335,7 @@ export function parseInventory(text: string) {
       totalVol += estVol; detectedQtyTotal += qty;
       if (!isBoxLike) furnitureCount += qty;
       estimatedItemCount += qty;
-      detectedItems.push({ name: `${cleanName} (est)`, qty, cf: estVol, raw: rawTok, room, wLbs, isWeightHeavy: !!isWeightHeavy, isManualHeavy: false });
+      detectedItems.push({ name: `${cleanName} (est)`, qty, cf: estVol, raw: rawTok, room, wLbs, isWeightHeavy: !!isWeightHeavy, isManualHeavy: false, flags: { heavy: !!isWeightHeavy, heavyWeight: !!isWeightHeavy } });
       if (cleanName.length > 2 && !/^(item|qty|pcs|total|set|of)$/i.test(cleanName)) unrecognized.push(cleanName);
     }
   });

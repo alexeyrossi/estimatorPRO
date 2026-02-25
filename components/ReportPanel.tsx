@@ -581,7 +581,7 @@ export const ReportPanel = ({
                                                         {item.name}
                                                         {item.room && <span className="text-gray-400 ml-1 font-semibold text-[9px]">[{item.room}]</span>}
                                                     </span>
-                                                    {(item.isWeightHeavy || item.isManualHeavy) && (
+                                                    {item.flags?.heavy && (
                                                         <div title="Heavy Item" className="flex items-center justify-center shrink-0">
                                                             <Weight className="w-3.5 h-3.5 text-red-500" strokeWidth={2.5} />
                                                         </div>

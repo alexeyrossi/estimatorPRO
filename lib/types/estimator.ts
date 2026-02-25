@@ -44,6 +44,7 @@ export interface ParsedItem {
   isWeightHeavy: boolean;
   isManualHeavy: boolean;
   wLbs: number | null;
+  flags?: { heavy?: boolean; heavyWeight?: boolean };
 }
 
 export interface EstimateResult {
