@@ -121,7 +121,7 @@ export const VOLUME_TABLE = {
   "nightstand": 10, "wardrobe": 40, "armoire": 50,
   "vanity": 30, "vanity stool": 5, "makeup table": 25,
   "changing table": 15, "shoe rack": 8, "drawer unit": 15, "plastic drawer unit": 15,
-  "mirror full length": 10, "mirror": 8, "glass": 5, "glass board": 8, "whiteboard": 8,
+  "mirror full length": 10, "mirror": 8, "glass": 5, "glass board": 8, "whiteboard": 5,
 
   // --- Kids & Sport ---
   "stroller": 15, "double stroller": 25, "baby carriage": 20, "pram": 15, "buggy": 15,
@@ -140,7 +140,7 @@ export const VOLUME_TABLE = {
   "computer": 5, "computer tower": 5, "monitor": 5, "computer monitor": 5, "dual monitor": 8,
   "monitor stand": 2, "printer": 10, "scanner": 5, "shredder": 8, "paper shredder": 8, "multifunction printer": 35,
   "tv": 10, "speaker": 4, "soundbar": 5, "subwoofer": 8,
-  "gaming console": 5, "ps5": 5, "xbox setup": 5, // Added tech
+  "gaming console": 5, "ps5": 5, "xbox setup": 5, "typewriter": 2, // Added tech
   "server rack": 45, "electronics": 10, "equipment": 15,
 
   // --- Appliances & Household ---
@@ -168,10 +168,10 @@ export const VOLUME_TABLE = {
   "ladder": 10, "step ladder": 5, "extension ladder": 15, "step stool": 5,
   "hose": 5, "garden hose": 5, "cooler": 10, "yeti": 10, "ice chest": 10,
   "lawn mower": 20, "riding mower": 60, "leaf blower": 5, "weed whacker": 5, "wheelbarrow": 20,
-  "shovel": 2, "rake": 2, "garden tools bundle": 10,
-  "tool chest": 20, "large tool kit": 20, "mechanic tools": 20, "workbench": 40, "storage cabinet": 30, "garage cabinet": 30, // Updated CF
+  "shovel": 2, "rake": 2, "garden tools bundle": 10, "broom": 3,
+  "tool chest": 20, "large tool kit": 20, "mechanic tools": 20, "workbench": 40, "storage cabinet": 30, "garage cabinet": 30, "toolbox": 5, // Updated CF
   "metal rack": 25, "garage shelving": 25, "rolling toolbox": 20,
-  "small tool box": 5, "tire": 10, "saw": 5, "sewing machine": 5,
+  "small tool box": 5, "tire": 10, "saw": 5, "sewing machine": 5, "small safe": 10,
   "generator": 15, "golf bag": 10, "golf clubs": 10, // Updated CF
   "surfboard": 15, "paddleboard": 15, "paddle board": 15, "sup": 15, "kayak": 25, "canoe": 30, "ski bag": 5, // Updated CF
   "camping gear": 15, "tent": 5,
@@ -204,7 +204,17 @@ export const VOLUME_TABLE = {
   "aquarium": 25, "fish tank": 25, "aquarium stand": 15,
   "christmas decor": 5, "christmas stuff": 5,
   "kitchen items": 5, "pantry items": 5,
-  "pillow": 5, "towel": 5, "bag": 5
+  "pillow": 5, "towel": 5, "bag": 5,
+
+  // --- New Items Task 3 ---
+  "chandelier": 15,
+  "acoustic panel": 2,
+  "stand": 5,
+  "shoe cabinet": 15,
+  "pedestal": 5,
+  "dumbbell": 2,
+  "kettlebell": 2,
+  "ignore_item": 0
 };
 
 export const STRICT_NO_BLANKET_ITEMS = [
@@ -383,7 +393,49 @@ export const ALIAS_RULES = [
   { re: /\bgarden\s*tools\b/i, to: "garden tools bundle" },
   { re: /\boled\b/i, to: "tv" },
   { re: /\bflat\s*screen\b/i, to: "tv" },
-  { re: /\btelevision\b/i, to: "tv" }
+  { re: /\btelevision\b/i, to: "tv" },
+
+  // Small appliances & missing items
+  { re: /\b(coffee\s*machine|coffee\s*maker|grinder)\b/i, to: "medium box" },
+  { re: /\b(air\s*filters?)\b/i, to: "medium box" },
+  { re: /\b(footrest)\b/i, to: "ottoman" },
+  { re: /\b(watering\s*can|bucket)\b/i, to: "medium box" },
+  { re: /\b(flags?|poles?|flagpoles?)\b/i, to: "broom" },
+  { re: /\bsmalls\b/i, to: "small box" },
+
+  // 1. THE ROOM LEAK TRAP (Uses ^ and $ to match ONLY the isolated room names)
+  { re: /^(living\s*room|dining\s*room|breakfast\s*nook|kitchen|hallways?|linen\s*closet|main\s*bedroom|bedroom|office|tv\s*room|storage\s*room|exterior|outside|patio|back\s*house|music\s*studio|back-house|back-house\s*music\s*studio)$/i, to: "ignore_item" },
+
+  // 2. Kitchen Micro-items (Pack them into boxes)
+  { re: /\b(jars?|spices?|bowls?|utensils?|pots?|pans?|tea\s*kettles?|trays?)\b/i, to: "medium box" },
+
+  // 3. Specific Hobby & Misc Items
+  { re: /\b(air\s*rifle|turntable|yoga\s*mat|foam\s*roller|cooler)\b/i, to: "medium box" },
+  { re: /\b(document\s*safes?)\b/i, to: "small safe" },
+
+  // 4. Granular container mappings & hardware anomalies
+  { re: /\b(baskets?|small\s*objects?|shoes?|clothes?|odds|ends)\b/i, to: "medium box" },
+  { re: /\b(documents?)\b/i, to: "small box" },
+  { re: /\b(keyboards?)\b/i, to: "large box" }, // For musical keyboards
+  { re: /\b(stepladders?|step\s*ladders?)\b/i, to: "step ladder" },
+
+  // Fallbacks for vague "contents"
+  { re: /\b(cabinet\s*pack|packed\s*smalls?|misc\s*storage|drawer\s*contents|cabinet\s*contents|closet\s*contents|shelf\s*contents|cleaning\s*supplies)\b/i, to: "medium box" },
+  { re: /\b(dishware|wine\s*glasses|dishes)\b/i, to: "dish barrel" },
+  { re: /\b(keyboard\s*boxes)\b/i, to: "large box" },
+
+  // Commercial & Specific
+  { re: /\b(rolling\s*rack\s*cabinet)\b/i, to: "server rack" },
+  { re: /\b(amplifiers?|rack\s*units?|security\s*cameras?)\b/i, to: "medium box" },
+  { re: /\b(mic\s*stand|keyboard\s*stand|speaker\s*stand)\b/i, to: "stand" },
+  { re: /\b(paper\s*shredder)\b/i, to: "shredder" },
+  { re: /\b(ent\s*center)\b/i, to: "entertainment center" },
+  { re: /\b(bottle\s*display)\b/i, to: "display cabinet" },
+  { re: /\b(wall\s*lights?)\b/i, to: "lamp" },
+  { re: /\b(planters?|pots?)\b/i, to: "plant" },
+
+  // TRAP FOR MOVER EQUIPMENT (0 Volume)
+  { re: /\b(moving\s*blankets?|bubble\s*wrap|stretch\s*wrap|packing\s*paper|tape|piano\s*boards?|dolly|dollies|straps|furniture\s*pads?|corner\s*protectors?|mattress\s*bags?|wardrobe\s*bags?|speed\s*packs?|bin\s*boxes?)\b/i, to: "ignore_item" }
 ];
 
 export const reEscape = (s: string) => s.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&");

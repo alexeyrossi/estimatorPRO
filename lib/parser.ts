@@ -130,10 +130,34 @@ export function applyAliasesRegex(t: string): string {
 
 export function preProcessLine(line: string): string {
   let s = line;
+
+  // 1. Fix special multiplication signs
+  s = s.replace(/×/g, "x");
+
+  // 2. Fix commas inside numbers (e.g., "1,000" -> "1000")
+  s = s.replace(/(\d),(\d)/g, "$1$2");
+
+  // 3. SMART PARENTHESES STRIPPER (Protects quantities!)
+  // Removes noise like "(glass top)", but KEEPS "(4)", "(x4)", "(qty 2)", "(4x)"
+  s = s.replace(/\((?!\s*(?:x|qty|#)?\s*\d+\s*x?\s*\))[^)]+\)/gi, " ");
+
+  // 4. Strip broker jargon without destroying surrounding text
+  s = s.replace(/\b(pre-removed|removed|empty|frame stays|boxed|packed|PBO|CP|KD|TBD)\b/gi, "");
+
+  // 5. SPLIT MULTI-ITEMS: "w/d" means Washer AND Dryer. 
+  // We replace with a comma so the tokenizer splits them into TWO items.
+  s = s.replace(/\bw\/d\b/gi, "washer, dryer");
+
+  // 6. SAFE SLASH HANDLING: "wardrobe/armoire" -> "wardrobe armoire"
+  s = s.replace(/([a-zA-Z])\/([a-zA-Z])/g, "$1 $2");
+
+  // Remove specific instructional noise that the dash-splitter turns into items
+  s = s.replace(/[-—–]*\s*must be protected from crushing/gi, "");
+
   INVERSIONS.forEach(inv => { s = s.replace(inv.src, inv.dest); });
   s = s.replace(/\bt\.v\./gi, "tv");
   s = s.replace(/\bflat\s+screen\b/gi, "");
-  s = s.replace(/\bw\/d\b/gi, "washer & dryer");
+
   const tokens = s.split(/([\s,]+)/);
   const processed = tokens.map(tok => {
     const lower = tok.toLowerCase().replace(/\.$/, "");
@@ -154,7 +178,7 @@ export function normalizeRowsFromText(text: string) {
     const cfUnit = Math.max(1, Math.round((it.cf || 0) / Math.max(1, it.qty || 1)));
     const nameLower = (it.name || "").toLowerCase();
     const rawLower = (it.raw || "").toLowerCase();
-    const isHeavy = it.isWeightHeavy || TRUE_HEAVY_ITEMS.some(h => nameLower.includes(h) || rawLower.includes(h));
+    const isHeavy = it.isWeightHeavy || TRUE_HEAVY_ITEMS.some(h => new RegExp(`\\b${h}\\b`, 'i').test(nameLower) || new RegExp(`\\b${h}\\b`, 'i').test(rawLower));
     return {
       id: uid(), name: it.name, qty: clampInt(it.qty, 1, 500), cfUnit,
       raw: it.raw || "", room: it.room || "", flags: { heavy: !!isHeavy, heavyWeight: !!it.isWeightHeavy }
@@ -177,7 +201,7 @@ export function summarizeNormalizedRows(rows: NormalizedRow[], rawTextForSignals
   const detectedQtyTotal = (detectedItems || []).reduce((a, it) => a + (it.qty || 0), 0);
   const boxCount = detectedItems.reduce((a, it) => {
     const n = (it.name || "").toLowerCase();
-    return (n.includes("box") || n.includes("bin") || n.includes("tote")) ? a + it.qty : a;
+    return new RegExp(`\\b(box|bin|tote)s?\\b`, 'i').test(n) ? a + it.qty : a;
   }, 0);
   const heavyCount = validRows.reduce((a, r) => a + (r.flags?.heavy ? clampInt(r.qty, 1, 500) : 0), 0);
 
@@ -187,17 +211,17 @@ export function summarizeNormalizedRows(rows: NormalizedRow[], rawTextForSignals
     // SAFE Bed Unit Check
     const isBedUnit = n.includes("bed") && !n.includes("frame") && !n.includes("mattress") && !n.includes("boxspring") && !n.includes("slat");
     if (isBedUnit) daComplexQty += it.qty;
-    else if (DA_COMPLEX.some(s => n.includes(s))) daComplexQty += it.qty;
-    else if (DA_SIMPLE.some(s => n.includes(s))) daSimpleQty += it.qty;
+    else if (DA_COMPLEX.some(s => new RegExp(`\\b${s}\\b`, 'i').test(n))) daComplexQty += it.qty;
+    else if (DA_SIMPLE.some(s => new RegExp(`\\b${s}\\b`, 'i').test(n))) daSimpleQty += it.qty;
   });
 
   let furnitureCount = 0, noBlanketVol = 0;
   detectedItems.forEach(it => {
     const n = (it.name || "").toLowerCase();
-    if (STRICT_NO_BLANKET_ITEMS.some(nb => n.includes(nb))) noBlanketVol += it.cf;
+    if (STRICT_NO_BLANKET_ITEMS.some(nb => new RegExp(`\\b${nb}\\b`, 'i').test(n))) noBlanketVol += it.cf;
     else furnitureCount += it.qty;
   });
-  const irregularCount = detectedItems.reduce((a, it) => IRREGULAR_SIGNALS.some(s => (it.name || "").toLowerCase().includes(s)) ? a + it.qty : a, 0);
+  const irregularCount = detectedItems.reduce((a, it) => IRREGULAR_SIGNALS.some(s => new RegExp(`\\b${s}\\b`, 'i').test((it.name || "").toLowerCase())) ? a + it.qty : a, 0);
   const rawLower = (rawTextForSignals || "").toLowerCase();
 
   return {
@@ -226,7 +250,7 @@ export function parseInventory(text: string) {
     const processedLine = preProcessLine(line);
     let clean = processedLine.trim().replace(/^[-*•>:]+\s*/, "");
     const isProtectedItem = /^(room divider|roomba|dining table|office chair|kitchen island|patio heater)\b/i.test(clean);
-    const ROOM_ALIAS_REGEX_BASE = "living|dining|kitchen|master|bedroom|bath|garage|patio|study|office|basement|attic|nursery|guest|closet|laundry|den|foyer|hallway|mudroom|sunroom|bonus|master bedroom|master bdr|mbr|primary bedroom|primary bed|main bedroom|owner suite|home office|library|man cave|gym|home gym|fitness room|workout room|deck|backyard|storage|storage unit|shed|playroom|kids room|open office|conference|cafeteria|executive|equipment|reception|break room|server room|warehouse";
+    const ROOM_ALIAS_REGEX_BASE = "living|dining|kitchen|master|bedroom|bath|garage|patio|study|office|basement|attic|nursery|guest|closet|laundry|den|foyer|hallway|mudroom|sunroom|bonus|master bedroom|master bdr|mbr|primary bedroom|primary bed|main bedroom|owner suite|home office|library|man cave|gym|home gym|fitness room|workout room|deck|backyard|storage|storage unit|shed|playroom|kids room|open office|conference|cafeteria|executive|equipment|reception|break room|server room|warehouse|breakfast nook|exterior|back house|music studio|tv room|storage room";
     const ROOM_ONLY = new RegExp(`^(${ROOM_ALIAS_REGEX_BASE})(\\s+room|\\s+area|\\s+rooms|\\s+offices|\\s+area)?(\\s*\/[\\w\\s\\-&]+)?\\s*:?$`, "i");
     const ROOM_PREFIX = new RegExp(`^(${ROOM_ALIAS_REGEX_BASE})\\b`, "i");
     // Generic section header: any text-only line ending in ':' with no digits (e.g. "Open Office Area:", "Cafeteria:")
@@ -258,7 +282,7 @@ export function parseInventory(text: string) {
     }
     if (!clean.trim()) return;
     clean = clean.replace(/\s+(w\/|with|plus|\+|and|&)\s+/gi, " & ");
-    const lineTokens = clean.split(/[,;•+]+|&/gi).map(x => x.trim()).filter(Boolean);
+    const lineTokens = clean.split(/[,;•+]+|\s+[\/—–]+\s+|&/gi).map(x => x.trim()).filter(Boolean);
     lineTokens.forEach(tok => tokens.push({ text: tok, room: currentRoom }));
   });
 
@@ -309,17 +333,17 @@ export function parseInventory(text: string) {
         const cf = VOLUME_TABLE[key as keyof typeof VOLUME_TABLE] * qty;
         totalVol += cf; detectedQtyTotal += qty;
         detectedItems.push({ name: key, qty, cf, raw: rawTok, room, wLbs, isWeightHeavy: !!isWeightHeavy, isManualHeavy: false, flags: { heavy: !!isWeightHeavy, heavyWeight: !!isWeightHeavy } });
-        if (key.includes("box") || key.includes("bin") || key.includes("tote")) boxCount += qty;
-        if (LIFT_GATE_ITEMS.some(h => key.includes(h)) || isWeightHeavy) heavyCount += qty;
-        if (IRREGULAR_SIGNALS.some(s => key.includes(s))) irregularCount += qty;
+        if (new RegExp(`\\b(box|bin|tote)s?\\b`, 'i').test(key)) boxCount += qty;
+        if (LIFT_GATE_ITEMS.some(h => new RegExp(`\\b${h}\\b`, 'i').test(key)) || isWeightHeavy) heavyCount += qty;
+        if (IRREGULAR_SIGNALS.some(s => new RegExp(`\\b${s}\\b`, 'i').test(key))) irregularCount += qty;
 
         // SAFE Bed Unit Check
         const isBedUnit = key.includes("bed") && !key.includes("frame") && !key.includes("mattress") && !key.includes("boxspring") && !key.includes("slat");
         if (isBedUnit) daComplexQty += qty;
-        else if (DA_COMPLEX.some(s => key.includes(s))) daComplexQty += qty;
-        else if (DA_SIMPLE.some(s => key.includes(s))) daSimpleQty += qty;
+        else if (DA_COMPLEX.some(s => new RegExp(`\\b${s}\\b`, 'i').test(key))) daComplexQty += qty;
+        else if (DA_SIMPLE.some(s => new RegExp(`\\b${s}\\b`, 'i').test(key))) daSimpleQty += qty;
 
-        if (!STRICT_NO_BLANKET_ITEMS.some(nb => key.includes(nb))) furnitureCount += qty;
+        if (!STRICT_NO_BLANKET_ITEMS.some(nb => new RegExp(`\\b${nb}\\b`, 'i').test(key))) furnitureCount += qty;
         else noBlanketVol += cf;
         break;
       }

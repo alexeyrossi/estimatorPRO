@@ -130,7 +130,7 @@ export const ReportPanel = ({
             };
 
             const checkPage = (needed: number) => {
-                if (y + needed > H - 20) {
+                if (y + needed > H - 40) {
                     pdf.addPage();
                     y = M;
                 }
@@ -270,25 +270,27 @@ export const ReportPanel = ({
                 const col1 = estimate.parsedItems.slice(0, half);
                 const col2 = estimate.parsedItems.slice(half);
                 const tableW = (W - M * 2 - 8) / 2;
+                const xLeft = M;
+                const xRight = M + tableW + 8;
+                const rowCount = Math.max(col1.length, col2.length);
 
-                let maxY = y;
-                [col1, col2].forEach((col, ci) => {
-                    let localY = y;
-                    const xBase = M + ci * (tableW + 8);
-                    col.forEach(item => {
-                        checkPage(5);
-                        pdf.setFontSize(9); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(30, 30, 30);
-                        pdf.text(`x${item.qty}`, xBase, localY);
-                        pdf.setFont('helvetica', 'normal'); pdf.setTextColor(80, 80, 80);
-                        pdf.text(item.name || '', xBase + 14, localY);
-                        const cfTotal = (item.cf || 0) * (item.qty || 1);
-                        pdf.setFont('helvetica', 'normal'); pdf.setTextColor(140, 140, 140);
-                        pdf.text(`${cfTotal} cf`, xBase + tableW - 2, localY, { align: 'right' });
-                        localY += 5;
-                    });
-                    maxY = Math.max(maxY, localY);
-                });
-                y = maxY;
+                const drawItem = (item: any, xBase: number) => {
+                    pdf.setFontSize(9); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(30, 30, 30);
+                    pdf.text(`x${item.qty}`, xBase, y);
+                    pdf.setFont('helvetica', 'normal'); pdf.setTextColor(80, 80, 80);
+                    pdf.text(item.name || '', xBase + 14, y);
+                    const cfTotal = (item.cf || 0) * (item.qty || 1);
+                    pdf.setFont('helvetica', 'normal'); pdf.setTextColor(140, 140, 140);
+                    pdf.text(`${cfTotal} cf`, xBase + tableW - 2, y, { align: 'right' });
+                };
+
+                for (let r = 0; r < rowCount; r++) {
+                    checkPage(5);
+                    if (col1[r]) drawItem(col1[r], xLeft);
+                    if (col2[r]) drawItem(col2[r], xRight);
+                    y += 5;
+                }
+
                 y += 2; drawLine(y); y += 8;
             }
 
@@ -311,15 +313,24 @@ export const ReportPanel = ({
                 });
             }
 
-            // ========== FOOTER ON ALL PAGES ==========
-            const totalPages = pdf.getNumberOfPages();
-            for (let i = 1; i <= totalPages; i++) {
+            // ========== FOOTER ==========
+            const pageCount = pdf.getNumberOfPages();
+            for (let i = 1; i <= pageCount; i++) {
                 pdf.setPage(i);
-                pdf.setFontSize(7); pdf.setFont('helvetica', 'normal'); pdf.setTextColor(180, 180, 180);
-                pdf.text(
-                    `Generated ${today} | Estimator V11.59 PRO | Page ${i} of ${totalPages}`,
-                    W / 2, H - 8, { align: 'center' }
-                );
+                pdf.setFontSize(8);
+                pdf.setTextColor(150);
+
+                // Page number on every page
+                const pageLabel = `Page ${i} of ${pageCount}`;
+                const pageLabelW = pdf.getTextWidth(pageLabel);
+                pdf.text(pageLabel, (W / 2) - (pageLabelW / 2), H - 10);
+
+                // "Generated" stamp only on the last page
+                if (i === pageCount) {
+                    const stamp = `Generated ${today} | Estimator V11.59 PRO`;
+                    const stampW = pdf.getTextWidth(stamp);
+                    pdf.text(stamp, (W / 2) - (stampW / 2), H - 15);
+                }
             }
 
             // ========== SAVE ==========

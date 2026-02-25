@@ -41,7 +41,7 @@ export function buildEstimate(inputs: EstimateInputs, normalizedRows?: Normalize
     if (!useNormalized) {
       parsed.detectedItems = parsed.detectedItems.map(item => {
         const n = item.name.toLowerCase();
-        const isTrueHeavy = item.isWeightHeavy || TRUE_HEAVY_ITEMS.some(h => n.includes(h));
+        const isTrueHeavy = item.isWeightHeavy || TRUE_HEAVY_ITEMS.some(h => new RegExp(`\\b${h}\\b`, 'i').test(n));
         let finalHeavy = isTrueHeavy;
 
         if (normalizedRows && normalizedRows.length > 0) {
@@ -165,13 +165,13 @@ export function buildEstimate(inputs: EstimateInputs, normalizedRows?: Normalize
     // In normalized mode, only respect manual flags for heavy detection
     const hasHeavy = useNormalized
       ? manualHeavy
-      : (parsed.detectedItems || []).some(it => { const n = norm(it.name); const r = norm(it.raw); return TRUE_HEAVY_ITEMS.some(lg => n.includes(lg) || r.includes(lg)); });
+      : (parsed.detectedItems || []).some(it => { const n = norm(it.name); const r = norm(it.raw); return TRUE_HEAVY_ITEMS.some(lg => new RegExp(`\\b${lg}\\b`, 'i').test(n) || new RegExp(`\\b${lg}\\b`, 'i').test(r)); });
 
     let truckFeatureLabel = "";
     // Lift-gate: in normalized mode, only trigger if user checked heavy OR item is bulky by name
     const needsLiftGate = useNormalized
-      ? manualHeavy || (parsed.detectedItems || []).some(it => { const n = norm(it.name); return LIFT_GATE_ITEMS.some(lg => n.includes(lg)); })
-      : (parsed.detectedItems || []).some(it => { const n = norm(it.name); return LIFT_GATE_ITEMS.some(lg => n.includes(lg)); });
+      ? manualHeavy || (parsed.detectedItems || []).some(it => { const n = norm(it.name); return LIFT_GATE_ITEMS.some(lg => new RegExp(`\\b${lg}\\b`, 'i').test(n)); })
+      : (parsed.detectedItems || []).some(it => { const n = norm(it.name); return LIFT_GATE_ITEMS.some(lg => new RegExp(`\\b${lg}\\b`, 'i').test(n)); });
     if (hasHeavy || hasPallets || hasHeavyByWeight || needsLiftGate) {
       truckFeatureLabel = " + Lift-gate";
       if (hasPallets) advice.push("Commercial: Palletjack & Lift-gate required for skids.");
@@ -215,7 +215,7 @@ export function buildEstimate(inputs: EstimateInputs, normalizedRows?: Normalize
       let b = 0;
       const k = matchLongestKey(n, BLANKET_KEYS, BLANKET_REGEX_CACHE);
       if (k) b = (BLANKETS_TABLE as Record<string, number>)[k];
-      else if (!STRICT_NO_BLANKET_ITEMS.some(nb => n.includes(nb))) b = 1;
+      else if (!STRICT_NO_BLANKET_ITEMS.some(nb => new RegExp(`\\b${nb}\\b`, 'i').test(n))) b = 1;
 
       const isChairLike = (n.includes("chair") || n.includes("stool")) && !n.includes("chair mat") && !n.includes("mat");
       const isArmchair = n.includes("arm") || n.includes("recliner") || n.includes("sofa");
@@ -223,7 +223,7 @@ export function buildEstimate(inputs: EstimateInputs, normalizedRows?: Normalize
       else blankets += b * it.qty;
     });
 
-    const noBlanketCF = (parsed.detectedItems || []).reduce((a, it) => STRICT_NO_BLANKET_ITEMS.some(nb => (it.name || "").toLowerCase().includes(nb)) ? a + (it.cf || 0) : a, 0);
+    const noBlanketCF = (parsed.detectedItems || []).reduce((a, it) => STRICT_NO_BLANKET_ITEMS.some(nb => new RegExp(`\\b${nb}\\b`, 'i').test((it.name || "").toLowerCase())) ? a + (it.cf || 0) : a, 0);
     const noBlanketWithLL = Math.round((noBlanketCF + (missingBoxesCount * 5)) * (1 + llPct));
     const blanketVolume = Math.max(0, finalVolume - noBlanketWithLL);
 
@@ -267,8 +267,8 @@ export function buildEstimate(inputs: EstimateInputs, normalizedRows?: Normalize
         // SAFE Bed Unit Check
         const isBedUnit = n.includes("bed") && !n.includes("frame") && !n.includes("mattress") && !n.includes("boxspring") && !n.includes("slat");
         if (isBedUnit) daMins += (isCommercial ? 20 : PROTOCOL.MINS_DA_COMPLEX) * it.qty;
-        else if (DA_COMPLEX.some(s => n.includes(s))) daMins += (isCommercial ? 20 : PROTOCOL.MINS_DA_COMPLEX) * it.qty;
-        else if (DA_SIMPLE.some(s => n.includes(s))) daMins += (isCommercial ? 5 : PROTOCOL.MINS_DA_SIMPLE) * it.qty;
+        else if (DA_COMPLEX.some(s => new RegExp(`\\b${s}\\b`, 'i').test(n))) daMins += (isCommercial ? 20 : PROTOCOL.MINS_DA_COMPLEX) * it.qty;
+        else if (DA_SIMPLE.some(s => new RegExp(`\\b${s}\\b`, 'i').test(n))) daMins += (isCommercial ? 5 : PROTOCOL.MINS_DA_SIMPLE) * it.qty;
       }
     });
 
@@ -290,8 +290,8 @@ export function buildEstimate(inputs: EstimateInputs, normalizedRows?: Normalize
     let league = 0; const leagueItems: { l1: string[], l2: string[] } = { l1: [], l2: [] };
     (parsed.detectedItems || []).forEach(it => {
       const n = (it.name || "").toLowerCase(), r = (it.raw || "").toLowerCase();
-      if (LEAGUE_2_ITEMS.some(lg => n.includes(lg) || r.includes(lg))) { league = 2; leagueItems.l2.push(it.name); }
-      else if (LEAGUE_1_ITEMS.some(lg => n.includes(lg) || r.includes(lg))) { if (league < 1) league = 1; leagueItems.l1.push(it.name); }
+      if (LEAGUE_2_ITEMS.some(lg => new RegExp(`\\b${lg}\\b`, 'i').test(n) || new RegExp(`\\b${lg}\\b`, 'i').test(r))) { league = 2; leagueItems.l2.push(it.name); }
+      else if (LEAGUE_1_ITEMS.some(lg => new RegExp(`\\b${lg}\\b`, 'i').test(n) || new RegExp(`\\b${lg}\\b`, 'i').test(r))) { if (league < 1) league = 1; leagueItems.l1.push(it.name); }
     });
     if (league === 2) crew = Math.max(crew, 4);
     if (finalVolume > 3000) crew = Math.max(crew, 6);
