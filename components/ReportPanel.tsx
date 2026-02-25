@@ -188,8 +188,16 @@ export const ReportPanel = ({
             pdf.text('Confidence', M + 18, y);
 
             if (estimate.heavyItemNames?.length && estimate.heavyItemNames.length > 0) {
-                pdf.setFontSize(10); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(220, 50, 50);
-                pdf.text(`Heavy: ${estimate.heavyItemNames.join(', ')}`, W - M, y, { align: 'right' });
+                const heavyText = `HEAVY: ${estimate.heavyItemNames.join(', ')}`;
+                const textWidth = pdf.getTextWidth(heavyText);
+                const badgeW = textWidth + 10;
+                const badgeX = W - M - badgeW;
+                const badgeY = y - 4;
+                // Draw rounded red badge background
+                pdf.setFillColor(254, 242, 242); // red-50
+                pdf.roundedRect(badgeX, badgeY, badgeW, 6, 3, 3, 'F');
+                pdf.setFontSize(8); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(220, 50, 50);
+                pdf.text(heavyText, badgeX + 5, y);
             }
             y += 6;
 
@@ -205,8 +213,8 @@ export const ReportPanel = ({
             }
             y += 2; drawLine(y); y += 8;
 
-            // ========== LD BREAKDOWN ==========
-            if (estimate.billableCF != null && estimate.billableCF > 0) {
+            // ========== LD BREAKDOWN / LOCAL LINE ==========
+            if (inputs.moveType === 'LD' && estimate.billableCF != null && estimate.billableCF > 0) {
                 checkPage(30);
                 pdf.setFontSize(8); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(59, 130, 246);
                 pdf.text('LONG DISTANCE BREAKDOWN', M, y);
@@ -225,6 +233,12 @@ export const ReportPanel = ({
                     pdf.text(d.value, x, y + 6);
                 });
                 y += 14; drawLine(y); y += 8;
+            } else if (inputs.moveType === 'Local') {
+                checkPage(10);
+                pdf.setFontSize(9); pdf.setFont('helvetica', 'normal'); pdf.setTextColor(160, 160, 160);
+                const accessInfo = inputs.accessOrigin || 'ground';
+                pdf.text(`Local Service \u00b7 ${inputs.distance} miles \u00b7 ${accessInfo} access`, M, y);
+                y += 4; drawLine(y); y += 8;
             }
 
             // ========== MATERIALS ==========
@@ -539,7 +553,7 @@ export const ReportPanel = ({
                                         <Lock className="w-4 h-4 text-white" /> Manager Overrides
                                     </div>
                                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                                        {["volume", "trucks", "crew", "timeMin", "timeMax", "blankets", "boxes"].map(k => (
+                                        {["volume", "trucks", "crew", "timeMin", "timeMax", "blankets"].map(k => (
                                             <input
                                                 key={k}
                                                 placeholder={`${k.charAt(0).toUpperCase() + k.slice(1)} (${k === 'blankets' || k === 'boxes'
