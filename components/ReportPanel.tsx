@@ -576,11 +576,17 @@ export const ReportPanel = ({
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-64 overflow-y-auto pr-2 pb-2">
                                         {estimate.parsedItems?.map((item, i) => (
                                             <div key={i} className="flex justify-between items-center px-4 py-3 rounded-xl hover:bg-gray-50 transition-colors cursor-default">
-                                                <span className="font-bold text-gray-700 text-[11px] truncate mr-2">
-                                                    {item.name}
-                                                    {item.room && <span className="text-gray-400 ml-1 font-semibold text-[9px]">[{item.room}]</span>}
-                                                    {item.isWeightHeavy && <span className="text-red-500 ml-1 font-black text-[9px]">(HEAVY)</span>}
-                                                </span>
+                                                <div className="flex items-center gap-2 mr-2 overflow-hidden">
+                                                    <span className="font-bold text-gray-700 text-[11px] truncate">
+                                                        {item.name}
+                                                        {item.room && <span className="text-gray-400 ml-1 font-semibold text-[9px]">[{item.room}]</span>}
+                                                    </span>
+                                                    {(item.isWeightHeavy || item.isManualHeavy) && (
+                                                        <div title="Heavy Item" className="flex items-center justify-center shrink-0">
+                                                            <Weight className="w-3.5 h-3.5 text-red-500" strokeWidth={2.5} />
+                                                        </div>
+                                                    )}
+                                                </div>
                                                 <span className="text-gray-500 whitespace-nowrap text-[11px] font-mono font-medium flex items-center gap-2">
                                                     <span>x{item.qty}</span>
                                                     <span className="text-gray-200">|</span>
