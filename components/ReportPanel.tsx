@@ -150,7 +150,8 @@ export const ReportPanel = ({
                 pdf.setTextColor(30, 30, 30);
                 pdf.text(clientName, W - M, y - 7, { align: 'right' });
             }
-            const paramLine = [inputs.homeSize, `${inputs.distance} mi`, inputs.moveType]
+            const homeSizeLabel = inputs.homeSize === '0' ? 'Studio' : inputs.homeSize === 'Commercial' ? 'Commercial' : `${inputs.homeSize} BDR`;
+            const paramLine = [homeSizeLabel, `${inputs.distance} mi`, inputs.moveType]
                 .filter(Boolean).join(' · ');
             pdf.setFontSize(9);
             pdf.setFont('helvetica', 'normal');
@@ -276,10 +277,13 @@ export const ReportPanel = ({
                     const xBase = M + ci * (tableW + 8);
                     col.forEach(item => {
                         checkPage(5);
-                        pdf.setFontSize(9); pdf.setFont('helvetica', 'normal'); pdf.setTextColor(80, 80, 80);
-                        pdf.text(item.name || '', xBase, localY);
-                        pdf.setFont('helvetica', 'bold'); pdf.setTextColor(30, 30, 30);
-                        pdf.text(`x${item.qty}`, xBase + tableW - 2, localY, { align: 'right' });
+                        pdf.setFontSize(9); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(30, 30, 30);
+                        pdf.text(`x${item.qty}`, xBase, localY);
+                        pdf.setFont('helvetica', 'normal'); pdf.setTextColor(80, 80, 80);
+                        pdf.text(item.name || '', xBase + 14, localY);
+                        const cfTotal = (item.cf || 0) * (item.qty || 1);
+                        pdf.setFont('helvetica', 'normal'); pdf.setTextColor(140, 140, 140);
+                        pdf.text(`${cfTotal} cf`, xBase + tableW - 2, localY, { align: 'right' });
                         localY += 5;
                     });
                     maxY = Math.max(maxY, localY);

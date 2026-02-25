@@ -249,20 +249,21 @@ export const ConfigPanel = ({
                     )}
                 </div>
 
-                <div className="relative w-full">
-                    <textarea
-                        value={inputs.inventoryText}
-                        onChange={e => {
-                            const raw = e.target.value;
-                            const limited = limitInventoryText(raw);
-                            setInventoryClipped(limited.length !== raw.length);
-                            setInputs({ ...inputs, inventoryText: limited });
-                        }}
-                        className={`block w-full h-56 bg-white border border-gray-200 rounded-2xl p-4 sm:p-5 text-[14px] leading-relaxed text-gray-800 outline-none resize-none shadow-sm transition-all duration-300 ${inventoryMode === "raw" ? "opacity-100" : "opacity-0 h-0 overflow-hidden absolute inset-x-0"}`}
-                        placeholder="Paste inventory here (e.g. Living Room: Sofa, TV...)"
-                        style={{ fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, monospace', WebkitOverflowScrolling: 'touch' }}
-                    />
-                    <div className={`transition-all duration-300 ${inventoryMode === "normalized" ? "opacity-100" : "opacity-0 h-0 overflow-hidden absolute inset-x-0"}`}>
+                <div className="w-full">
+                    {inventoryMode === "raw" ? (
+                        <textarea
+                            value={inputs.inventoryText}
+                            onChange={e => {
+                                const raw = e.target.value;
+                                const limited = limitInventoryText(raw);
+                                setInventoryClipped(limited.length !== raw.length);
+                                setInputs({ ...inputs, inventoryText: limited });
+                            }}
+                            className="block w-full h-56 bg-white border border-gray-200 rounded-2xl p-4 sm:p-5 text-[14px] leading-relaxed text-gray-800 outline-none resize-none shadow-sm"
+                            placeholder="Paste inventory here (e.g. Living Room: Sofa, TV...)"
+                            style={{ fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, monospace', WebkitOverflowScrolling: 'touch' }}
+                        />
+                    ) : (
                         <div className="bg-white border border-gray-200 rounded-2xl p-3 shadow-sm">
                             <div className="text-[10px] font-bold text-gray-400 mb-2 uppercase tracking-widest px-1">Inventory Editor</div>
                             <div className="max-h-72 overflow-y-auto pr-1">
@@ -318,7 +319,7 @@ export const ConfigPanel = ({
                                 </button>
                             </div>
                         </div>
-                    </div>
+                    )}
                 </div>
                 {inventoryClipped && <div className="mt-3 text-[10px] text-orange-600 bg-orange-50 p-2.5 rounded-lg font-semibold border border-orange-100">Inventory clipped (limit reached).</div>}
             </div>
