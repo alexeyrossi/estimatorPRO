@@ -169,7 +169,8 @@ export default function DashboardPage() {
         async function runEngine() {
             setIsCalculating(true);
             try {
-                const result = await getEstimate({ ...debouncedInputs, inventoryMode }, inventoryMode === "normalized" ? debouncedNormalized : undefined, overrides);
+                // Pass debouncedNormalized unconditionally so engine.ts can extract and preserve manual flags
+                const result = await getEstimate({ ...debouncedInputs, inventoryMode }, debouncedNormalized, overrides);
                 setEstimate(result);
             } catch (err) {
                 console.error("Estimate calculation failed", err);
@@ -185,7 +186,19 @@ export default function DashboardPage() {
         setIsCalculating(true);
         try {
             const rows = await normalizeInventoryAction(inputs.inventoryText);
-            setNormalizedRows(rows);
+
+            // Deep merge existing flags into newly parsed rows to preserve toggle state
+            const mergedRows = rows.map(newRow => {
+                const existing = normalizedRows.find(
+                    r => r.name.toLowerCase() === newRow.name.toLowerCase() && (r.room || "").toLowerCase() === (newRow.room || "").toLowerCase()
+                );
+                if (existing && existing.flags) {
+                    return { ...newRow, flags: { ...newRow.flags, ...existing.flags } };
+                }
+                return newRow;
+            });
+
+            setNormalizedRows(mergedRows);
             setInventoryMode("normalized");
         } catch (e) {
             console.error(e);

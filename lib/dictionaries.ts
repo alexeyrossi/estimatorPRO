@@ -54,10 +54,10 @@ export const TRUE_HEAVY_ITEMS = [
   "motorcycle",
   "marble", "stone", "granite",
   "large statue", "fountain",
-  "grandfather clock", "clock large",
+  "grandfather clock",
   "arcade machine", "pinball", "slot machine",
   "lathe", "milling machine", "machinery",
-  "treadmill", "elliptical", "running machine", "cross trainer",
+  "treadmill", "elliptical",
   "adjustable bed", "adjustable base", "sleep number",
   "copier", "large copier",
   "china cabinet", "conference table", "armoire", "solid wood armoire"
@@ -66,7 +66,6 @@ export const TRUE_HEAVY_ITEMS = [
 // Items that need special equipment/space but do NOT trigger the HEAVY badge
 export const BULKY_ITEMS = [
   "rowing machine", "multi gym",
-  "power rack", "smith machine", "squat rack",
   "tool chest", "rolling toolbox",
   "pallet", "skid", "crate"
 ];
@@ -79,7 +78,7 @@ export const LEAGUE_1_ITEMS = [
   "rowing machine", "multi gym", "weight bench",
   "washer", "dryer", "stove", "dishwasher",
   "fridge", "refrigerator", "commercial fridge",
-  "tool chest", "workbench", "rolling toolbox",
+  "tool chest", "rolling toolbox",
   "adjustable bed", "adjustable base", "sleep number"
 ];
 

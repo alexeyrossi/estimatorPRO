@@ -1,8 +1,8 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { EstimateInputs, EstimateResult } from '@/lib/types/estimator';
 import {
-    Box, Truck, Clock, ShieldCheck, History, Info, ChevronRight, ArrowUpFromLine,
-    CalendarDays, Users, ShieldAlert, AlertTriangle, Lightbulb, Check, Clipboard, ChevronDown, Lock, List, Terminal, Weight, Scale, PackageOpen
+    Activity, ChevronDown, Monitor, Share2, HelpCircle,
+    Copy, Phone, MapPin, Truck, Box, Layers, Settings, Maximize2, X, Download, List, Shield, Weight, Terminal, ChevronRight, Lock, Scale, PackageOpen, Clock, CalendarDays, Info, Users, AlertTriangle, ArrowUpFromLine, Check, Clipboard
 } from 'lucide-react';
 import { GlassPanel } from './GlassPanel';
 import { MetricCard } from './MetricCard';
@@ -575,19 +575,15 @@ export const ReportPanel = ({
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-64 overflow-y-auto pr-2 pb-2">
                                         {estimate.parsedItems?.map((item, i) => (
-                                            <div key={i} className="flex justify-between items-center px-4 py-3 rounded-xl hover:bg-gray-50 transition-colors cursor-default">
-                                                <div className="flex items-center gap-2 mr-2 overflow-hidden">
-                                                    <span className="font-bold text-gray-700 text-[11px] truncate">
-                                                        {item.name}
-                                                        {item.room && <span className="text-gray-400 ml-1 font-semibold text-[9px]">[{item.room}]</span>}
-                                                    </span>
+                                            <div key={i} className="flex justify-between items-center bg-white border border-gray-100 px-4 py-3 rounded-[1rem] shadow-[0_2px_8px_rgba(0,0,0,0.02)] hover:border-gray-200 transition-colors">
+                                                <span className="font-bold text-gray-700 text-[11px] truncate mr-2">
+                                                    {item.name}
+                                                    {item.room && <span className="text-gray-400 ml-1 font-semibold text-[9px]">[{item.room}]</span>}
                                                     {item.flags?.heavy && (
-                                                        <div title="Heavy Item" className="flex items-center justify-center shrink-0">
-                                                            <Weight className="w-3.5 h-3.5 text-red-500" strokeWidth={2.5} />
-                                                        </div>
+                                                        <Weight className="w-3 h-3 text-red-500 ml-1 inline-block" strokeWidth={2.5} />
                                                     )}
-                                                </div>
-                                                <span className="text-gray-500 whitespace-nowrap text-[11px] font-mono font-medium flex items-center gap-2">
+                                                </span>
+                                                <span className="text-gray-500 whitespace-nowrap text-[11px] font-medium flex items-center gap-2" style={{ fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, monospace' }}>
                                                     <span>x{item.qty}</span>
                                                     <span className="text-gray-200">|</span>
                                                     <span className="font-bold text-gray-600">{item.cf}cf</span>
@@ -623,9 +619,10 @@ export const ReportPanel = ({
                                             </div>
                                         </div>
 
-                                        <div className="mt-6 pt-5 border-t border-gray-800/80 flex flex-wrap items-center gap-x-12 gap-y-4">
+                                        <div className="mt-6 pt-5 border-t border-gray-800/80 grid grid-cols-2 gap-y-6 gap-x-8">
+                                            {/* 1. Weight Baseline */}
                                             <div className="flex gap-3 items-start">
-                                                <Scale className="w-4 h-4 text-gray-600 mt-0.5 shrink-0" />
+                                                <Scale className="w-4 h-4 text-gray-600 mt-0.5" />
                                                 <div className="flex flex-col">
                                                     <span className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Weight Baseline</span>
                                                     <span className="text-[13px] font-bold text-gray-300">7 lbs / cu ft</span>
@@ -633,8 +630,9 @@ export const ReportPanel = ({
                                                 </div>
                                             </div>
 
+                                            {/* 2. Stacking Factor */}
                                             <div className="flex gap-3 items-start">
-                                                <PackageOpen className="w-4 h-4 text-gray-600 mt-0.5 shrink-0" />
+                                                <PackageOpen className="w-4 h-4 text-gray-600 mt-0.5" />
                                                 <div className="flex flex-col">
                                                     <span className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Stacking Factor</span>
                                                     <span className="text-[13px] font-bold text-gray-300">~10% Volume Allowance</span>
@@ -642,12 +640,23 @@ export const ReportPanel = ({
                                                 </div>
                                             </div>
 
+                                            {/* 3. Box Algorithm */}
                                             <div className="flex gap-3 items-start">
-                                                <Box className="w-4 h-4 text-gray-600 mt-0.5 shrink-0" />
+                                                <Box className="w-4 h-4 text-gray-600 mt-0.5" />
                                                 <div className="flex flex-col">
                                                     <span className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Box Algorithm</span>
-                                                    <span className="text-[13px] font-bold text-gray-300">Auto-Generated ({inputs.homeSize})</span>
+                                                    <span className="text-[13px] font-bold text-gray-300">Auto-Generated</span>
                                                     <span className="text-[11px] text-gray-600 mt-0.5">Min. requirement for safe transport</span>
+                                                </div>
+                                            </div>
+
+                                            {/* 4. Labor Algorithm (NEW - MUST BE RENDERED) */}
+                                            <div className="flex gap-3 items-start">
+                                                <Clock className="w-4 h-4 text-gray-600 mt-0.5" />
+                                                <div className="flex flex-col">
+                                                    <span className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Labor Algorithm</span>
+                                                    <span className="text-[13px] font-bold text-gray-300">Volume + Access Factors</span>
+                                                    <span className="text-[11px] text-gray-600 mt-0.5">Accounts for stairs & elevators</span>
                                                 </div>
                                             </div>
                                         </div>

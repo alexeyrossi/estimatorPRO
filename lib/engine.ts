@@ -32,10 +32,29 @@ export function buildEstimate(inputs: EstimateInputs, normalizedRows?: Normalize
     const bedroomCount = isCommercial ? 0 : (parseInt(inputs.homeSize) || 0);
     const scopeLabel = isCommercial ? "Commercial" : inputs.homeSize === "0" ? "Studio / Less" : `${bedroomCount} BDR`;
 
-    const useNormalized = (normalizedRows && normalizedRows.length > 0) || (inputs.inventoryMode === "normalized" && Array.isArray(inputs.normalizedRows) && inputs.normalizedRows.length > 0);
+    const useNormalized = inputs.inventoryMode === "normalized" && ((normalizedRows && normalizedRows.length > 0) || (Array.isArray(inputs.normalizedRows) && inputs.normalizedRows.length > 0));
     const parsed = useNormalized
       ? summarizeNormalizedRows(normalizedRows || inputs.normalizedRows || [], inputs.inventoryText)
       : parseInventory(inputs.inventoryText);
+
+    // Deep merge flags from previous normalizedRows if available (preserving Client View manual flags)
+    if (!useNormalized) {
+      parsed.detectedItems = parsed.detectedItems.map(item => {
+        let finalHeavy = item.isWeightHeavy || TRUE_HEAVY_ITEMS.some(h => item.name.toLowerCase().includes(h));
+
+        if (normalizedRows && normalizedRows.length > 0) {
+          const existingRow = normalizedRows.find(
+            r => r.name.toLowerCase() === item.name.toLowerCase() && (r.room || "").toLowerCase() === (item.room || "").toLowerCase()
+          );
+          if (existingRow && existingRow.flags) {
+            finalHeavy = !!existingRow.flags.heavy;
+            return { ...item, isManualHeavy: finalHeavy, flags: { ...item.flags, ...existingRow.flags, heavy: finalHeavy } };
+          }
+        }
+
+        return { ...item, isManualHeavy: finalHeavy, flags: { ...item.flags, heavy: finalHeavy } };
+      });
+    }
 
     const items = (parsed.detectedItems || []);
     const countBy = (re: RegExp) => items.reduce((a, it) => a + (re.test((it.name || "").toLowerCase()) ? it.qty : 0), 0);
@@ -136,13 +155,20 @@ export function buildEstimate(inputs: EstimateInputs, normalizedRows?: Normalize
 
     const norm = (s: string) => (s || "").toLowerCase();
     const hasPallets = (parsed.detectedItems || []).some(it => { const n = norm(it.name); const r = norm(it.raw); return n.includes("pallet") || n.includes("skid") || r.includes("pallet") || r.includes("skid"); });
-    const hasHeavy = (parsed.detectedItems || []).some(it => { const n = norm(it.name); const r = norm(it.raw); return TRUE_HEAVY_ITEMS.some(lg => n.includes(lg) || r.includes(lg)); });
     const hasHeavyByWeight = (parsed.detectedItems || []).some(it => it.isWeightHeavy);
-    const manualHeavy = useNormalized && (normalizedRows || inputs.normalizedRows || []).some(r => r.flags?.heavy);
+    const manualHeavy = (parsed.detectedItems || []).some(r => r.flags?.heavy);
+
+    // In normalized mode, only respect manual flags for heavy detection
+    const hasHeavy = useNormalized
+      ? manualHeavy
+      : (parsed.detectedItems || []).some(it => { const n = norm(it.name); const r = norm(it.raw); return TRUE_HEAVY_ITEMS.some(lg => n.includes(lg) || r.includes(lg)); });
 
     let truckFeatureLabel = "";
-    const needsLiftGate = (parsed.detectedItems || []).some(it => { const n = norm(it.name); return LIFT_GATE_ITEMS.some(lg => n.includes(lg)); });
-    if (hasHeavy || hasPallets || manualHeavy || hasHeavyByWeight || needsLiftGate) {
+    // Lift-gate: in normalized mode, only trigger if user checked heavy OR item is bulky by name
+    const needsLiftGate = useNormalized
+      ? manualHeavy || (parsed.detectedItems || []).some(it => { const n = norm(it.name); return LIFT_GATE_ITEMS.some(lg => n.includes(lg)); })
+      : (parsed.detectedItems || []).some(it => { const n = norm(it.name); return LIFT_GATE_ITEMS.some(lg => n.includes(lg)); });
+    if (hasHeavy || hasPallets || hasHeavyByWeight || needsLiftGate) {
       truckFeatureLabel = " + Lift-gate";
       if (hasPallets) advice.push("Commercial: Palletjack & Lift-gate required for skids.");
       if (hasHeavyByWeight) advice.push("Item >300lb detected: Heavy lifting gear needed.");
@@ -361,6 +387,7 @@ export function buildEstimate(inputs: EstimateInputs, normalizedRows?: Normalize
     const heavyMap = new Map<string, number>();
     (parsed.detectedItems || []).forEach(it => {
       const n = (it.name || "").toLowerCase();
+
       // In normalized (manager) mode, user's checkbox is the ONLY authority
       if (useNormalized) {
         if (!it.isManualHeavy) return;
@@ -369,6 +396,7 @@ export function buildEstimate(inputs: EstimateInputs, normalizedRows?: Normalize
         const isTrueHeavy = TRUE_HEAVY_ITEMS.some(h => n.includes(h));
         if (!isTrueHeavy && !it.isWeightHeavy) return;
       }
+
       const label = it.isWeightHeavy ? `${it.name} (>300lb)` : it.name;
       heavyMap.set(label, (heavyMap.get(label) || 0) + (it.qty || 1));
     });

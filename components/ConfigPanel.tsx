@@ -221,20 +221,18 @@ export const ConfigPanel = ({
                 </div>
 
                 <div className="relative w-full">
-                    <div className={`transition-all duration-300 ${inventoryMode === "raw" ? "opacity-100" : "opacity-0 h-0 overflow-hidden absolute inset-x-0"}`}>
-                        <textarea
-                            value={inputs.inventoryText}
-                            onChange={e => {
-                                const raw = e.target.value;
-                                const limited = limitInventoryText(raw);
-                                setInventoryClipped(limited.length !== raw.length);
-                                setInputs({ ...inputs, inventoryText: limited });
-                            }}
-                            className="w-full h-[220px] overflow-y-auto p-5 bg-white border border-gray-200 rounded-xl resize-none outline-none focus:border-gray-300 focus:ring-2 focus:ring-gray-100 transition-all text-[14px] leading-relaxed text-gray-700"
-                            placeholder="Paste inventory here (e.g. Living Room: Sofa, TV...)"
-                            style={{ WebkitOverflowScrolling: 'touch' }}
-                        />
-                    </div>
+                    <textarea
+                        value={inputs.inventoryText}
+                        onChange={e => {
+                            const raw = e.target.value;
+                            const limited = limitInventoryText(raw);
+                            setInventoryClipped(limited.length !== raw.length);
+                            setInputs({ ...inputs, inventoryText: limited });
+                        }}
+                        className={`block w-full h-56 bg-white border border-gray-200 rounded-2xl p-4 sm:p-5 text-[14px] leading-relaxed text-gray-800 outline-none resize-none shadow-sm transition-all duration-300 ${inventoryMode === "raw" ? "opacity-100" : "opacity-0 h-0 overflow-hidden absolute inset-x-0"}`}
+                        placeholder="Paste inventory here (e.g. Living Room: Sofa, TV...)"
+                        style={{ fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, monospace', WebkitOverflowScrolling: 'touch' }}
+                    />
                     <div className={`transition-all duration-300 ${inventoryMode === "normalized" ? "opacity-100" : "opacity-0 h-0 overflow-hidden absolute inset-x-0"}`}>
                         <div className="bg-white border border-gray-200 rounded-2xl p-3 shadow-sm">
                             <div className="text-[10px] font-bold text-gray-400 mb-2 uppercase tracking-widest px-1">Inventory Editor</div>
