@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { LogOut, Copy, CheckCircle2, Truck, Calculator, ClipboardList, X, Package, MapPin, Calendar } from 'lucide-react';
+import { LogOut, Copy, CheckCircle2, Truck, Calculator, ClipboardList, X, Package, MapPin, Calendar, Undo2 } from 'lucide-react';
 import { EstimateInputs, NormalizedRow, EstimateResult } from '@/lib/types/estimator';
 import { useDebounce } from '@/hooks/useDebounce';
 import { getEstimate, normalizeInventoryAction, resolveItemAction, suggestItemsAction, saveEstimateAction, fetchHistoryAction, loadEstimateAction, deleteEstimateAction } from '@/app/actions/estimate';
@@ -45,6 +45,19 @@ export default function DashboardPage() {
     const [showHistory, setShowHistory] = useState(false);
     const [historyItems, setHistoryItems] = useState<any[]>([]);
     const [historyLoading, setHistoryLoading] = useState(false);
+
+    // Delayed deletion
+    const [pendingDeletes, setPendingDeletes] = useState<Set<string>>(new Set());
+
+    // Flush pending deletes when history is closed
+    useEffect(() => {
+        if (!showHistory && pendingDeletes.size > 0) {
+            const idsToDelete = Array.from(pendingDeletes);
+            idsToDelete.forEach(id => deleteEstimateAction(id).catch(console.error));
+            setHistoryItems(prev => prev.filter(h => !pendingDeletes.has(h.id)));
+            setPendingDeletes(new Set());
+        }
+    }, [showHistory, pendingDeletes]);
 
     // Hydration and deep linking
     useEffect(() => {
@@ -456,10 +469,30 @@ ${est.daMins > 0 ? `-Assembly: ~${est.daMins} min total` : ""}
                                 <ClipboardList className="w-4 h-4 text-gray-400" />
                                 <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Saved Estimates</span>
                             </div>
-                            <button onClick={() => setShowHistory(false)}
-                                className="text-gray-400 hover:text-gray-600 transition-colors">
-                                <X className="w-4 h-4" />
-                            </button>
+                            <div className="flex items-center gap-3 text-gray-400">
+                                {pendingDeletes.size > 0 && (
+                                    <button
+                                        onClick={() => {
+                                            const lastDeletedId = Array.from(pendingDeletes).pop();
+                                            if (lastDeletedId) {
+                                                setPendingDeletes(prev => {
+                                                    const next = new Set(prev);
+                                                    next.delete(lastDeletedId);
+                                                    return next;
+                                                });
+                                            }
+                                        }}
+                                        className="hover:text-gray-900 transition-colors"
+                                        title="Undo last delete"
+                                    >
+                                        <Undo2 className="w-4 h-4" />
+                                    </button>
+                                )}
+                                <button onClick={() => setShowHistory(false)}
+                                    className="hover:text-gray-900 transition-colors">
+                                    <X className="w-4 h-4" />
+                                </button>
+                            </div>
                         </div>
 
                         {historyLoading ? (
@@ -468,41 +501,38 @@ ${est.daMins > 0 ? `-Assembly: ~${est.daMins} min total` : ""}
                             <div className="text-center py-8 text-[11px] text-gray-400 font-semibold">No saved estimates yet</div>
                         ) : (
                             <div className="flex flex-wrap gap-3 max-h-[260px] overflow-y-auto pr-1 mb-2">
-                                {historyItems.map(item => (
-                                    <div key={item.id} className="relative group">
-                                        <button onClick={() => handleLoadEstimate(item.id)}
-                                            className="text-left bg-white border-[1.5px] border-dashed border-gray-200 hover:border-gray-400 hover:bg-gray-50/50 rounded-xl px-3.5 py-3 transition-all duration-200 cursor-pointer min-w-[170px] max-w-[220px]">
-                                            <div className="text-[11px] font-bold text-gray-800 truncate pr-5">
-                                                {item.client_name}
-                                            </div>
-                                            <div className="flex items-center gap-1.5 mt-1.5 text-[11px] font-bold text-gray-600">
-                                                <Package className="w-3 h-3 text-gray-400" strokeWidth={2} />
-                                                <span className="tabular-nums">{(item.net_volume || item.final_volume)?.toLocaleString()} cf</span>
-                                                <span className="text-gray-300">·</span>
-                                                <MapPin className="w-3 h-3 text-gray-400" strokeWidth={2} />
-                                                <span>{!item.home_size ? "" : item.home_size === "0" ? "Studio" : item.home_size === "Commercial" ? "Comm." : `${item.home_size}BR`}/{item.move_type === "LD" ? "LD" : item.move_type === "Labor" ? "Labor" : "Local"}</span>
-                                            </div>
-                                            <div className="flex items-center gap-1 mt-1 text-[10px] font-medium text-gray-400">
-                                                <Calendar className="w-3 h-3" strokeWidth={2} />
-                                                {new Date(item.created_at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                                            </div>
-                                        </button>
-                                        <button
-                                            onClick={async (e) => {
-                                                e.stopPropagation();
-                                                try {
-                                                    await deleteEstimateAction(item.id);
-                                                    setHistoryItems(prev => prev.filter(h => h.id !== item.id));
-                                                } catch (err) {
-                                                    console.error("Delete failed:", err);
-                                                }
-                                            }}
-                                            className="absolute top-2 right-2 w-5 h-5 flex items-center justify-center rounded-md text-gray-300 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all"
-                                        >
-                                            <X className="w-3 h-3" />
-                                        </button>
-                                    </div>
-                                ))}
+                                {historyItems
+                                    .filter(item => !pendingDeletes.has(item.id))
+                                    .map(item => (
+                                        <div key={item.id} className="relative group animate-in fade-in zoom-in-95">
+                                            <button onClick={() => handleLoadEstimate(item.id)}
+                                                className="text-left bg-white border-[1.5px] border-dashed border-gray-200 hover:border-gray-400 hover:bg-gray-50/50 rounded-xl px-3.5 py-3 transition-all duration-200 cursor-pointer min-w-[170px] max-w-[220px] min-h-[66px] w-full block">
+                                                <div className="text-[11px] font-bold text-gray-800 truncate pr-5">
+                                                    {item.client_name}
+                                                </div>
+                                                <div className="flex items-center gap-1.5 mt-1.5 text-[11px] font-bold text-gray-600">
+                                                    <Package className="w-3 h-3 text-gray-400" strokeWidth={2} />
+                                                    <span className="tabular-nums">{(item.net_volume || item.final_volume)?.toLocaleString()} cf</span>
+                                                    <span className="text-gray-300">·</span>
+                                                    <MapPin className="w-3 h-3 text-gray-400" strokeWidth={2} />
+                                                    <span>{!item.home_size ? "" : item.home_size === "0" ? "Studio" : item.home_size === "Commercial" ? "Comm." : `${item.home_size}BR`}/{item.move_type === "LD" ? "LD" : item.move_type === "Labor" ? "Labor" : "Local"}</span>
+                                                </div>
+                                                <div className="flex items-center gap-1 mt-1 text-[10px] font-medium text-gray-400">
+                                                    <Calendar className="w-3 h-3" strokeWidth={2} />
+                                                    {new Date(item.created_at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                                </div>
+                                            </button>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setPendingDeletes(prev => new Set(prev).add(item.id));
+                                                }}
+                                                className="absolute top-2 right-2 w-5 h-5 flex items-center justify-center rounded-md text-gray-300 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all"
+                                            >
+                                                <X className="w-3 h-3" />
+                                            </button>
+                                        </div>
+                                    ))}
                             </div>
                         )}
                     </div>

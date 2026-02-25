@@ -369,9 +369,9 @@ export const ReportPanel = ({
                         </div>
 
                         {heavyBadgeText && (
-                            <div className="inline-flex items-center gap-2 px-3 py-1 bg-red-500/10 backdrop-blur-md rounded-full select-none">
-                                <Weight className="w-3.5 h-3.5 text-red-500" strokeWidth={2.5} />
-                                <span className="text-[10px] font-bold text-red-600 uppercase tracking-wider">
+                            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-rose-50 rounded-full select-none cursor-default">
+                                <Weight className="w-3.5 h-3.5 text-rose-600" strokeWidth={2.5} />
+                                <span className="text-[10px] font-bold text-rose-600 uppercase tracking-widest">
                                     {heavyBadgeText}
                                 </span>
                             </div>
@@ -423,12 +423,12 @@ export const ReportPanel = ({
                                     <div className="text-center">
                                         <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Items Volume</div>
                                         <div className="text-2xl font-black text-gray-900 tabular-nums">{formatMetric(<AnimatedNumber value={estimate.billableCF || 0} />, "cu ft")}</div>
-                                        <div className="text-[10px] font-medium text-gray-400 mt-0.5">Net Total</div>
+                                        <div className="text-[11px] font-semibold text-gray-400 mt-0.5 truncate">Net Total</div>
                                     </div>
                                     <div className="text-center">
                                         <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Truck Load</div>
                                         <div className="text-2xl font-black text-gray-900 tabular-nums">{formatMetric(<AnimatedNumber value={estimate.truckSpaceCF || 0} prefix="~" />, "cu ft")}</div>
-                                        <div className="text-[10px] font-medium text-gray-400 mt-0.5">Actual Space</div>
+                                        <div className="text-[11px] font-semibold text-gray-400 mt-0.5 truncate">Actual Space</div>
                                     </div>
                                     <div className="text-center">
                                         <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Est. Weight</div>
@@ -536,9 +536,9 @@ export const ReportPanel = ({
                         </div>
 
                         <button onClick={() => setShowDetails(!showDetails)}
-                            className="flex items-center gap-2 text-[12px] font-bold text-gray-400 hover:text-gray-600 transition-colors py-2 px-1 ml-auto">
-                            <ChevronRight className={`w-4 h-4 transition-transform duration-300 ${showDetails ? 'rotate-90' : ''}`} />
+                            className="flex items-center justify-center gap-2 w-[120px] py-3 rounded-xl text-[14px] font-bold transition-all duration-200 text-gray-500 hover:text-gray-900 hover:bg-gray-100 active:scale-[0.98] ml-auto">
                             <span>{showDetails ? 'Hide' : 'Details'}</span>
+                            <ChevronRight className={`w-4 h-4 transition-transform duration-300 ${showDetails ? '-rotate-90' : ''}`} />
                         </button>
                     </div>
                 </div>
@@ -553,18 +553,22 @@ export const ReportPanel = ({
                                         <Lock className="w-4 h-4 text-white" /> Manager Overrides
                                     </div>
                                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                                        {["volume", "trucks", "crew", "timeMin", "timeMax", "blankets"].map(k => (
-                                            <input
-                                                key={k}
-                                                placeholder={`${k.charAt(0).toUpperCase() + k.slice(1)} (${k === 'blankets' || k === 'boxes'
-                                                    ? estimate.materials?.[k as "blankets" | "boxes" | "wardrobes"] || 0
-                                                    : estimate[k as keyof EstimateResult] || 0
-                                                    })`}
-                                                value={overrides[k as keyof typeof overrides] || ""}
-                                                onChange={e => setOverrides({ ...overrides, [k]: e.target.value })}
-                                                className="text-[11px] font-bold p-3.5 rounded-xl bg-gray-800 text-white border border-transparent outline-none focus:bg-gray-700 placeholder:text-gray-500 transition-colors"
-                                            />
-                                        ))}
+                                        {["volume", "trucks", "crew", "timeMin", "timeMax", "blankets"].map(k => {
+                                            const autoValue = k === 'blankets' || k === 'boxes'
+                                                ? estimate.materials?.[k as "blankets" | "boxes" | "wardrobes"]
+                                                : estimate[k as keyof EstimateResult];
+                                            const label = k.charAt(0).toUpperCase() + k.slice(1);
+                                            const placeholder = autoValue ? `${label} (Auto: ${autoValue})` : `${label} (Auto)`;
+                                            return (
+                                                <input
+                                                    key={k}
+                                                    placeholder={placeholder}
+                                                    value={overrides[k as keyof typeof overrides] || ""}
+                                                    onChange={e => setOverrides({ ...overrides, [k]: e.target.value })}
+                                                    className="text-[11px] font-bold p-3.5 rounded-xl bg-gray-800 text-white border border-transparent outline-none focus:bg-gray-700 placeholder:text-gray-500 transition-colors"
+                                                />
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             )}

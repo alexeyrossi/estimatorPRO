@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { EstimateInputs, NormalizedRow, EstimateResult } from '@/lib/types/estimator';
-import { Settings, MapPin, Trash2, Shield, User, Plus, Weight } from 'lucide-react';
+import { Settings, MapPin, Trash2, Shield, User, Plus, Weight, Undo2 } from 'lucide-react';
 import { GlassPanel } from './GlassPanel';
 import { Select } from './Select';
 import { InputLabel } from './InputLabel';
@@ -35,11 +35,29 @@ export const ConfigPanel = ({
 
     const isLabor = inputs.moveType === "Labor";
 
-    const handleClearInventory = () => {
+    const [undoCache, setUndoCache] = useState<{ text: string; rows: NormalizedRow[] } | null>(null);
+    const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const handleClearInventory = useCallback(() => {
+        // Save current state for undo
+        setUndoCache({ text: inputs.inventoryText, rows: [...normalizedRows] });
+
+        // Clear
         setInputs(prev => ({ ...prev, inventoryText: "" }));
         setNormalizedRows([]);
-        // Overrides reset would happen at parent level ideally, but we'll leave it out here since it's an action in dashboard
-    };
+
+        // Auto-expire undo after 10 seconds
+        if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+        undoTimerRef.current = setTimeout(() => setUndoCache(null), 10000);
+    }, [inputs.inventoryText, normalizedRows, setInputs, setNormalizedRows]);
+
+    const handleUndo = useCallback(() => {
+        if (!undoCache) return;
+        setInputs(prev => ({ ...prev, inventoryText: undoCache.text }));
+        setNormalizedRows(undoCache.rows);
+        setUndoCache(null);
+        if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    }, [undoCache, setInputs, setNormalizedRows]);
 
     const limitInventoryText = (val: string) => {
         const MAX_CHARS = 12000;
@@ -173,15 +191,30 @@ export const ConfigPanel = ({
 
             <div className="flex-1 flex flex-col relative pt-3 border-t border-gray-100">
                 <div className="flex flex-wrap items-center gap-1.5 mb-3 ml-1">
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mr-auto">
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
                         Inventory
                     </span>
 
-                    {(inputs.inventoryText.length > 0 || normalizedRows.length > 0) && (
-                        <button onClick={handleClearInventory}
-                            className="px-3 py-1.5 rounded-lg font-medium text-[12px] flex items-center gap-1.5 bg-red-50 text-red-600 hover:bg-red-100 transition-colors">
-                            <Trash2 className="w-4 h-4" strokeWidth={2} /> Clear
-                        </button>
+                    <span className="text-[9px] px-1.5 py-0.5 rounded-md font-extrabold whitespace-nowrap inline-flex justify-center bg-[#F2F2F7] text-gray-500 border border-gray-200 mr-auto ml-2 select-none cursor-default">
+                        <span className="inline-block w-[20px] text-right tabular-nums">{detectedQtyTotal}</span>
+                        <span className="inline-block w-[26px] text-left ml-0.5">{detectedQtyTotal === 1 ? 'item' : 'items'}</span>
+                    </span>
+
+                    {(inputs.inventoryText.length > 0 || normalizedRows.length > 0 || undoCache) && (
+                        <div className="flex items-center gap-1.5 ml-auto">
+                            {(inputs.inventoryText.length > 0 || normalizedRows.length > 0) && (
+                                <button onClick={handleClearInventory}
+                                    className="p-1.5 rounded-lg text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors" title="Clear inventory">
+                                    <Trash2 className="w-4 h-4" strokeWidth={2} />
+                                </button>
+                            )}
+                            {undoCache && (
+                                <button onClick={handleUndo}
+                                    className="p-1.5 rounded-lg text-gray-500 bg-gray-50 hover:bg-gray-100 hover:text-gray-700 transition-all animate-in fade-in zoom-in duration-200" title="Undo clear">
+                                    <Undo2 className="w-4 h-4" />
+                                </button>
+                            )}
+                        </div>
                     )}
 
                     {adminMode && (
@@ -208,16 +241,12 @@ export const ConfigPanel = ({
                                 setInventoryMode("raw");
                             }
                         }}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-colors ${inventoryMode === "normalized" ? "bg-blue-50 text-blue-700 hover:bg-blue-100" : "bg-gray-50 text-gray-500 hover:bg-gray-100 hover:text-gray-700"}`}>
+                            className="flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[11px] font-bold transition-colors w-[110px] bg-gray-50 text-gray-500 hover:bg-gray-100 hover:text-gray-700">
                             {inventoryMode === "normalized"
                                 ? <><User className="w-4 h-4" strokeWidth={2} /> Client View</>
                                 : <><Shield className="w-4 h-4" strokeWidth={2} /> Admin Mode</>}
                         </button>
                     )}
-
-                    <span className={`text-[10px] px-2.5 py-1 rounded-lg font-bold transition-all whitespace-nowrap ${detectedQtyTotal > 0 ? 'bg-blue-600 text-white shadow-[0_2px_8px_rgba(37,99,235,0.25)]' : 'bg-[#F2F2F7] text-gray-400 border border-gray-200'}`}>
-                        {detectedQtyTotal} items
-                    </span>
                 </div>
 
                 <div className="relative w-full">
