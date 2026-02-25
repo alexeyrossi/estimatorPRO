@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { EstimateInputs, EstimateResult } from '@/lib/types/estimator';
 import {
     Box, Truck, Clock, ShieldCheck, History, Info, ChevronRight, ArrowUpFromLine,
-    CalendarDays, Users, ShieldAlert, AlertTriangle, Lightbulb, Check, Clipboard, ChevronDown, Lock, List, Terminal, Weight
+    CalendarDays, Users, ShieldAlert, AlertTriangle, Lightbulb, Check, Clipboard, ChevronDown, Lock, List, Terminal, Weight, Scale, PackageOpen
 } from 'lucide-react';
 import { GlassPanel } from './GlassPanel';
 import { MetricCard } from './MetricCard';
@@ -592,27 +592,58 @@ export const ReportPanel = ({
                                 </div>
                                 <div className="space-y-3">
                                     <div className="flex items-center gap-2 mb-2"><Terminal className="w-4 h-4 text-gray-400" /><span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Volume Calculation Path</span></div>
-                                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-900 rounded-2xl p-6 border border-gray-800 gap-4 md:gap-0">
-                                        {/* Step 1: Raw Inventory */}
-                                        <div className="flex flex-col">
-                                            <span className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-1">Raw Inventory</span>
-                                            <span className="text-xl font-black text-gray-300">{estimate.netVolume || Math.round((estimate.finalVolume || 0) / 1.05)} <span className="text-sm font-medium text-gray-500">cu ft</span></span>
+                                    <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
+                                        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-0">
+                                            {/* Step 1: Raw Inventory */}
+                                            <div className="flex flex-col">
+                                                <span className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-1">Raw Inventory</span>
+                                                <span className="text-xl font-black text-gray-300">{estimate.netVolume || Math.round((estimate.finalVolume || 0) / 1.05)} <span className="text-sm font-medium text-gray-500">cu ft</span></span>
+                                            </div>
+
+                                            <ChevronRight className="w-5 h-5 text-gray-700 hidden md:block" />
+
+                                            {/* Step 2: Safety Margin */}
+                                            <div className="flex flex-col">
+                                                <span className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-1">+ Safety Margin (5-10%)</span>
+                                                <span className="text-xl font-black text-gray-300">{estimate.billableCF || estimate.finalVolume || 0} <span className="text-sm font-medium text-gray-500">cu ft</span></span>
+                                            </div>
+
+                                            <ChevronRight className="w-5 h-5 text-gray-700 hidden md:block" />
+
+                                            {/* Step 3: Actual Space (Final) */}
+                                            <div className="flex flex-col">
+                                                <span className="text-[11px] font-bold text-emerald-500/80 uppercase tracking-widest mb-1">+ Loading Gaps ({`~`}8.3%)</span>
+                                                <span className="text-2xl font-black text-emerald-400">{estimate.truckSpaceCF || Math.round((estimate.finalVolume || 0) * 1.083)} <span className="text-sm font-medium text-emerald-500/50">cu ft</span></span>
+                                            </div>
                                         </div>
 
-                                        <ChevronRight className="w-5 h-5 text-gray-700 hidden md:block" />
+                                        <div className="mt-6 pt-5 border-t border-gray-800/80 flex flex-wrap items-center gap-x-12 gap-y-4">
+                                            <div className="flex gap-3 items-start">
+                                                <Scale className="w-4 h-4 text-gray-600 mt-0.5 shrink-0" />
+                                                <div className="flex flex-col">
+                                                    <span className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Weight Baseline</span>
+                                                    <span className="text-[13px] font-bold text-gray-300">7 lbs / cu ft</span>
+                                                    <span className="text-[11px] text-gray-600 mt-0.5">DOT Tariff Standard</span>
+                                                </div>
+                                            </div>
 
-                                        {/* Step 2: Safety Margin */}
-                                        <div className="flex flex-col">
-                                            <span className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-1">+ Safety Margin (5-10%)</span>
-                                            <span className="text-xl font-black text-gray-300">{estimate.billableCF || estimate.finalVolume || 0} <span className="text-sm font-medium text-gray-500">cu ft</span></span>
-                                        </div>
+                                            <div className="flex gap-3 items-start">
+                                                <PackageOpen className="w-4 h-4 text-gray-600 mt-0.5 shrink-0" />
+                                                <div className="flex flex-col">
+                                                    <span className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Stacking Factor</span>
+                                                    <span className="text-[13px] font-bold text-gray-300">~10% Volume Allowance</span>
+                                                    <span className="text-[11px] text-gray-600 mt-0.5">Furniture is not perfectly square</span>
+                                                </div>
+                                            </div>
 
-                                        <ChevronRight className="w-5 h-5 text-gray-700 hidden md:block" />
-
-                                        {/* Step 3: Actual Space (Final) */}
-                                        <div className="flex flex-col">
-                                            <span className="text-[11px] font-bold text-emerald-500/80 uppercase tracking-widest mb-1">+ Loading Gaps ({`~`}8.3%)</span>
-                                            <span className="text-2xl font-black text-emerald-400">{estimate.truckSpaceCF || Math.round((estimate.finalVolume || 0) * 1.083)} <span className="text-sm font-medium text-emerald-500/50">cu ft</span></span>
+                                            <div className="flex gap-3 items-start">
+                                                <Box className="w-4 h-4 text-gray-600 mt-0.5 shrink-0" />
+                                                <div className="flex flex-col">
+                                                    <span className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Box Algorithm</span>
+                                                    <span className="text-[13px] font-bold text-gray-300">Auto-Generated ({inputs.homeSize})</span>
+                                                    <span className="text-[11px] text-gray-600 mt-0.5">Min. requirement for safe transport</span>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
