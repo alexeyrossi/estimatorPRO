@@ -591,9 +591,29 @@ export const ReportPanel = ({
                                     </div>
                                 </div>
                                 <div className="space-y-3">
-                                    <div className="flex items-center gap-2"><Terminal className="w-4 h-4 text-gray-400" /><span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Engine Logic</span></div>
-                                    <div className="p-6 bg-gray-900 rounded-[2rem] text-[11px] font-mono font-medium text-gray-300 space-y-2.5 max-h-64 overflow-y-auto shadow-inner">
-                                        {estimate.logs?.map((log, i) => <div key={i} className="flex gap-3"><span className="text-gray-600 w-5 shrink-0 text-right">{i + 1}.</span><span>{log}</span></div>)}
+                                    <div className="flex items-center gap-2 mb-2"><Terminal className="w-4 h-4 text-gray-400" /><span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Volume Calculation Path</span></div>
+                                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-900 rounded-2xl p-6 border border-gray-800 gap-4 md:gap-0">
+                                        {/* Step 1: Raw Inventory */}
+                                        <div className="flex flex-col">
+                                            <span className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-1">Raw Inventory</span>
+                                            <span className="text-xl font-black text-gray-300">{estimate.netVolume || Math.round((estimate.finalVolume || 0) / 1.05)} <span className="text-sm font-medium text-gray-500">cu ft</span></span>
+                                        </div>
+
+                                        <ChevronRight className="w-5 h-5 text-gray-700 hidden md:block" />
+
+                                        {/* Step 2: Safety Margin */}
+                                        <div className="flex flex-col">
+                                            <span className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-1">+ Safety Margin (5-10%)</span>
+                                            <span className="text-xl font-black text-gray-300">{estimate.billableCF || estimate.finalVolume || 0} <span className="text-sm font-medium text-gray-500">cu ft</span></span>
+                                        </div>
+
+                                        <ChevronRight className="w-5 h-5 text-gray-700 hidden md:block" />
+
+                                        {/* Step 3: Actual Space (Final) */}
+                                        <div className="flex flex-col">
+                                            <span className="text-[11px] font-bold text-emerald-500/80 uppercase tracking-widest mb-1">+ Loading Gaps ({`~`}8.3%)</span>
+                                            <span className="text-2xl font-black text-emerald-400">{estimate.truckSpaceCF || Math.round((estimate.finalVolume || 0) * 1.083)} <span className="text-sm font-medium text-emerald-500/50">cu ft</span></span>
+                                        </div>
                                     </div>
                                 </div>
                                 {estimate.overridesApplied?.length > 0 && <div className="mt-4 text-[11px] text-gray-500 font-bold">Overrides Applied: {estimate.overridesApplied.join(", ")}</div>}
