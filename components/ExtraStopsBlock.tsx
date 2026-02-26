@@ -56,6 +56,7 @@ export const ExtraStopsBlock = ({ inputs, setInputs }: ExtraStopsBlockProps) => 
                         <button
                             onClick={() => handleRemove(i)}
                             className="text-gray-400 hover:text-red-500 transition-colors"
+                            aria-label="Delete stop"
                         >
                             <Trash2 className="w-4 h-4" />
                         </button>

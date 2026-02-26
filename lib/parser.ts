@@ -16,7 +16,7 @@ import {
   STRICT_NO_BLANKET_ITEMS
 } from "./dictionaries";
 import { PROTOCOL } from "./config";
-import { EstimateInputs, NormalizedRow, ParsedItem } from "./types/estimator";
+import { NormalizedRow, ParsedItem } from "./types/estimator";
 
 export function matchLongestKey(nameLower: string, keys: string[], cache: Record<string, RegExp>): string | null {
   for (const k of keys) {
@@ -131,7 +131,13 @@ export function applyAliasesRegex(t: string): string {
 export function preProcessLine(line: string): string {
   let s = line;
 
-  // 1. Fix special multiplication signs
+  // 1. Convert dash-separated rooms into standard colon-separated rooms so the engine catches them automatically
+  s = s.replace(/^(patio|attic|playroom|garage|gar|gym|back-house music studio)\s*[-—–]\s*/gi, "$1: ");
+
+  // 2. Strip fused broker room prefixes at the start of a line to isolate the actual items (e.g., "gar 2 bks" -> "2 bks")
+  s = s.replace(/^(gar|att|gst\s*bdrm|mstr\s*bdrm|gym|plyrm|ent|lvg\s*rm)\s+(?=\d|[a-z])/gi, "");
+
+  // 3. Fix special multiplication signs
   s = s.replace(/×/g, "x");
 
   // 2. Fix commas inside numbers (e.g., "1,000" -> "1000")
@@ -311,7 +317,7 @@ export function parseInventory(text: string) {
 
     if (aliasFromRaw !== rawTok.toLowerCase() && aliasFromRaw !== t) t = aliasFromRaw;
 
-    let tClean = t
+    const tClean = t
       .replace(/^\s*x\s*\d+\s*/i, "")
       .replace(/^\s*\d+\s*x\s*/i, "")
       .replace(/\s*x\s*\d+\s*$/i, "")
@@ -365,9 +371,25 @@ export function parseInventory(text: string) {
     }
   });
 
+  const consolidationMap = new Map<string, ParsedItem>();
+  for (const item of detectedItems) {
+    if (item.name === "ignore_item") continue;
+
+    const key = `${item.name}::${item.room}`;
+    const existing = consolidationMap.get(key);
+
+    if (existing) {
+      existing.qty += item.qty;
+      existing.cf += item.cf;
+    } else {
+      consolidationMap.set(key, { ...item });
+    }
+  }
+  const consolidatedItems = Array.from(consolidationMap.values());
+
   const rawLower = (text || "").toLowerCase();
   return {
-    detectedItems, totalVol, boxCount, heavyCount, furnitureCount, detectedQtyTotal, noBlanketVol,
+    detectedItems: consolidatedItems, totalVol, boxCount, heavyCount, furnitureCount, detectedQtyTotal, noBlanketVol,
     irregularCount, daComplexQty, daSimpleQty, unrecognized, estimatedItemCount,
     hasVague: VAGUE_SIGNALS.some(s => new RegExp(`\\b${s}\\b`).test(rawLower)),
     mentionsGarageOrAttic: /\bgarage\b|\bpatio\b|\bchristmas\b|\battic\b|\bshed\b/i.test(rawLower)

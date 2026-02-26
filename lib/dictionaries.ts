@@ -109,7 +109,7 @@ export const VOLUME_TABLE = {
   "tv stand": 20, "media console": 25, "entertainment center": 50,
   "cabinet": 25, "hutch": 35, "curio cabinet": 35, "glass cabinet": 40,
   "china cabinet": 40,
-  "buffet": 30, "sideboard": 30, "credenza": 35, "bar cabinet": 25, "bar cart": 10, "trunk": 15,
+  "buffet": 30, "sideboard": 30, "credenza": 35, "bar cabinet": 25, "bar cart": 10,
   "chest": 35, "chest of drawers": 35,
   "rug": 10, "lamp": 5, "artwork": 5, "picture": 5, "floor lamp": 8, "table lamp": 5,
   "painting": 5, "canvas": 5, "frame": 5,
@@ -152,7 +152,7 @@ export const VOLUME_TABLE = {
   "air fryer": 5, "toaster": 3, "blender": 3, "coffee maker": 3, "kitchen appliance": 5,
   "air conditioner": 20, "portable ac": 20, "dehumidifier": 10, "fan": 5,
   "tower fan": 5, "box fan": 5, "floor fan": 5,
-  "heater": 10, "radiator": 10, "space heater": 5,
+  "heater": 10, "radiator": 10, "space heater": 5, "humidifier": 5,
   "vacuum": 5, "roomba": 5, "dyson": 5, "ironing board": 5,
   "water dispenser": 10, "water cooler": 10,
 
@@ -214,6 +214,11 @@ export const VOLUME_TABLE = {
   "pedestal": 5,
   "dumbbell": 2,
   "kettlebell": 2,
+  "mower": 15,
+  "trunk": 10,
+  "guitar": 5,
+  "amplifier": 10,
+  "umbrella stand": 5,
   "ignore_item": 0
 };
 
@@ -232,7 +237,7 @@ export const STRICT_NO_BLANKET_ITEMS = [
 
 export const ABBREVIATIONS = {
   "tbl": "table", "chr": "chair", "cab": "cabinet", "ctr": "center",
-  "ent": "entertainment", "exec": "executive", "pbo": "", "cp": "",
+  "exec": "executive", "pbo": "", "cp": "",
   "reg": "", "osz": "large", "std": "", "k/d": "", "kd": "",
   "uprt": "upright", "frig": "fridge", "ref": "fridge", "sect": "sectional",
   "ctn": "box", "carton": "box", "dp": "dish barrel", "dishpack": "dish barrel",
@@ -261,6 +266,61 @@ export const INVERSIONS = [
 ];
 
 export const ALIAS_RULES = [
+  // Adjective Protection
+  { re: /\b(patio\s*tables?|outdoor\s*tables?)\b/i, to: "table" },
+  { re: /\b(patio\s*chairs?|outdoor\s*chairs?)\b/i, to: "chair" },
+  { re: /\b(playroom\s*toy\s*box)\b/i, to: "toy box" },
+
+  // Broker Shorthand Aliases
+  { re: /\b(sfa)\b/i, to: "sofa" },
+  { re: /\b(qun\s*bd)\b/i, to: "queen bed" },
+  { re: /\b(drssr)\b/i, to: "dresser" },
+  { re: /\b(ntstnd)\b/i, to: "nightstand" },
+  { re: /\b(chrs)\b/i, to: "chair" },
+  { re: /\b(bffet)\b/i, to: "buffet" },
+  { re: /\b(dsk)\b/i, to: "desk" },
+  { re: /\b(bkshlf|bkcses?)\b/i, to: "bookcase" },
+  { re: /\b(mwr)\b/i, to: "mower" },
+  { re: /\b(bns)\b/i, to: "medium box" },
+  { re: /\b(hmpr)\b/i, to: "hamper" },
+  { re: /\b(mir)\b/i, to: "mirror" },
+  { re: /\b(grll)\b/i, to: "grill" },
+  { re: /\b(bnch)\b/i, to: "bench" },
+  { re: /\b(trnk)\b/i, to: "trunk" },
+  { re: /\b(lggge)\b/i, to: "medium box" },
+  { re: /\b(armre)\b/i, to: "armoire" },
+  { re: /\b(wshr)\b/i, to: "washer" },
+  { re: /\b(dryr)\b/i, to: "dryer" },
+  { re: /\b(shlf)\b/i, to: "shelf" },
+  { re: /\b(wghts)\b/i, to: "kettlebells" },
+  { re: /\b(umblla\s*stnd)\b/i, to: "umbrella stand" },
+
+  // Studio/Tech items to boxes
+  { re: /\b(all\s*drives|drives|cables|random\s*studio\s*gear|studio\s*gear|gear)\b/i, to: "medium box" },
+
+  // Ignore trailing abbreviations
+  { re: /\b(etc\.?)\b/i, to: "ignore_item" },
+
+  // Granular rules & unmapped
+  { re: /\b(rocker)\b/i, to: "armchair" },
+  { re: /\b(amp)\b/i, to: "amplifier" },
+  { re: /\b(coats)\b/i, to: "wardrobe box" },
+  { re: /\b(plates?|forks?|cabbage|groceries|globe)\b/i, to: "medium box" },
+  { re: /\b(lmp)\b/i, to: "lamp" },
+  { re: /\b(plnt\s*stnd)\b/i, to: "plant stand" },
+  { re: /\b(glbe)\b/i, to: "globe" },
+  { re: /\b(rck)\b/i, to: "rack" },
+  { re: /\b(bks)\b/i, to: "bicycle" },
+  { re: /\b(trdmll)\b/i, to: "treadmill" },
+  { re: /\b(prss)\b/i, to: "weight bench" },
+  { re: /\b(bd)\b/i, to: "bed" },
+  { re: /\b(bx)\b/i, to: "box" },
+  { re: /\b(wckr)\b/i, to: "wicker chair" },
+  { re: /\b(rdng)\b/i, to: "reading chair" },
+  { re: /\b(fn)\b/i, to: "fan" },
+  { re: /\b(cffee)\b/i, to: "coffee table" },
+  { re: /\b(playroom)\b/i, to: "ignore_item" },
+
   // Commercial office aliases
   { re: /\btables?\s*\/\s*desks?\b/i, to: "desk" },
   { re: /\bchairs?\s*\/\s*seats?\b/i, to: "office chair" },
@@ -404,7 +464,7 @@ export const ALIAS_RULES = [
   { re: /\bsmalls\b/i, to: "small box" },
 
   // 1. THE ROOM LEAK TRAP (Uses ^ and $ to match ONLY the isolated room names)
-  { re: /^(living\s*room|dining\s*room|breakfast\s*nook|kitchen|hallways?|linen\s*closet|main\s*bedroom|bedroom|office|tv\s*room|storage\s*room|exterior|outside|patio|back\s*house|music\s*studio|back-house|back-house\s*music\s*studio)$/i, to: "ignore_item" },
+  { re: /^(living\s*room|dining\s*room|breakfast\s*nook|kitchen|hallways?|linen\s*closet|main\s*bedroom|bedroom|office|tv\s*room|storage\s*room|exterior|outside|patio|back\s*house|music\s*studio|back-house|back-house\s*music\s*studio|lvg\s*rm|gar|pat|gst\s*bdrm|mstr\s*bdrm|lndry|plyrm|gym|lib|mudrm|attic)$/i, to: "ignore_item" },
 
   // 2. Kitchen Micro-items (Pack them into boxes)
   { re: /\b(jars?|spices?|bowls?|utensils?|pots?|pans?|tea\s*kettles?|trays?)\b/i, to: "medium box" },

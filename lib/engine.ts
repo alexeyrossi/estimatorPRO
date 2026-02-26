@@ -1,4 +1,4 @@
-import { EstimateInputs, EstimateResult, RiskItem, ParsedItem } from "./types/estimator";
+import { EstimateInputs, EstimateResult, RiskItem } from "./types/estimator";
 import {
   FRAGILE_REGEX_CACHE,
   LIFT_GATE_ITEMS,
@@ -202,7 +202,7 @@ export function buildEstimate(inputs: EstimateInputs, normalizedRows?: Normalize
       const t = parseOverrideValue(o.trucks, 1, 20);
       if (t !== null) {
         trucksFinal = t; highCapRisk = false;
-        let label = trucksFinal >= 2 ? "26ft Truck" : finalVolume < 800 ? "18ft Truck" : finalVolume < 1300 ? "24ft Truck" : "26ft Truck";
+        const label = trucksFinal >= 2 ? "26ft Truck" : finalVolume < 800 ? "18ft Truck" : finalVolume < 1300 ? "24ft Truck" : "26ft Truck";
         truckSizeLabel = label + truckFeatureLabel; overridesApplied.push("trucks"); auditSummary.push(`Manager Override: Trucks = ${trucksFinal}`);
       }
     }
@@ -377,7 +377,7 @@ export function buildEstimate(inputs: EstimateInputs, normalizedRows?: Normalize
 
     boxesBring = roundUpTo(Math.ceil(Math.min(boxesBring, inputs.packingLevel === "Full" ? Math.ceil(finalVolume / 12 + 40) : Math.ceil(finalVolume / 20 + 20))), 10);
 
-    let wardrobes = roundUpTo(!isCommercial ? (bedroomCount * 4) : 0, 5);
+    const wardrobes = roundUpTo(!isCommercial ? (bedroomCount * 4) : 0, 5);
 
     if (o.blankets !== undefined && o.blankets !== null) { const b = parseOverrideValue(o.blankets, 0, 500); if (b !== null) { blankets = b; overridesApplied.push("blankets"); auditSummary.push(`Manager Override: Blankets = ${blankets}`); } }
     if (o.boxes !== undefined && o.boxes !== null) { const bx = parseOverrideValue(o.boxes, 0, 500); if (bx !== null) { boxesBring = bx; overridesApplied.push("boxes"); auditSummary.push(`Manager Override: Boxes = ${boxesBring}`); } }

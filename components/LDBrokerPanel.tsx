@@ -1,7 +1,5 @@
 import React from 'react';
 import { EstimateResult } from '@/lib/types/estimator';
-import { Box, Truck, MapPin } from 'lucide-react';
-import { MetricCard } from './MetricCard';
 
 interface LDBrokerPanelProps {
     estimate: EstimateResult;

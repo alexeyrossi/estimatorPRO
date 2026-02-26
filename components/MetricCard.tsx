@@ -11,7 +11,7 @@ interface MetricCardProps {
     advice?: string | null;
 }
 
-export const MetricCard = ({ icon: Icon, label, value, sub, variant = "gray", isCritical, advice }: MetricCardProps) => {
+export const MetricCard = React.memo(({ icon: Icon, label, value, sub, variant = "gray", isCritical, advice }: MetricCardProps) => {
     const style = isCritical ? { bg: "bg-red-500", light: "bg-red-50", text: "text-red-600" } :
         (variant === "red" ? { bg: "bg-red-500", text: "text-red-600", light: "bg-red-50" } :
             variant === "blue" ? { bg: "bg-blue-500", text: "text-blue-600", light: "bg-blue-50" } :
@@ -35,4 +35,5 @@ export const MetricCard = ({ icon: Icon, label, value, sub, variant = "gray", is
             </div>
         </div>
     );
-};
+});
+MetricCard.displayName = "MetricCard";

@@ -1,13 +1,11 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { EstimateInputs, EstimateResult } from '@/lib/types/estimator';
 import {
-    Activity, ChevronDown, Monitor, Share2, HelpCircle,
-    Copy, Phone, MapPin, Truck, Box, Layers, Settings, Maximize2, X, Download, List, Shield, Weight, Terminal, ChevronRight, Lock, Scale, PackageOpen, Clock, CalendarDays, Info, Users, AlertTriangle, ArrowUpFromLine, Check, Clipboard
+    Truck, Box, List, Weight, Terminal, ChevronRight, Lock, Scale, PackageOpen, Clock, CalendarDays, Info, Users, AlertTriangle, ArrowUpFromLine, Check, Clipboard
 } from 'lucide-react';
 import { GlassPanel } from './GlassPanel';
 import { MetricCard } from './MetricCard';
 import { ConfidenceDonut } from './ConfidenceDonut';
-import { LDBrokerPanel } from './LDBrokerPanel';
 import jsPDF from 'jspdf';
 
 
@@ -21,10 +19,12 @@ const AnimatedNumber = ({ value: rawValue, prefix = "", suffix = "" }: { value: 
 
     useEffect(() => {
         const safeValue = rawValue || 0;
+
+        // Fix warning: avoid calling setState if this is truly the first render where nothing changed
         if (firstRender.current) {
             firstRender.current = false;
-            setDisplay(safeValue);
             prevValue.current = safeValue;
+            if (display !== safeValue) setDisplay(safeValue);
             return;
         }
 
@@ -53,6 +53,7 @@ const AnimatedNumber = ({ value: rawValue, prefix = "", suffix = "" }: { value: 
         cancelAnimationFrame(rafId.current);
         rafId.current = requestAnimationFrame(step);
         return () => cancelAnimationFrame(rafId.current);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [rawValue]);
 
     return <>{prefix}{(display ?? 0).toLocaleString()}{suffix}</>;
@@ -76,7 +77,7 @@ interface ReportPanelProps {
     setOverrides: React.Dispatch<React.SetStateAction<Record<string, string>>>;
 }
 
-export const ReportPanel = ({
+export const ReportPanel = React.memo(({
     estimate,
     inputs,
     isCalculating,
@@ -274,7 +275,7 @@ export const ReportPanel = ({
                 const xRight = M + tableW + 8;
                 const rowCount = Math.max(col1.length, col2.length);
 
-                const drawItem = (item: any, xBase: number) => {
+                const drawItem = (item: { qty?: number; name?: string; cf?: number }, xBase: number) => {
                     pdf.setFontSize(9); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(30, 30, 30);
                     pdf.text(`x${item.qty}`, xBase, y);
                     pdf.setFont('helvetica', 'normal'); pdf.setTextColor(80, 80, 80);
@@ -296,7 +297,9 @@ export const ReportPanel = ({
 
             // ========== RISKS & TIPS ==========
             const tips = [...(estimate.advice || [])];
-            const risks = (estimate.risks || []).filter((r: any) => r.text).map((r: any) => r.text);
+            const risks = (estimate.risks || [])
+                .filter((r: { text?: string; level?: string }) => r.text)
+                .map((r: { text?: string; level?: string }) => r.text);
             const allNotes = [...tips, ...risks];
 
             if (allNotes.length > 0) {
@@ -305,7 +308,8 @@ export const ReportPanel = ({
                 pdf.text('NOTES & RECOMMENDATIONS', M, y);
                 y += 6;
 
-                allNotes.forEach((note: string) => {
+                allNotes.forEach((note: string | undefined) => {
+                    if (!note) return;
                     checkPage(6);
                     pdf.setFontSize(9); pdf.setFont('helvetica', 'normal'); pdf.setTextColor(120, 120, 120);
                     const lines = pdf.splitTextToSize(note, W - M * 2);
@@ -341,6 +345,7 @@ export const ReportPanel = ({
 
         } catch (e) {
             console.error('PDF error:', e);
+            alert("Failed to generate PDF. Please try again.");
         } finally {
             setIsGeneratingPDF(false);
         }
@@ -349,7 +354,7 @@ export const ReportPanel = ({
     const heavyBadgeText = useMemo(() => {
         const arr = estimate.heavyItemNames || []; if (!arr.length) return null;
         const first = String(arr[0]).replace(/\s*\(.*?\)\s*/g, "").trim(); const lower = first.toLowerCase();
-        let label = lower.includes("piano") ? "PIANO" : lower.includes("safe") ? "SAFE" : lower.includes("pool") ? "POOL TABLE" : lower.includes("clock") ? "CLOCK" : lower.includes("copier") ? "COPIER" : lower.includes("treadmill") ? "TREADMILL" : lower.includes("gym") ? "GYM" : first.toUpperCase();
+        const label = lower.includes("piano") ? "PIANO" : lower.includes("safe") ? "SAFE" : lower.includes("pool") ? "POOL TABLE" : lower.includes("clock") ? "CLOCK" : lower.includes("copier") ? "COPIER" : lower.includes("treadmill") ? "TREADMILL" : lower.includes("gym") ? "GYM" : first.toUpperCase();
         return `HEAVY: ${label}${arr.length > 1 ? ` +${arr.length - 1}` : ""}`;
     }, [estimate.heavyItemNames]);
 
@@ -434,7 +439,7 @@ export const ReportPanel = ({
                                 <div className="text-[10px] font-bold text-blue-500 uppercase tracking-widest mb-3 flex items-center gap-2">
                                     <ArrowUpFromLine className="w-4 h-4" /> Long Distance Breakdown
                                 </div>
-                                <div className="grid grid-cols-3 gap-6">
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                                     <div className="text-center">
                                         <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Items Volume</div>
                                         <div className="text-2xl font-black text-gray-900 tabular-nums">{formatMetric(<AnimatedNumber value={estimate.billableCF || 0} />, "cu ft")}</div>
@@ -457,7 +462,7 @@ export const ReportPanel = ({
                     {/* MATERIALS */}
                     <div className="border-t border-gray-100" />
                     <div className="py-4">
-                        <div className="grid grid-cols-3 gap-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                             <div className="text-center">
                                 <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Blankets</div>
                                 <div className="text-2xl font-black text-gray-900 tabular-nums">{estimate.materials?.blankets || 0}</div>
@@ -525,6 +530,11 @@ export const ReportPanel = ({
                         {saveStatus === 'success' ? '✓ Saved' : isSaving ? '...' : 'Save'}
                     </button>
                 </div>
+                {saveStatus === 'error' && (
+                    <div className="md:hidden text-red-500 text-[11px] font-bold mt-2 text-right">
+                        Save failed. Please try again.
+                    </div>
+                )}
 
                 {/* ACTION BAR */}
                 <div data-no-pdf className="flex flex-col mt-2">
@@ -690,4 +700,5 @@ export const ReportPanel = ({
 
         </div>
     );
-};
+});
+ReportPanel.displayName = "ReportPanel";

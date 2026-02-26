@@ -1,8 +1,8 @@
 "use client"
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { LogOut, Copy, CheckCircle2, Truck, Calculator, ClipboardList, X, Package, MapPin, Calendar, Undo2 } from 'lucide-react';
+import { LogOut, Truck, Calculator, ClipboardList, X, Package, MapPin, Calendar, Undo2 } from 'lucide-react';
 import { EstimateInputs, NormalizedRow, EstimateResult } from '@/lib/types/estimator';
 import { useDebounce } from '@/hooks/useDebounce';
 import { getEstimate, normalizeInventoryAction, resolveItemAction, suggestItemsAction, saveEstimateAction, fetchHistoryAction, loadEstimateAction, deleteEstimateAction } from '@/app/actions/estimate';
@@ -43,7 +43,7 @@ export default function DashboardPage() {
     const [estimate, setEstimate] = useState<EstimateResult | Partial<EstimateResult>>({});
 
     const [showHistory, setShowHistory] = useState(false);
-    const [historyItems, setHistoryItems] = useState<any[]>([]);
+    const [historyItems, setHistoryItems] = useState<unknown[]>([]);
     const [historyLoading, setHistoryLoading] = useState(false);
 
     // Delayed deletion
@@ -54,7 +54,7 @@ export default function DashboardPage() {
         if (!showHistory && pendingDeletes.size > 0) {
             const idsToDelete = Array.from(pendingDeletes);
             idsToDelete.forEach(id => deleteEstimateAction(id).catch(console.error));
-            setHistoryItems(prev => prev.filter(h => !pendingDeletes.has(h.id)));
+            setHistoryItems(prev => prev.filter((h: any) => !pendingDeletes.has(h.id)));
             setPendingDeletes(new Set());
         }
     }, [showHistory, pendingDeletes]);
@@ -103,7 +103,7 @@ export default function DashboardPage() {
                         setHasMounted(true);
                         return; // Skip normal hydration
                     }
-                } catch (err) {
+                } catch (err: unknown) {
                     console.error("Failed to load estimate from DB:", err);
                     // Fall back to local storage if it fails
                 }
@@ -138,6 +138,7 @@ export default function DashboardPage() {
         };
 
         loadInitialState();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [router]);
 
     // Autosave
@@ -170,7 +171,9 @@ export default function DashboardPage() {
             try {
                 const result = await getEstimate({ ...inputs, inventoryMode }, inventoryMode === "normalized" ? normalizedRows : undefined, overrides);
                 setEstimate(result);
-            } catch (err) { }
+            } catch (err) {
+                console.error("Initial load failed", err);
+            }
         };
         runInitial();
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -185,8 +188,9 @@ export default function DashboardPage() {
                 // Pass debouncedNormalized unconditionally so engine.ts can extract and preserve manual flags
                 const result = await getEstimate({ ...debouncedInputs, inventoryMode }, debouncedNormalized, overrides);
                 setEstimate(result);
-            } catch (err) {
+            } catch (err: unknown) {
                 console.error("Estimate calculation failed", err);
+                alert("Failed to calculate estimate. Please try again.");
             } finally {
                 setIsCalculating(false);
             }
@@ -195,7 +199,7 @@ export default function DashboardPage() {
     }, [debouncedInputs, debouncedNormalized, overrides, hasMounted, inventoryMode]);
 
     // Normalize Button action
-    const handleNormalize = async () => {
+    const handleNormalize = useCallback(async () => {
         setIsCalculating(true);
         try {
             const rows = await normalizeInventoryAction(inputs.inventoryText);
@@ -213,15 +217,16 @@ export default function DashboardPage() {
 
             setNormalizedRows(mergedRows);
             setInventoryMode("normalized");
-        } catch (e) {
+        } catch (e: unknown) {
             console.error(e);
+            alert("Failed to parse inventory. Please try again.");
         } finally {
             setIsCalculating(false);
         }
-    };
+    }, [inputs.inventoryText, normalizedRows]);
 
     // Add row action
-    const handleAddRow = async () => {
+    const handleAddRow = useCallback(async () => {
         if (!addRowInput.trim()) return;
         try {
             const resolved = await resolveItemAction(addRowInput);
@@ -236,21 +241,21 @@ export default function DashboardPage() {
             };
             setNormalizedRows(prev => [...prev, newRow]);
             setAddRowInput("");
-        } catch (e) {
+        } catch (e: unknown) {
             console.error(e);
         }
-    };
+    }, [addRowInput]);
 
     // Handle manual row editing safely
-    const handleRowQtyChange = (id: string, value: string, blur: boolean = false) => {
+    const handleRowQtyChange = useCallback((id: string, value: string, blur: boolean = false) => {
         if (!blur) {
             if (value === "") return setNormalizedRows(prev => prev.map(r => r.id === id ? { ...r, qty: "" } : r));
             const num = parseInt(value, 10);
             setNormalizedRows(prev => prev.map(r => r.id === id ? { ...r, qty: Number.isFinite(num) ? Math.max(1, num) : 1 } : r));
         } else {
-            setNormalizedRows(prev => prev.map(r => r.id === id ? { ...r, qty: r.qty === "" ? 1 : Math.max(1, parseInt(r.qty as any, 10) || 1) } : r));
+            setNormalizedRows(prev => prev.map(r => r.id === id ? { ...r, qty: r.qty === "" ? 1 : Math.max(1, parseInt(String(r.qty), 10) || 1) } : r));
         }
-    };
+    }, [setNormalizedRows]);
 
     // Autocomplete debounced search
     const debouncedAddInput = useDebounce(addRowInput, 300);
@@ -262,9 +267,9 @@ export default function DashboardPage() {
         }
     }, [debouncedAddInput]);
 
-    const handleCopy = async () => {
+    const handleCopy = useCallback(async () => {
         if (!estimate || !estimate.finalVolume) return;
-        const est = estimate as any;
+        const est = estimate as EstimateResult;
         const isLabor = inputs.moveType === "Labor";
         const truckText = isLabor ? "N/A" : `${est.trucksFinal} x ${est.truckSizeLabel}`;
         const splitText = est.splitRecommended ? "(SPLIT TO 2 DAYS)" : "";
@@ -297,23 +302,23 @@ export default function DashboardPage() {
 ${packingLine}
 
 🛡 NOTES & RISKS
-${est.risks?.length > 0 ? est.risks.map((r: any) => `-${r.text}`).join("\n") : "-Standard residential move."}
+${est.risks?.length > 0 ? est.risks.map((r: { text: string }) => `-${r.text}`).join("\n") : "-Standard residential move."}
 -Access: ${accessText}
 ${est.daMins > 0 ? `-Assembly: ~${est.daMins} min total` : ""}
 -Confidence: ${est.confidence?.label} (${est.confidence?.score}%)`;
 
         const performCopy = () => { setCopyStatus("success"); setTimeout(() => setCopyStatus("idle"), 2000); };
         if (navigator.clipboard && window.isSecureContext) {
-            try { await navigator.clipboard.writeText(text); performCopy(); return; } catch (err) { }
+            try { await navigator.clipboard.writeText(text); performCopy(); return; } catch { }
         }
         const ta = document.createElement("textarea");
         ta.value = text; ta.style.position = "absolute"; ta.style.left = "-9999px";
         document.body.appendChild(ta); ta.select();
-        try { document.execCommand('copy'); performCopy(); } catch (err) { }
+        try { document.execCommand('copy'); performCopy(); } catch { }
         document.body.removeChild(ta);
-    };
+    }, [estimate, inputs]);
 
-    const handleSaveEstimate = async () => {
+    const handleSaveEstimate = useCallback(async () => {
         if (!clientName.trim() || !estimate || !estimate.finalVolume) return;
         setIsSaving(true);
         setSaveStatus("idle");
@@ -342,19 +347,19 @@ ${est.daMins > 0 ? `-Assembly: ~${est.daMins} min total` : ""}
                 setClientName("");
                 setSaveStatus("success");
                 setTimeout(() => setSaveStatus("idle"), 2000);
-            } else {
+            } else if (res && !res.success) {
                 console.error(res.error);
                 setSaveStatus("error");
                 setTimeout(() => setSaveStatus("idle"), 3000);
             }
-        } catch (err) {
+        } catch (err: unknown) {
             console.error(err);
             setSaveStatus("error");
             setTimeout(() => setSaveStatus("idle"), 3000);
         } finally {
             setIsSaving(false);
         }
-    };
+    }, [clientName, estimate, inputs, normalizedRows, inventoryMode, overrides, showHistory]);
 
     const toggleHistory = async () => {
         if (showHistory) { setShowHistory(false); return; }
@@ -363,7 +368,10 @@ ${est.daMins > 0 ? `-Assembly: ~${est.daMins} min total` : ""}
         try {
             const items = await fetchHistoryAction();
             setHistoryItems(items);
-        } catch (err) { console.error(err); }
+        } catch (err: unknown) {
+            console.error(err);
+            alert("Failed to load history. Please try again.");
+        }
         setHistoryLoading(false);
     };
 
@@ -409,7 +417,7 @@ ${est.daMins > 0 ? `-Assembly: ~${est.daMins} min total` : ""}
                 </div>
 
                 <div className="flex items-center gap-3">
-                    <div className="hidden md:flex items-center gap-3">
+                    <div className="hidden md:flex items-center gap-3 relative">
                         {/* Save Island */}
                         <div className="flex items-center gap-2 bg-white rounded-[1.5rem] shadow-[0_4px_24px_rgba(0,0,0,0.03)] p-1.5 border border-transparent">
                             <input
@@ -431,6 +439,11 @@ ${est.daMins > 0 ? `-Assembly: ~${est.daMins} min total` : ""}
                                 {saveStatus === 'success' ? '✓ Saved' : isSaving ? '...' : 'Save'}
                             </button>
                         </div>
+                        {saveStatus === 'error' && (
+                            <div className="absolute top-[105%] left-4 text-red-500 text-[11px] font-bold">
+                                Save failed. Please try again.
+                            </div>
+                        )}
 
                         {/* History Island */}
                         <button onClick={toggleHistory}
@@ -484,12 +497,14 @@ ${est.daMins > 0 ? `-Assembly: ~${est.daMins} min total` : ""}
                                         }}
                                         className="hover:text-gray-900 transition-colors"
                                         title="Undo last delete"
+                                        aria-label="Undo last delete"
                                     >
                                         <Undo2 className="w-4 h-4" />
                                     </button>
                                 )}
                                 <button onClick={() => setShowHistory(false)}
-                                    className="hover:text-gray-900 transition-colors">
+                                    className="hover:text-gray-900 transition-colors"
+                                    aria-label="Close history">
                                     <X className="w-4 h-4" />
                                 </button>
                             </div>
@@ -502,8 +517,8 @@ ${est.daMins > 0 ? `-Assembly: ~${est.daMins} min total` : ""}
                         ) : (
                             <div className="flex flex-wrap gap-3 max-h-[260px] overflow-y-auto pr-1 mb-2">
                                 {historyItems
-                                    .filter(item => !pendingDeletes.has(item.id))
-                                    .map(item => (
+                                    .filter((item: any) => !pendingDeletes.has(item.id))
+                                    .map((item: any) => (
                                         <div key={item.id} className="relative group animate-in fade-in zoom-in-95">
                                             <button onClick={() => handleLoadEstimate(item.id)}
                                                 className="text-left bg-white border-[1.5px] border-dashed border-gray-200 hover:border-gray-400 hover:bg-gray-50/50 rounded-xl px-3.5 py-3 transition-all duration-200 cursor-pointer min-w-[170px] max-w-[220px] min-h-[66px] w-full block">
@@ -528,6 +543,7 @@ ${est.daMins > 0 ? `-Assembly: ~${est.daMins} min total` : ""}
                                                     setPendingDeletes(prev => new Set(prev).add(item.id));
                                                 }}
                                                 className="absolute top-2 right-2 w-5 h-5 flex items-center justify-center rounded-md text-gray-300 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all"
+                                                aria-label="Delete estimate"
                                             >
                                                 <X className="w-3 h-3" />
                                             </button>

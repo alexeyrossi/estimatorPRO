@@ -1,7 +1,7 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
-export const ConfidenceDonut = ({ score, label }: { score: number; label: string }) => {
+export const ConfidenceDonut = React.memo(({ score, label }: { score: number; label: string }) => {
     const size = 72;
     const stroke = 5;
     const radius = 31;
@@ -98,4 +98,5 @@ export const ConfidenceDonut = ({ score, label }: { score: number; label: string
             </div>
         </div>
     );
-};
+});
+ConfidenceDonut.displayName = "ConfidenceDonut";

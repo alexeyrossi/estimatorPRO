@@ -104,9 +104,9 @@ export async function saveEstimateAction(
     }
 
     return { success: true, id: data.id };
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("Save estimate action error:", err);
-    return { success: false, error: err.message || "An unexpected error occurred." };
+    return { success: false, error: err instanceof Error ? err.message : "An unexpected error occurred." };
   }
 }
 

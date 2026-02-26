@@ -6,7 +6,7 @@ import { Select } from './Select';
 import { InputLabel } from './InputLabel';
 import { AccessSegmented } from './AccessSegmented';
 import { SmallInput } from './SmallInput';
-import { SORTED_KEYS, KEY_REGEX, VOLUME_TABLE, LIFT_GATE_ITEMS } from '@/lib/dictionaries';
+import { SORTED_KEYS } from '@/lib/dictionaries';
 
 interface ConfigPanelProps {
     inputs: EstimateInputs;
@@ -27,9 +27,9 @@ interface ConfigPanelProps {
     estimate: EstimateResult | Partial<EstimateResult>;
 }
 
-export const ConfigPanel = ({
+export const ConfigPanel = React.memo(({
     inputs, setInputs, adminMode, inventoryMode, setInventoryMode, normalizedRows, setNormalizedRows,
-    inventoryClipped, setInventoryClipped, addRowInput, setAddRowInput, suggestedItems,
+    inventoryClipped, setInventoryClipped, addRowInput, setAddRowInput,
     handleNormalize, handleAddRow, handleRowQtyChange, estimate
 }: ConfigPanelProps) => {
 
@@ -66,7 +66,7 @@ export const ConfigPanel = ({
         return v;
     }
 
-    const detectedQtyTotal = (estimate as any)?.detectedQtyTotal ?? 0;
+    const detectedQtyTotal = (estimate as EstimateResult)?.detectedQtyTotal ?? 0;
 
     return (
         <GlassPanel><div className="p-7 flex-1 flex flex-col space-y-6">
@@ -106,7 +106,7 @@ export const ConfigPanel = ({
                         onChange={e => {
                             const v = e.target.value;
                             setInputs(prev => {
-                                const next = { ...prev, moveType: v as any };
+                                const next = { ...prev, moveType: v as "Local" | "LD" | "Labor" };
                                 if (v !== "Local" && prev.accessDest !== "ground") { next.accessDest = "ground"; next.stairsFlightsDest = 1; }
                                 return next;
                             });
@@ -115,7 +115,7 @@ export const ConfigPanel = ({
                 </div>
                 <div>
                     <InputLabel label="Packing" />
-                    <Select id="packingLevel" value={inputs.packingLevel} onChange={e => setInputs({ ...inputs, packingLevel: e.target.value as any })} options={[{ value: "None", label: "No Packing" }, { value: "Partial", label: "Partial Packing" }, { value: "Full", label: "Full Packing" }]} />
+                    <Select id="packingLevel" value={inputs.packingLevel} onChange={e => setInputs({ ...inputs, packingLevel: e.target.value as "None" | "Partial" | "Full" })} options={[{ value: "None", label: "No Packing" }, { value: "Partial", label: "Partial Packing" }, { value: "Full", label: "Full Packing" }]} />
                 </div>
             </div>
 
@@ -165,7 +165,7 @@ export const ConfigPanel = ({
                                 <div className="flex items-center gap-3">
                                     <AccessSegmented value={stop.access} onChange={v => {
                                         const newStops = [...(inputs.extraStops || [])];
-                                        newStops[idx].access = v as any;
+                                        newStops[idx].access = v as "ground" | "elevator" | "stairs";
                                         setInputs({ ...inputs, extraStops: newStops });
                                     }} />
                                     {stop.access === "stairs" && <SmallInput value={stop.stairsFlights || 1} onChange={v => {
@@ -179,7 +179,7 @@ export const ConfigPanel = ({
                     ))}
                     {(inputs.extraStops || []).length < 4 && (
                         <button onClick={() => {
-                            const newStops = [...(inputs.extraStops || []), { label: "", access: "ground" as any, stairsFlights: 1 }];
+                            const newStops = [...(inputs.extraStops || []), { label: "", access: "ground" as "ground" | "elevator" | "stairs", stairsFlights: 1 }];
                             setInputs({ ...inputs, extraStops: newStops });
                         }}
                             className="flex items-center justify-center w-full gap-1.5 text-[10px] font-bold text-gray-400 hover:text-gray-600 bg-transparent hover:bg-gray-50 border-2 border-dashed border-gray-200 hover:border-gray-300 rounded-xl px-3 py-2.5 transition-all active:scale-95">
@@ -204,13 +204,13 @@ export const ConfigPanel = ({
                         <div className="flex items-center gap-1.5 ml-auto">
                             {(inputs.inventoryText.length > 0 || normalizedRows.length > 0) && (
                                 <button onClick={handleClearInventory}
-                                    className="p-1.5 rounded-lg text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors" title="Clear inventory">
+                                    className="p-1.5 rounded-lg text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors" title="Clear inventory" aria-label="Clear inventory">
                                     <Trash2 className="w-4 h-4" strokeWidth={2} />
                                 </button>
                             )}
                             {undoCache && (
                                 <button onClick={handleUndo}
-                                    className="p-1.5 rounded-lg text-gray-500 bg-gray-50 hover:bg-gray-100 hover:text-gray-700 transition-all animate-in fade-in zoom-in duration-200" title="Undo clear">
+                                    className="p-1.5 rounded-lg text-gray-500 bg-gray-50 hover:bg-gray-100 hover:text-gray-700 transition-all animate-in fade-in zoom-in duration-200" title="Undo clear" aria-label="Undo clear">
                                     <Undo2 className="w-4 h-4" />
                                 </button>
                             )}
@@ -266,42 +266,45 @@ export const ConfigPanel = ({
                     ) : (
                         <div className="bg-white border border-gray-200 rounded-2xl p-3 shadow-sm">
                             <div className="text-[10px] font-bold text-gray-400 mb-2 uppercase tracking-widest px-1">Inventory Editor</div>
-                            <div className="max-h-72 overflow-y-auto pr-1">
-                                <div className="grid grid-cols-12 gap-1 mb-1 px-1 text-[9px] text-gray-400 font-bold sticky top-0 bg-white z-10 pb-1 border-b border-gray-50">
-                                    <div className="col-span-5">Item</div><div className="col-span-2 text-center">Qty</div><div className="col-span-2 text-center">CF/ea</div><div className="col-span-2 text-center">Heavy</div><div className="col-span-1"></div>
-                                </div>
-                                {normalizedRows.map(row => (
-                                    <div key={row.id} className="grid grid-cols-12 gap-1 items-center mb-1 text-[10px] font-semibold">
-                                        <input className="col-span-5 rounded px-2 h-7 outline-none bg-gray-50 border-transparent hover:bg-gray-100 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
-                                            value={row.name}
-                                            onChange={e => setNormalizedRows(prev => prev.map(r => r.id === row.id ? { ...r, name: e.target.value } : r))}
-                                        />
-                                        <input type="number" className="col-span-2 rounded px-1 h-7 text-center outline-none bg-gray-50 border-transparent hover:bg-gray-100 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
-                                            value={row.qty as string | number}
-                                            onChange={e => handleRowQtyChange(row.id, e.target.value)}
-                                            onBlur={() => handleRowQtyChange(row.id, row.qty as any, true)}
-                                        />
-                                        <input type="number" className="col-span-2 rounded px-1 h-7 text-center outline-none bg-gray-50 border-transparent hover:bg-gray-100 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
-                                            value={row.cfUnit as string | number}
-                                            onChange={e => setNormalizedRows(prev => prev.map(r => r.id === row.id ? { ...r, cfUnit: Number(e.target.value) || 1 } : r))}
-                                        />
-                                        <div className="col-span-2 flex justify-center">
-                                            <label className="inline-flex items-center cursor-pointer group relative">
-                                                <input type="checkbox" className="sr-only"
-                                                    checked={row.flags.heavy}
-                                                    onChange={e => setNormalizedRows(prev => prev.map(r => r.id === row.id ? { ...r, flags: { ...r.flags, heavy: e.target.checked } } : r))}
-                                                />
-                                                <div className={`w-[22px] h-[22px] rounded-md border-[1.5px] flex items-center justify-center transition-all duration-200 ease-out shadow-sm ${row.flags.heavy ? 'border-gray-900 bg-gray-900' : 'border-gray-300 bg-white group-hover:border-gray-400'}`}>
-                                                    <Weight className={`w-3.5 h-3.5 transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${row.flags.heavy ? 'text-white scale-110' : 'text-gray-300'}`} strokeWidth={2.5} />
-                                                </div>
-                                            </label>
-                                        </div>
-                                        <button onClick={() => setNormalizedRows(prev => prev.filter(r => r.id !== row.id))}
-                                            className="col-span-1 flex justify-center items-center text-gray-300 hover:text-red-500 transition-colors cursor-pointer">
-                                            <Trash2 className="w-3.5 h-3.5" />
-                                        </button>
+                            <div className="max-h-72 overflow-y-auto overflow-x-auto pr-1">
+                                <div className="min-w-[340px]">
+                                    <div className="grid grid-cols-12 gap-1 mb-1 px-1 text-[9px] text-gray-400 font-bold sticky top-0 bg-white z-10 pb-1 border-b border-gray-50">
+                                        <div className="col-span-5">Item</div><div className="col-span-2 text-center">Qty</div><div className="col-span-2 text-center">CF/ea</div><div className="col-span-2 text-center">Heavy</div><div className="col-span-1"></div>
                                     </div>
-                                ))}
+                                    {normalizedRows.map(row => (
+                                        <div key={row.id} className="grid grid-cols-12 gap-1 items-center mb-1 text-[10px] font-semibold">
+                                            <input className="col-span-5 rounded px-2 h-7 outline-none bg-gray-50 border-transparent hover:bg-gray-100 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                                                value={row.name}
+                                                onChange={e => setNormalizedRows(prev => prev.map(r => r.id === row.id ? { ...r, name: e.target.value } : r))}
+                                            />
+                                            <input type="number" className="col-span-2 rounded px-1 h-7 text-center outline-none bg-gray-50 border-transparent hover:bg-gray-100 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                                                value={row.qty as string | number}
+                                                onChange={e => handleRowQtyChange(row.id, e.target.value)}
+                                                onBlur={() => handleRowQtyChange(row.id, row.qty as string, true)}
+                                            />
+                                            <input type="number" className="col-span-2 rounded px-1 h-7 text-center outline-none bg-gray-50 border-transparent hover:bg-gray-100 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                                                value={row.cfUnit as string | number}
+                                                onChange={e => setNormalizedRows(prev => prev.map(r => r.id === row.id ? { ...r, cfUnit: Number(e.target.value) || 1 } : r))}
+                                            />
+                                            <div className="col-span-2 flex justify-center">
+                                                <label className="inline-flex items-center cursor-pointer group relative">
+                                                    <input type="checkbox" className="sr-only"
+                                                        checked={row.flags.heavy}
+                                                        onChange={e => setNormalizedRows(prev => prev.map(r => r.id === row.id ? { ...r, flags: { ...r.flags, heavy: e.target.checked } } : r))}
+                                                    />
+                                                    <div className={`w-[22px] h-[22px] rounded-md border-[1.5px] flex items-center justify-center transition-all duration-200 ease-out shadow-sm ${row.flags.heavy ? 'border-gray-900 bg-gray-900' : 'border-gray-300 bg-white group-hover:border-gray-400'}`}>
+                                                        <Weight className={`w-3.5 h-3.5 transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${row.flags.heavy ? 'text-white scale-110' : 'text-gray-300'}`} strokeWidth={2.5} />
+                                                    </div>
+                                                </label>
+                                            </div>
+                                            <button onClick={() => setNormalizedRows(prev => prev.filter(r => r.id !== row.id))}
+                                                className="col-span-1 flex justify-center items-center text-gray-300 hover:text-red-500 transition-colors cursor-pointer"
+                                                aria-label="Delete item">
+                                                <Trash2 className="w-3.5 h-3.5" />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                             <div className="mt-2 pt-2 border-t border-gray-100 flex gap-2">
                                 <input className="flex-1 rounded-lg px-2 h-8 text-[11px] outline-none bg-gray-50 border-transparent hover:bg-gray-100 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
@@ -325,5 +328,6 @@ export const ConfigPanel = ({
             </div>
         </div></GlassPanel>
     );
-};
+});
+ConfigPanel.displayName = "ConfigPanel";
 
