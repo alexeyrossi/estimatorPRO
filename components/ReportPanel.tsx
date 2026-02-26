@@ -77,7 +77,7 @@ interface ReportPanelProps {
     setOverrides: React.Dispatch<React.SetStateAction<Record<string, string>>>;
 }
 
-export const ReportPanel = React.memo(({
+export const ReportPanel = ({
     estimate,
     inputs,
     isCalculating,
@@ -700,5 +700,4 @@ export const ReportPanel = React.memo(({
 
         </div>
     );
-});
-ReportPanel.displayName = "ReportPanel";
+};

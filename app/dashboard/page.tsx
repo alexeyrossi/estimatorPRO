@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { LogOut, Truck, Calculator, ClipboardList, X, Package, MapPin, Calendar, Undo2 } from 'lucide-react';
 import { EstimateInputs, NormalizedRow, EstimateResult } from '@/lib/types/estimator';
@@ -199,7 +199,7 @@ export default function DashboardPage() {
     }, [debouncedInputs, debouncedNormalized, overrides, hasMounted, inventoryMode]);
 
     // Normalize Button action
-    const handleNormalize = useCallback(async () => {
+    const handleNormalize = async () => {
         setIsCalculating(true);
         try {
             const rows = await normalizeInventoryAction(inputs.inventoryText);
@@ -223,10 +223,10 @@ export default function DashboardPage() {
         } finally {
             setIsCalculating(false);
         }
-    }, [inputs.inventoryText, normalizedRows]);
+    };
 
     // Add row action
-    const handleAddRow = useCallback(async () => {
+    const handleAddRow = async () => {
         if (!addRowInput.trim()) return;
         try {
             const resolved = await resolveItemAction(addRowInput);
@@ -244,10 +244,10 @@ export default function DashboardPage() {
         } catch (e: unknown) {
             console.error(e);
         }
-    }, [addRowInput]);
+    };
 
     // Handle manual row editing safely
-    const handleRowQtyChange = useCallback((id: string, value: string, blur: boolean = false) => {
+    const handleRowQtyChange = (id: string, value: string, blur: boolean = false) => {
         if (!blur) {
             if (value === "") return setNormalizedRows(prev => prev.map(r => r.id === id ? { ...r, qty: "" } : r));
             const num = parseInt(value, 10);
@@ -255,7 +255,7 @@ export default function DashboardPage() {
         } else {
             setNormalizedRows(prev => prev.map(r => r.id === id ? { ...r, qty: r.qty === "" ? 1 : Math.max(1, parseInt(String(r.qty), 10) || 1) } : r));
         }
-    }, [setNormalizedRows]);
+    };
 
     // Autocomplete debounced search
     const debouncedAddInput = useDebounce(addRowInput, 300);
@@ -267,7 +267,7 @@ export default function DashboardPage() {
         }
     }, [debouncedAddInput]);
 
-    const handleCopy = useCallback(async () => {
+    const handleCopy = async () => {
         if (!estimate || !estimate.finalVolume) return;
         const est = estimate as EstimateResult;
         const isLabor = inputs.moveType === "Labor";
@@ -316,9 +316,9 @@ ${est.daMins > 0 ? `-Assembly: ~${est.daMins} min total` : ""}
         document.body.appendChild(ta); ta.select();
         try { document.execCommand('copy'); performCopy(); } catch { }
         document.body.removeChild(ta);
-    }, [estimate, inputs]);
+    };
 
-    const handleSaveEstimate = useCallback(async () => {
+    const handleSaveEstimate = async () => {
         if (!clientName.trim() || !estimate || !estimate.finalVolume) return;
         setIsSaving(true);
         setSaveStatus("idle");
@@ -359,7 +359,7 @@ ${est.daMins > 0 ? `-Assembly: ~${est.daMins} min total` : ""}
         } finally {
             setIsSaving(false);
         }
-    }, [clientName, estimate, inputs, normalizedRows, inventoryMode, overrides, showHistory]);
+    };
 
     const toggleHistory = async () => {
         if (showHistory) { setShowHistory(false); return; }

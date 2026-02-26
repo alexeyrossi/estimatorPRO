@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef } from 'react';
 import { EstimateInputs, NormalizedRow, EstimateResult } from '@/lib/types/estimator';
 import { Settings, MapPin, Trash2, Shield, User, Plus, Weight, Undo2 } from 'lucide-react';
 import { GlassPanel } from './GlassPanel';
@@ -27,7 +27,7 @@ interface ConfigPanelProps {
     estimate: EstimateResult | Partial<EstimateResult>;
 }
 
-export const ConfigPanel = React.memo(({
+export const ConfigPanel = ({
     inputs, setInputs, adminMode, inventoryMode, setInventoryMode, normalizedRows, setNormalizedRows,
     inventoryClipped, setInventoryClipped, addRowInput, setAddRowInput,
     handleNormalize, handleAddRow, handleRowQtyChange, estimate
@@ -38,7 +38,7 @@ export const ConfigPanel = React.memo(({
     const [undoCache, setUndoCache] = useState<{ text: string; rows: NormalizedRow[] } | null>(null);
     const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    const handleClearInventory = useCallback(() => {
+    const handleClearInventory = () => {
         // Save current state for undo
         setUndoCache({ text: inputs.inventoryText, rows: [...normalizedRows] });
 
@@ -49,15 +49,15 @@ export const ConfigPanel = React.memo(({
         // Auto-expire undo after 10 seconds
         if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
         undoTimerRef.current = setTimeout(() => setUndoCache(null), 10000);
-    }, [inputs.inventoryText, normalizedRows, setInputs, setNormalizedRows]);
+    };
 
-    const handleUndo = useCallback(() => {
+    const handleUndo = () => {
         if (!undoCache) return;
         setInputs(prev => ({ ...prev, inventoryText: undoCache.text }));
         setNormalizedRows(undoCache.rows);
         setUndoCache(null);
         if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
-    }, [undoCache, setInputs, setNormalizedRows]);
+    };
 
     const limitInventoryText = (val: string) => {
         const MAX_CHARS = 12000;
@@ -267,40 +267,40 @@ export const ConfigPanel = React.memo(({
                         <div className="bg-white border border-gray-200 rounded-2xl p-3 shadow-sm">
                             <div className="text-[10px] font-bold text-gray-400 mb-2 uppercase tracking-widest px-1">Inventory Editor</div>
                             <div className="max-h-72 overflow-y-auto overflow-x-auto pr-1">
-                                <div className="min-w-[340px]">
-                                    <div className="grid grid-cols-12 gap-1 mb-1 px-1 text-[9px] text-gray-400 font-bold sticky top-0 bg-white z-10 pb-1 border-b border-gray-50">
-                                        <div className="col-span-5">Item</div><div className="col-span-2 text-center">Qty</div><div className="col-span-2 text-center">CF/ea</div><div className="col-span-2 text-center">Heavy</div><div className="col-span-1"></div>
+                                <div className="min-w-[260px] w-full">
+                                    <div className="grid grid-cols-[1fr_2.5rem_2.5rem_2.5rem_1.5rem] gap-1.5 mb-1 px-1 text-[9px] text-gray-400 font-bold sticky top-0 bg-white z-10 pb-1 border-b border-gray-50">
+                                        <div>Item</div><div className="text-center">Qty</div><div className="text-center">CF/ea</div><div className="text-center">Heavy</div><div></div>
                                     </div>
                                     {normalizedRows.map(row => (
-                                        <div key={row.id} className="grid grid-cols-12 gap-1 items-center mb-1 text-[10px] font-semibold">
-                                            <input className="col-span-5 rounded px-2 h-7 outline-none bg-gray-50 border-transparent hover:bg-gray-100 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                                        <div key={row.id} className="grid grid-cols-[1fr_2.5rem_2.5rem_2.5rem_1.5rem] gap-1.5 items-center mb-1 text-[10px] font-semibold">
+                                            <input className="min-w-0 rounded px-2 h-7 outline-none bg-gray-50 border-transparent hover:bg-gray-100 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
                                                 value={row.name}
                                                 onChange={e => setNormalizedRows(prev => prev.map(r => r.id === row.id ? { ...r, name: e.target.value } : r))}
                                             />
-                                            <input type="number" className="col-span-2 rounded px-1 h-7 text-center outline-none bg-gray-50 border-transparent hover:bg-gray-100 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                                            <input type="number" className="rounded px-1 h-7 text-center outline-none bg-gray-50 border-transparent hover:bg-gray-100 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
                                                 value={row.qty as string | number}
                                                 onChange={e => handleRowQtyChange(row.id, e.target.value)}
                                                 onBlur={() => handleRowQtyChange(row.id, row.qty as string, true)}
                                             />
-                                            <input type="number" className="col-span-2 rounded px-1 h-7 text-center outline-none bg-gray-50 border-transparent hover:bg-gray-100 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                                            <input type="number" className="rounded px-1 h-7 text-center outline-none bg-gray-50 border-transparent hover:bg-gray-100 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
                                                 value={row.cfUnit as string | number}
                                                 onChange={e => setNormalizedRows(prev => prev.map(r => r.id === row.id ? { ...r, cfUnit: Number(e.target.value) || 1 } : r))}
                                             />
-                                            <div className="col-span-2 flex justify-center">
+                                            <div className="flex justify-center">
                                                 <label className="inline-flex items-center cursor-pointer group relative">
                                                     <input type="checkbox" className="sr-only"
                                                         checked={row.flags.heavy}
                                                         onChange={e => setNormalizedRows(prev => prev.map(r => r.id === row.id ? { ...r, flags: { ...r.flags, heavy: e.target.checked } } : r))}
                                                     />
-                                                    <div className={`w-[22px] h-[22px] rounded-md border-[1.5px] flex items-center justify-center transition-all duration-200 ease-out shadow-sm ${row.flags.heavy ? 'border-gray-900 bg-gray-900' : 'border-gray-300 bg-white group-hover:border-gray-400'}`}>
+                                                    <div className={`w-[22px] h-[22px] rounded-md flex items-center justify-center transition-all duration-200 ease-out shadow-sm ${row.flags.heavy ? 'bg-gray-900 border-[1.5px] border-gray-900' : 'bg-transparent hover:bg-gray-100'}`}>
                                                         <Weight className={`w-3.5 h-3.5 transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${row.flags.heavy ? 'text-white scale-110' : 'text-gray-300'}`} strokeWidth={2.5} />
                                                     </div>
                                                 </label>
                                             </div>
                                             <button onClick={() => setNormalizedRows(prev => prev.filter(r => r.id !== row.id))}
-                                                className="col-span-1 flex justify-center items-center text-gray-300 hover:text-red-500 transition-colors cursor-pointer p-3 -m-3"
+                                                className="flex justify-center items-center text-gray-300 hover:text-red-500 transition-colors cursor-pointer p-2 -mr-1"
                                                 aria-label="Delete item">
-                                                <Trash2 className="w-3.5 h-3.5" />
+                                                <Trash2 className="w-4 h-4" />
                                             </button>
                                         </div>
                                     ))}
@@ -328,6 +328,5 @@ export const ConfigPanel = React.memo(({
             </div>
         </div></GlassPanel>
     );
-});
-ConfigPanel.displayName = "ConfigPanel";
+};
 
