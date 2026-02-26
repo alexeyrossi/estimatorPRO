@@ -389,10 +389,10 @@ ${est.daMins > 0 ? `-Assembly: ~${est.daMins} min total` : ""}
         }
     };
 
-    if (!hasMounted) return <div className="min-h-screen bg-[#F5F7FA]" />;
+    if (!hasMounted) return <div className="min-h-[100dvh] bg-[#F5F7FA]" />;
 
     return (
-        <div className="min-h-[100vh] bg-[#F5F7FA] text-gray-900 font-sans p-4 md:p-8 flex flex-col items-center selection:bg-blue-100">
+        <div className="min-h-[100dvh] bg-[#F5F7FA] text-gray-900 font-sans p-4 md:p-8 flex flex-col items-center selection:bg-blue-100">
             <div className="w-full max-w-6xl mb-8 flex items-center justify-between">
                 <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-[1rem] bg-gray-900 flex items-center justify-center relative overflow-hidden group shadow-[0_4px_16px_rgba(0,0,0,0.15)]">
@@ -555,7 +555,7 @@ ${est.daMins > 0 ? `-Assembly: ~${est.daMins} min total` : ""}
                 </div>
             )}
 
-            <div className="w-full max-w-6xl flex flex-col md:flex-row gap-8 pb-24 md:pb-8">
+            <div className="w-full max-w-6xl flex flex-col md:flex-row gap-8 pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-8">
                 {/* LEFT: CONFIGURATION */}
                 <div className={`w-full md:w-[420px] flex-shrink-0 flex flex-col gap-6 ${activeTab === "config" ? "block" : "hidden md:flex"}`}>
                     <ConfigPanel

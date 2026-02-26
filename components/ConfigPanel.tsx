@@ -92,7 +92,7 @@ export const ConfigPanel = React.memo(({
                                 const val = e.target.value.replace(/\D/g, '').replace(/^0+(?=\d)/, '');
                                 setInputs({ ...inputs, distance: val });
                             }}
-                            className="w-full rounded-2xl px-4 py-3.5 text-sm font-bold outline-none bg-gray-50 border-transparent hover:bg-gray-100 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                            className="w-full rounded-2xl px-4 py-3.5 text-base font-bold outline-none bg-gray-50 border-transparent hover:bg-gray-100 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
                         />
                         <MapPin className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 pointer-events-none" />
                     </div>
@@ -298,7 +298,7 @@ export const ConfigPanel = React.memo(({
                                                 </label>
                                             </div>
                                             <button onClick={() => setNormalizedRows(prev => prev.filter(r => r.id !== row.id))}
-                                                className="col-span-1 flex justify-center items-center text-gray-300 hover:text-red-500 transition-colors cursor-pointer"
+                                                className="col-span-1 flex justify-center items-center text-gray-300 hover:text-red-500 transition-colors cursor-pointer p-3 -m-3"
                                                 aria-label="Delete item">
                                                 <Trash2 className="w-3.5 h-3.5" />
                                             </button>
@@ -307,7 +307,7 @@ export const ConfigPanel = React.memo(({
                                 </div>
                             </div>
                             <div className="mt-2 pt-2 border-t border-gray-100 flex gap-2">
-                                <input className="flex-1 rounded-lg px-2 h-8 text-[11px] outline-none bg-gray-50 border-transparent hover:bg-gray-100 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                                <input className="flex-1 rounded-lg px-2 h-8 text-base outline-none bg-gray-50 border-transparent hover:bg-gray-100 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
                                     placeholder="Add item (e.g. piano)"
                                     list="volumeSuggestions"
                                     value={addRowInput}

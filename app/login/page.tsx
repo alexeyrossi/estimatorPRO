@@ -65,7 +65,7 @@ export default function LoginPage() {
                             type="email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            className="block w-full border-0 p-0 text-gray-900 placeholder-gray-400 focus:ring-0 sm:text-[15px] bg-transparent outline-none [&:-webkit-autofill]:[-webkit-box-shadow:0_0_0_30px_white_inset] [&:-webkit-autofill]:[-webkit-text-fill-color:#111827] caret-gray-900"
+                            className="block w-full border-0 p-0 text-gray-900 placeholder-gray-400 focus:ring-0 text-base bg-transparent outline-none [&:-webkit-autofill]:[-webkit-box-shadow:0_0_0_30px_white_inset] [&:-webkit-autofill]:[-webkit-text-fill-color:#111827] caret-gray-900"
                             placeholder=""
                             required
                         />
@@ -80,7 +80,7 @@ export default function LoginPage() {
                             type={showPassword ? "text" : "password"}
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            className="block w-full pr-10 border-0 p-0 text-gray-900 placeholder-gray-400 focus:ring-0 sm:text-[20px] bg-transparent outline-none tracking-widest [&:-webkit-autofill]:[-webkit-box-shadow:0_0_0_30px_white_inset] [&:-webkit-autofill]:[-webkit-text-fill-color:#111827] caret-gray-900"
+                            className="block w-full pr-10 border-0 p-0 text-gray-900 placeholder-gray-400 focus:ring-0 text-base bg-transparent outline-none tracking-widest [&:-webkit-autofill]:[-webkit-box-shadow:0_0_0_30px_white_inset] [&:-webkit-autofill]:[-webkit-text-fill-color:#111827] caret-gray-900"
                             placeholder=""
                             required
                         />

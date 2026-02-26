@@ -68,7 +68,7 @@ export const ExtraStopsBlock = ({ inputs, setInputs }: ExtraStopsBlockProps) => 
                         placeholder="Label (e.g. Storage unit)"
                         value={stop.label}
                         onChange={(e) => updateStop(i, { label: e.target.value })}
-                        className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm"
+                        className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-base font-semibold outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm"
                     />
 
                     <div className="flex items-center gap-3">
