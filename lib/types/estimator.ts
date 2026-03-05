@@ -4,6 +4,8 @@ export interface ExtraStop {
   label: string;
 }
 
+export type InventoryMode = "raw" | "normalized";
+
 export interface EstimateInputs {
   homeSize: string;
   moveType: "Local" | "LD" | "Labor" | "Storage";
@@ -14,7 +16,7 @@ export interface EstimateInputs {
   stairsFlightsOrigin: number;
   stairsFlightsDest: number;
   inventoryText: string;
-  inventoryMode?: "raw" | "normalized";
+  inventoryMode?: InventoryMode;
   normalizedRows?: NormalizedRow[];
   overrides?: Record<string, string>;
   extraStops: ExtraStop[];
@@ -85,4 +87,31 @@ export interface EstimateResult {
   leagueItems: { l1: string[]; l2: string[] };
   boxDensity: number;
   extraStopCount: number;
+}
+
+export interface SavedEstimateState {
+  inputs: Partial<EstimateInputs>;
+  normalizedRows: NormalizedRow[];
+  inventoryMode: InventoryMode;
+  overrides: Record<string, string>;
+}
+
+export interface EstimateHistoryItem {
+  id: string;
+  client_name: string;
+  final_volume: number | null;
+  net_volume: number | null;
+  created_at: string;
+  home_size: string | null;
+  move_type: EstimateInputs["moveType"] | null;
+}
+
+export interface SavedEstimateRecord {
+  id: string;
+  client_name: string;
+  final_volume: number | null;
+  net_volume: number | null;
+  truck_space_cf: number | null;
+  inputs_state: SavedEstimateState;
+  created_at: string;
 }

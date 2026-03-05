@@ -1,3 +1,5 @@
+import "server-only";
+
 import {
   NUMBERS_REGEX_CACHE,
   ALIAS_RULES,

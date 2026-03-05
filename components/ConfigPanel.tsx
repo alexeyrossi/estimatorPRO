@@ -6,7 +6,6 @@ import { Select } from './Select';
 import { InputLabel } from './InputLabel';
 import { AccessSegmented } from './AccessSegmented';
 import { SmallInput } from './SmallInput';
-import { SORTED_KEYS } from '@/lib/dictionaries';
 
 interface ConfigPanelProps {
     inputs: EstimateInputs;
@@ -29,7 +28,7 @@ interface ConfigPanelProps {
 
 export const ConfigPanel = ({
     inputs, setInputs, adminMode, inventoryMode, setInventoryMode, normalizedRows, setNormalizedRows,
-    inventoryClipped, setInventoryClipped, addRowInput, setAddRowInput,
+    inventoryClipped, setInventoryClipped, addRowInput, setAddRowInput, suggestedItems,
     handleNormalize, handleAddRow, handleRowQtyChange, estimate
 }: ConfigPanelProps) => {
 
@@ -69,7 +68,7 @@ export const ConfigPanel = ({
     const detectedQtyTotal = (estimate as EstimateResult)?.detectedQtyTotal ?? 0;
 
     return (
-        <GlassPanel><div className="p-7 flex-1 flex flex-col space-y-6">
+        <GlassPanel><div className="p-6 flex-1 flex flex-col space-y-6">
             <div className="flex items-center gap-2 mb-2 pb-5 border-b border-gray-100">
                 <Settings className="w-4 h-4 text-gray-400" />
                 <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Parameters</span>
@@ -93,6 +92,7 @@ export const ConfigPanel = ({
                                 setInputs({ ...inputs, distance: val });
                             }}
                             className="w-full rounded-2xl px-4 py-3.5 text-base font-bold outline-none bg-gray-50 border-transparent hover:bg-gray-100 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                            aria-label="Moving distance in miles"
                         />
                         <MapPin className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 pointer-events-none" />
                     </div>
@@ -124,7 +124,7 @@ export const ConfigPanel = ({
                     <InputLabel label={inputs.moveType === "Local" ? "Origin Access" : "Location Access"} />
                     <div className="flex items-center gap-3 w-full">
                         <AccessSegmented value={inputs.accessOrigin} onChange={(v) => setInputs({ ...inputs, accessOrigin: v })} />
-                        {inputs.accessOrigin === "stairs" && <SmallInput value={inputs.stairsFlightsOrigin} onChange={v => setInputs({ ...inputs, stairsFlightsOrigin: v })} placeholder="1" />}
+                        {inputs.accessOrigin === "stairs" && <SmallInput value={inputs.stairsFlightsOrigin} onChange={v => setInputs({ ...inputs, stairsFlightsOrigin: v })} placeholder="1" aria-label="Origin flights of stairs" />}
                     </div>
                 </div>
                 {inputs.moveType === "Local" && (
@@ -132,7 +132,7 @@ export const ConfigPanel = ({
                         <InputLabel label="Destination Access" />
                         <div className="flex items-center gap-3 w-full">
                             <AccessSegmented value={inputs.accessDest} onChange={(v) => setInputs({ ...inputs, accessDest: v })} />
-                            {inputs.accessDest === "stairs" && <SmallInput value={inputs.stairsFlightsDest} onChange={v => setInputs({ ...inputs, stairsFlightsDest: v })} placeholder="1" />}
+                            {inputs.accessDest === "stairs" && <SmallInput value={inputs.stairsFlightsDest} onChange={v => setInputs({ ...inputs, stairsFlightsDest: v })} placeholder="1" aria-label="Destination flights of stairs" />}
                         </div>
                     </div>
                 )}
@@ -153,7 +153,8 @@ export const ConfigPanel = ({
                                             newStops[idx].label = e.target.value;
                                             setInputs({ ...inputs, extraStops: newStops });
                                         }}
-                                        className="flex-1 rounded-lg px-2.5 py-1.5 text-[11px] font-medium outline-none bg-gray-50 border-transparent hover:bg-gray-100 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all" />
+                                        className="flex-1 rounded-lg px-2.5 py-1.5 text-[11px] font-medium outline-none bg-gray-50 border-transparent hover:bg-gray-100 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                                        aria-label={`Extra stop ${idx + 1} label`} />
                                     <button onClick={() => {
                                         const newStops = (inputs.extraStops || []).filter((_, i) => i !== idx);
                                         setInputs({ ...inputs, extraStops: newStops });
@@ -172,7 +173,7 @@ export const ConfigPanel = ({
                                         const newStops = [...(inputs.extraStops || [])];
                                         newStops[idx].stairsFlights = v;
                                         setInputs({ ...inputs, extraStops: newStops });
-                                    }} placeholder="1" />}
+                                    }} placeholder="1" aria-label={`Extra stop ${idx + 1} flights of stairs`} />}
                                 </div>
                             </div>
                         </div>
@@ -259,9 +260,10 @@ export const ConfigPanel = ({
                                 setInventoryClipped(limited.length !== raw.length);
                                 setInputs({ ...inputs, inventoryText: limited });
                             }}
-                            className="block w-full h-56 bg-white border border-gray-200 rounded-2xl p-4 sm:p-5 text-[14px] leading-relaxed text-gray-800 outline-none resize-none shadow-sm"
+                            className="block w-full h-56 bg-white border border-gray-200 rounded-2xl p-4 sm:p-5 text-[14px] leading-relaxed text-gray-800 outline-none resize-none shadow-sm font-mono"
                             placeholder="Paste inventory here (e.g. Living Room: Sofa, TV...)"
-                            style={{ fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, monospace', WebkitOverflowScrolling: 'touch' }}
+                            style={{ WebkitOverflowScrolling: 'touch' }}
+                            aria-label="Raw inventory text input"
                         />
                     ) : (
                         <div className="bg-white border border-gray-200 rounded-2xl p-3 shadow-sm">
@@ -276,21 +278,25 @@ export const ConfigPanel = ({
                                             <input className="min-w-0 rounded px-2 h-7 outline-none bg-gray-50 border-transparent hover:bg-gray-100 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
                                                 value={row.name}
                                                 onChange={e => setNormalizedRows(prev => prev.map(r => r.id === row.id ? { ...r, name: e.target.value } : r))}
+                                                aria-label={`Item name for ${row.name}`}
                                             />
                                             <input type="number" className="rounded px-1 h-7 text-center outline-none bg-gray-50 border-transparent hover:bg-gray-100 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
                                                 value={row.qty as string | number}
                                                 onChange={e => handleRowQtyChange(row.id, e.target.value)}
                                                 onBlur={() => handleRowQtyChange(row.id, row.qty as string, true)}
+                                                aria-label={`Quantity for ${row.name}`}
                                             />
                                             <input type="number" className="rounded px-1 h-7 text-center outline-none bg-gray-50 border-transparent hover:bg-gray-100 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
                                                 value={row.cfUnit as string | number}
                                                 onChange={e => setNormalizedRows(prev => prev.map(r => r.id === row.id ? { ...r, cfUnit: Number(e.target.value) || 1 } : r))}
+                                                aria-label={`Cubic feet per unit for ${row.name}`}
                                             />
                                             <div className="flex justify-center">
                                                 <label className="inline-flex items-center cursor-pointer group relative">
                                                     <input type="checkbox" className="sr-only"
                                                         checked={row.flags.heavy}
                                                         onChange={e => setNormalizedRows(prev => prev.map(r => r.id === row.id ? { ...r, flags: { ...r.flags, heavy: e.target.checked } } : r))}
+                                                        aria-label={`Mark ${row.name} as heavy item`}
                                                     />
                                                     <div className={`w-[22px] h-[22px] rounded-md flex items-center justify-center transition-all duration-200 ease-out shadow-sm ${row.flags.heavy ? 'bg-gray-900 border-[1.5px] border-gray-900' : 'bg-transparent hover:bg-gray-100'}`}>
                                                         <Weight className={`w-3.5 h-3.5 transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${row.flags.heavy ? 'text-white scale-110' : 'text-gray-300'}`} strokeWidth={2.5} />
@@ -313,9 +319,10 @@ export const ConfigPanel = ({
                                     value={addRowInput}
                                     onChange={e => setAddRowInput(e.target.value)}
                                     onKeyDown={e => { if (e.key === "Enter") handleAddRow(); }}
+                                    aria-label="Add new item name"
                                 />
                                 <datalist id="volumeSuggestions">
-                                    {addRowInput.length > 1 && SORTED_KEYS.filter(k => k.toLowerCase().includes(addRowInput.toLowerCase())).slice(0, 20).map(k => <option key={k} value={k} />)}
+                                    {addRowInput.length > 1 && suggestedItems.map(item => <option key={item} value={item} />)}
                                 </datalist>
                                 <button onClick={handleAddRow} className="px-4 h-8 bg-gray-900 text-white rounded-lg text-[11px] font-bold active:scale-95 transition-all whitespace-nowrap flex items-center gap-1 shadow-sm">
                                     <Plus className="w-3.5 h-3.5" /> ADD
@@ -329,4 +336,3 @@ export const ConfigPanel = ({
         </div></GlassPanel>
     );
 };
-

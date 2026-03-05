@@ -1,3 +1,5 @@
+import "server-only";
+
 export const BLANKETS_TABLE = {
   "sectional": 6, "sectional sofa": 6,
   "sofa": 3, "couch": 3, "sleeper sofa": 4, "loveseat": 2,

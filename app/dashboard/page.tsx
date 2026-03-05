@@ -2,12 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { LogOut, Truck, Calculator, ClipboardList, X, Package, MapPin, Calendar, Undo2 } from 'lucide-react';
-import { EstimateInputs, NormalizedRow, EstimateResult } from '@/lib/types/estimator';
+import { LogOut, Truck, Calculator, ClipboardList, X, Package, MapPin, Calendar, Undo2, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
+import { EstimateHistoryItem, EstimateInputs, EstimateResult, InventoryMode, NormalizedRow } from '@/lib/types/estimator';
 import { useDebounce } from '@/hooks/useDebounce';
 import { getEstimate, normalizeInventoryAction, resolveItemAction, suggestItemsAction, saveEstimateAction, fetchHistoryAction, loadEstimateAction, deleteEstimateAction } from '@/app/actions/estimate';
 import { signOutAction } from '@/app/actions/auth';
-import { createClient } from '@/lib/supabase/client';
 import { ConfigPanel } from '@/components/ConfigPanel';
 import { ReportPanel } from '@/components/ReportPanel';
 
@@ -33,7 +33,7 @@ export default function DashboardPage() {
     const [inputs, setInputs] = useState<EstimateInputs>(DEFAULT_INPUTS);
     const [adminMode, setAdminMode] = useState(true);
 
-    const [inventoryMode, setInventoryMode] = useState<"raw" | "normalized">("raw");
+    const [inventoryMode, setInventoryMode] = useState<InventoryMode>("raw");
     const [normalizedRows, setNormalizedRows] = useState<NormalizedRow[]>([]);
     const [overrides, setOverrides] = useState<Record<string, string>>({});
     const [addRowInput, setAddRowInput] = useState("");
@@ -43,7 +43,7 @@ export default function DashboardPage() {
     const [estimate, setEstimate] = useState<EstimateResult | Partial<EstimateResult>>({});
 
     const [showHistory, setShowHistory] = useState(false);
-    const [historyItems, setHistoryItems] = useState<unknown[]>([]);
+    const [historyItems, setHistoryItems] = useState<EstimateHistoryItem[]>([]);
     const [historyLoading, setHistoryLoading] = useState(false);
 
     // Delayed deletion
@@ -54,7 +54,7 @@ export default function DashboardPage() {
         if (!showHistory && pendingDeletes.size > 0) {
             const idsToDelete = Array.from(pendingDeletes);
             idsToDelete.forEach(id => deleteEstimateAction(id).catch(console.error));
-            setHistoryItems(prev => prev.filter((h: any) => !pendingDeletes.has(h.id)));
+            setHistoryItems(prev => prev.filter((item) => !pendingDeletes.has(item.id)));
             setPendingDeletes(new Set());
         }
     }, [showHistory, pendingDeletes]);
@@ -67,25 +67,18 @@ export default function DashboardPage() {
 
             if (estimateId) {
                 try {
-                    const supabase = createClient();
-                    const { data, error } = await supabase
-                        .from('estimates')
-                        .select('*')
-                        .eq('id', estimateId)
-                        .single();
-
-                    if (error) throw error;
-
+                    const data = await loadEstimateAction(estimateId);
                     if (data && data.inputs_state) {
                         const state = data.inputs_state;
                         setClientName(data.client_name || "");
 
                         if (state.inputs) {
-                            setInputs(state.inputs);
+                            const restoredInputs = { ...DEFAULT_INPUTS, ...state.inputs, inventoryText: state.inputs.inventoryText || "" };
+                            setInputs(restoredInputs);
                             // Overwrite local storage so they can continue editing
-                            const { inventoryText, ...restInputs } = state.inputs;
+                            const { inventoryText, ...restInputs } = restoredInputs;
                             localStorage.setItem("estimator_fixed_v11_58_config", JSON.stringify(restInputs));
-                            localStorage.setItem("estimator_fixed_v11_58_text", inventoryText || "");
+                            localStorage.setItem("estimator_fixed_v11_58_text", inventoryText);
                         }
                         if (state.normalizedRows) setNormalizedRows(state.normalizedRows);
                         if (state.inventoryMode) setInventoryMode(state.inventoryMode);
@@ -190,7 +183,7 @@ export default function DashboardPage() {
                 setEstimate(result);
             } catch (err: unknown) {
                 console.error("Estimate calculation failed", err);
-                alert("Failed to calculate estimate. Please try again.");
+                toast.error("Failed to calculate estimate. Please try again.");
             } finally {
                 setIsCalculating(false);
             }
@@ -219,7 +212,7 @@ export default function DashboardPage() {
             setInventoryMode("normalized");
         } catch (e: unknown) {
             console.error(e);
-            alert("Failed to parse inventory. Please try again.");
+            toast.error("Failed to parse inventory. Please try again.");
         } finally {
             setIsCalculating(false);
         }
@@ -325,7 +318,6 @@ ${est.daMins > 0 ? `-Assembly: ~${est.daMins} min total` : ""}
         try {
             const res = await saveEstimateAction(
                 clientName,
-                estimate as EstimateResult,
                 inputs,
                 normalizedRows,
                 inventoryMode,
@@ -333,11 +325,11 @@ ${est.daMins > 0 ? `-Assembly: ~${est.daMins} min total` : ""}
             );
 
             if (res.success) {
-                const newItem = {
-                    id: res.id,
+                const newItem: EstimateHistoryItem = {
+                    id: String(res.id),
                     client_name: clientName.trim(),
-                    final_volume: estimate.finalVolume,
-                    net_volume: estimate.netVolume,
+                    final_volume: estimate.finalVolume ?? null,
+                    net_volume: estimate.netVolume ?? null,
                     home_size: inputs.homeSize,
                     move_type: inputs.moveType,
                     created_at: new Date().toISOString()
@@ -370,7 +362,7 @@ ${est.daMins > 0 ? `-Assembly: ~${est.daMins} min total` : ""}
             setHistoryItems(items);
         } catch (err: unknown) {
             console.error(err);
-            alert("Failed to load history. Please try again.");
+            toast.error("Failed to load history. Please try again.");
         }
         setHistoryLoading(false);
     };
@@ -430,13 +422,13 @@ ${est.daMins > 0 ? `-Assembly: ~${est.daMins} min total` : ""}
                             <button
                                 onClick={handleSaveEstimate}
                                 disabled={!clientName.trim() || isSaving}
-                                className={`rounded-xl px-4 py-2 text-[14px] font-medium transition-all duration-300 whitespace-nowrap active:scale-95 w-[96px] flex justify-center items-center text-center ${saveStatus === 'success' ? 'bg-emerald-500 text-white' :
-                                    isSaving ? 'bg-gray-900 text-white animate-pulse' :
+                                className={`rounded-xl px-4 py-2 text-[14px] font-medium transition-all duration-300 whitespace-nowrap active:scale-95 w-[96px] flex justify-center items-center text-center disabled:opacity-50 disabled:cursor-not-allowed ${saveStatus === 'success' ? 'bg-emerald-500 text-white' :
+                                    isSaving ? 'bg-gray-900 text-white' :
                                         clientName.trim() ? 'bg-gray-900 text-white hover:bg-gray-800 shadow-sm' :
-                                            'bg-gray-400 text-white cursor-not-allowed'
+                                            'bg-gray-400 text-white'
                                     }`}
                             >
-                                {saveStatus === 'success' ? '✓ Saved' : isSaving ? '...' : 'Save'}
+                                {saveStatus === 'success' ? '✓ Saved' : isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save'}
                             </button>
                         </div>
                         {saveStatus === 'error' && (
@@ -517,11 +509,11 @@ ${est.daMins > 0 ? `-Assembly: ~${est.daMins} min total` : ""}
                         ) : (
                             <div className="flex flex-wrap gap-3 max-h-[260px] overflow-y-auto pr-1 mb-2">
                                 {historyItems
-                                    .filter((item: any) => !pendingDeletes.has(item.id))
-                                    .map((item: any) => (
+                                    .filter((item) => !pendingDeletes.has(item.id))
+                                    .map((item) => (
                                         <div key={item.id} className="relative group animate-in fade-in zoom-in-95">
                                             <button onClick={() => handleLoadEstimate(item.id)}
-                                                className="text-left bg-white border-[1.5px] border-dashed border-gray-200 hover:border-gray-400 hover:bg-gray-50/50 rounded-xl px-3.5 py-3 transition-all duration-200 cursor-pointer min-w-[170px] max-w-[220px] min-h-[66px] w-full block">
+                                                className="text-left bg-white border-[1.5px] border-dashed border-gray-200 hover:border-gray-400 hover:bg-gray-50/50 rounded-xl px-3.5 py-3 transition-all duration-200 cursor-pointer w-full block min-h-[66px] overflow-hidden">
                                                 <div className="text-[11px] font-bold text-gray-800 truncate pr-5">
                                                     {item.client_name}
                                                 </div>

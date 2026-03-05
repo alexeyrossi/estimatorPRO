@@ -1,3 +1,5 @@
+import "server-only";
+
 import { EstimateInputs, EstimateResult, RiskItem } from "./types/estimator";
 import {
   FRAGILE_REGEX_CACHE,

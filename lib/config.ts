@@ -1,3 +1,5 @@
+import "server-only";
+
 export const PROTOCOL = {
   TRUCK_CAPACITY_SAFE: 1580,
   TRUCK_MAX_THEORETICAL: 1650,

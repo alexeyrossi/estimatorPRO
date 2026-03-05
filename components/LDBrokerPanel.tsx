@@ -15,7 +15,7 @@ export const LDBrokerPanel = ({ estimate }: LDBrokerPanelProps) => {
                     Long Distance Broker Breakdown
                 </span>
             </div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="bg-white p-3 rounded-2xl border border-blue-100 text-center shadow-sm">
                     <div className="text-[10px] font-bold text-gray-400 mb-1">ITEMS VOLUME</div>
                     <div className="text-lg font-black text-gray-900">{estimate.billableCF}</div>

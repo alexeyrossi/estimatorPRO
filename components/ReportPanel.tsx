@@ -1,8 +1,9 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { EstimateInputs, EstimateResult } from '@/lib/types/estimator';
 import {
-    Truck, Box, List, Weight, Terminal, ChevronRight, Lock, Scale, PackageOpen, Clock, CalendarDays, Info, Users, AlertTriangle, ArrowUpFromLine, Check, Clipboard
+    Truck, Box, List, Weight, Terminal, ChevronRight, Lock, Scale, PackageOpen, Clock, CalendarDays, Info, Users, AlertTriangle, ArrowUpFromLine, Check, Clipboard, Loader2
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { GlassPanel } from './GlassPanel';
 import { MetricCard } from './MetricCard';
 import { ConfidenceDonut } from './ConfidenceDonut';
@@ -280,7 +281,7 @@ export const ReportPanel = ({
                     pdf.text(`x${item.qty}`, xBase, y);
                     pdf.setFont('helvetica', 'normal'); pdf.setTextColor(80, 80, 80);
                     pdf.text(item.name || '', xBase + 14, y);
-                    const cfTotal = (item.cf || 0) * (item.qty || 1);
+                    const cfTotal = item.cf || 0;
                     pdf.setFont('helvetica', 'normal'); pdf.setTextColor(140, 140, 140);
                     pdf.text(`${cfTotal} cf`, xBase + tableW - 2, y, { align: 'right' });
                 };
@@ -345,7 +346,7 @@ export const ReportPanel = ({
 
         } catch (e) {
             console.error('PDF error:', e);
-            alert("Failed to generate PDF. Please try again.");
+            toast.error("Failed to generate PDF. Please try again.");
         } finally {
             setIsGeneratingPDF(false);
         }
@@ -522,12 +523,12 @@ export const ReportPanel = ({
                         onChange={e => setClientName(e.target.value)}
                         className="flex-1 bg-gray-50 border-transparent rounded-xl px-3 py-2.5 text-[12px] font-semibold outline-none" />
                     <button onClick={handleSaveEstimate} disabled={!clientName.trim() || isSaving}
-                        className={`px-4 py-2.5 rounded-xl text-[11px] font-bold whitespace-nowrap transition-all duration-300 active:scale-95 ${saveStatus === 'success' ? 'bg-emerald-500 text-white' :
-                            isSaving ? 'bg-gray-900 text-white animate-pulse' :
+                        className={`px-4 py-2.5 rounded-xl text-[11px] font-bold whitespace-nowrap transition-all duration-300 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${saveStatus === 'success' ? 'bg-emerald-500 text-white' :
+                            isSaving ? 'bg-gray-900 text-white' :
                                 clientName.trim() ? 'bg-gray-900 text-white hover:bg-gray-800' :
-                                    'bg-gray-400 text-white cursor-not-allowed'
+                                    'bg-gray-400 text-white'
                             }`}>
-                        {saveStatus === 'success' ? '✓ Saved' : isSaving ? '...' : 'Save'}
+                        {saveStatus === 'success' ? '✓ Saved' : isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save'}
                     </button>
                 </div>
                 {saveStatus === 'error' && (
@@ -547,10 +548,10 @@ export const ReportPanel = ({
                             <button
                                 onClick={handleDownloadPDF}
                                 disabled={isGeneratingPDF}
-                                className={`flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-[14px] font-bold transition-all duration-200 text-gray-500 hover:text-gray-900 hover:bg-gray-100 active:scale-[0.98] ${isGeneratingPDF ? 'opacity-70 cursor-wait' : ''}`}
+                                className={`flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-[14px] font-bold transition-all duration-200 text-gray-500 hover:text-gray-900 hover:bg-gray-100 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed`}
                             >
                                 {isGeneratingPDF ? (
-                                    'Generating...'
+                                    <><Loader2 className="w-4 h-4 animate-spin" /> Generating...</>
                                 ) : (
                                     <>
                                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
