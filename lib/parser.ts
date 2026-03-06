@@ -105,7 +105,7 @@ export function scrubNoise(s: string): string {
 export function extractQty(text: string): number {
   const s = (text || "").toLowerCase().trim().replace(/^[-*•>]\s*/, "").trim();  // strip leading bullet
   const safeParse = (str: string) => { const val = parseInt(str, 10); return Math.min(500, Math.max(1, val)); };
-  let m = s.match(/\((\d+)\)\s*$/); if (m) return safeParse(m[1]);
+  let m = s.match(/\(\s*(?:qty|count|pcs|#|x)?\s*(\d+)\s*x?\s*\)\s*$/i); if (m) return safeParse(m[1]);
   m = s.match(/\bx\s*(\d+)\b/i); if (m) return safeParse(m[1]);
   m = s.match(/\b(\d+)\s*x\b/i); if (m) return safeParse(m[1]);
   if (/\b\d+\s*x\s*\d+(\s*x\s*\d+)?\b/.test(s)) return 1;
@@ -243,7 +243,7 @@ export function summarizeNormalizedRows(rows: NormalizedRow[], rawTextForSignals
 
 export function parseInventory(text: string) {
   const rawNormalized = normalizeTextNumbers(text);
-  const rawLines = rawNormalized.replace(/\r/g, "").split("\n").filter(l => l.trim().length > 0);
+  const rawLines = rawNormalized.replace(/\r/g, "").split("\n").filter(l => l?.trim()?.length > 0);
 
   let totalVol = 0, boxCount = 0, heavyCount = 0, detectedQtyTotal = 0, noBlanketVol = 0;
   let daComplexQty = 0, daSimpleQty = 0, furnitureCount = 0;
@@ -253,8 +253,28 @@ export function parseInventory(text: string) {
   const unrecognized: string[] = [];
   const tokens: { text: string; room: string }[] = [];
   let currentRoom = "";
+  const EXACT_ROOM_HEADERS = new Map<string, string>([
+    ["front door", "Front Entry/Porch"],
+    ["front porch", "Front Entry/Porch"],
+    ["front door / front porch", "Front Entry/Porch"],
+    ["boxes and bins", "Boxes/Bins"],
+    ["boxes & bins", "Boxes/Bins"],
+    ["storage closet", "Storage/Outdoor"],
+    ["bathroom", "Bathroom"]
+  ]);
+  const getExactRoomHeader = (line: string) => {
+    const key = (line || "")
+      .toLowerCase()
+      .replace(/:$/, "")
+      .replace(/\s*&\s*/g, " and ")
+      .replace(/\s*\/\s*/g, " / ")
+      .replace(/\s+/g, " ")
+      .trim();
+    return EXACT_ROOM_HEADERS.get(key) || null;
+  };
 
-  rawLines.forEach(line => {
+  for (const line of rawLines) {
+    if (!/[a-zA-Z]/.test(line)) { continue; }
     const processedLine = preProcessLine(line);
     let clean = processedLine.trim().replace(/^[-*•>:]+\s*/, "");
     const isProtectedItem = /^(room divider|roomba|dining table|office chair|kitchen island|patio heater)\b/i.test(clean);
@@ -279,7 +299,11 @@ export function parseInventory(text: string) {
       return room.charAt(0).toUpperCase() + room.slice(1);
     };
 
-    if (!isProtectedItem) {
+    const exactRoomHeader = getExactRoomHeader(clean);
+    if (!isProtectedItem && exactRoomHeader) {
+      currentRoom = exactRoomHeader;
+      clean = "";
+    } else if (!isProtectedItem) {
       if ((ROOM_ONLY.test(clean) || GENERIC_SECTION_HEADER) && !/[0-9]/.test(clean)) {
         currentRoom = normalizeRoomData(clean.replace(/:$/, "").split("/")[0].trim()); clean = "";
       } else {
@@ -288,11 +312,11 @@ export function parseInventory(text: string) {
         else if (/^(master|bedroom|bath)\s*\d+$/i.test(clean)) { currentRoom = normalizeRoomData(clean.trim()); clean = ""; }
       }
     }
-    if (!clean.trim()) return;
+    if (!clean?.trim()) continue;
     clean = clean.replace(/\s+(w\/|with|plus|\+|and|&)\s+/gi, " & ");
-    const lineTokens = clean.split(/[,;•+]+|\s+[\/—–]+\s+|&/gi).map(x => x.trim()).filter(Boolean);
+    const lineTokens = clean.split(/[,;•+]+|\s+[\/—–]+\s+|&/gi).map(x => x?.trim()).filter(Boolean);
     lineTokens.forEach(tok => tokens.push({ text: tok, room: currentRoom }));
-  });
+  }
 
   tokens.forEach(({ text: tok, room }) => {
     const rawTok = (tok || "").trim();
@@ -334,32 +358,43 @@ export function parseInventory(text: string) {
 
     cleanName = applyAliasesRegex(cleanName);
 
-    let matchedAny = false;
-    for (const key of SORTED_KEYS) {
-      if (KEY_REGEX[key].test(cleanName)) {
-        matchedAny = true;
-        const cf = VOLUME_TABLE[key as keyof typeof VOLUME_TABLE] * qty;
-        totalVol += cf; detectedQtyTotal += qty;
-        detectedItems.push({ name: key, qty, cf, raw: rawTok, room, wLbs, isWeightHeavy: !!isWeightHeavy, isManualHeavy: false, flags: { heavy: !!isWeightHeavy, heavyWeight: !!isWeightHeavy } });
-        if (new RegExp(`\\b(box|bin|tote)s?\\b`, 'i').test(key)) boxCount += qty;
-        if (LIFT_GATE_ITEMS.some(h => new RegExp(`\\b${h}\\b`, 'i').test(key)) || isWeightHeavy) heavyCount += qty;
-        if (IRREGULAR_SIGNALS.some(s => new RegExp(`\\b${s}\\b`, 'i').test(key))) irregularCount += qty;
-
-        // SAFE Bed Unit Check
-        const isBedUnit = key.includes("bed") && !key.includes("frame") && !key.includes("mattress") && !key.includes("boxspring") && !key.includes("slat");
-        if (isBedUnit) daComplexQty += qty;
-        else if (DA_COMPLEX.some(s => new RegExp(`\\b${s}\\b`, 'i').test(key))) daComplexQty += qty;
-        else if (DA_SIMPLE.some(s => new RegExp(`\\b${s}\\b`, 'i').test(key))) daSimpleQty += qty;
-
-        if (!STRICT_NO_BLANKET_ITEMS.some(nb => new RegExp(`\\b${nb}\\b`, 'i').test(key))) furnitureCount += qty;
-        else noBlanketVol += cf;
-        break;
+    const findMatchedKey = (candidate: string) => {
+      for (const key of SORTED_KEYS) {
+        if (KEY_REGEX[key].test(candidate)) return key;
       }
+      return null;
+    };
+    const rescuedName = cleanName
+      .replace(/\$\s*\d+(?:\.\d+)?/g, " ")
+      .replace(/\b\d+\s*-\s*\d+\s*gallons?\b/gi, " ")
+      .replace(/\b(?:bulk fee|fee|pkg|package|pbo|cp|reg|regular|std|standard)\b/gi, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    const matchedKey = findMatchedKey(cleanName) || (rescuedName !== cleanName ? findMatchedKey(rescuedName) : null);
+    let matchedAny = false;
+    if (matchedKey) {
+      matchedAny = true;
+      const cf = VOLUME_TABLE[matchedKey as keyof typeof VOLUME_TABLE] * qty;
+      totalVol += cf; detectedQtyTotal += qty;
+      detectedItems.push({ name: matchedKey, qty, cf, raw: rawTok, room, wLbs, isWeightHeavy: !!isWeightHeavy, isManualHeavy: false, flags: { heavy: !!isWeightHeavy, heavyWeight: !!isWeightHeavy } });
+      if (new RegExp(`\\b(box|bin|tote)s?\\b`, 'i').test(matchedKey)) boxCount += qty;
+      if (LIFT_GATE_ITEMS.some(h => new RegExp(`\\b${h}\\b`, 'i').test(matchedKey)) || isWeightHeavy) heavyCount += qty;
+      if (IRREGULAR_SIGNALS.some(s => new RegExp(`\\b${s}\\b`, 'i').test(matchedKey))) irregularCount += qty;
+
+      const isBedUnit = matchedKey.includes("bed") && !matchedKey.includes("frame") && !matchedKey.includes("mattress") && !matchedKey.includes("boxspring") && !matchedKey.includes("slat");
+      if (isBedUnit) daComplexQty += qty;
+      else if (DA_COMPLEX.some(s => new RegExp(`\\b${s}\\b`, 'i').test(matchedKey))) daComplexQty += qty;
+      else if (DA_SIMPLE.some(s => new RegExp(`\\b${s}\\b`, 'i').test(matchedKey))) daSimpleQty += qty;
+
+      if (!STRICT_NO_BLANKET_ITEMS.some(nb => new RegExp(`\\b${nb}\\b`, 'i').test(matchedKey))) furnitureCount += qty;
+      else noBlanketVol += cf;
     }
 
     if (!matchedAny) {
+      const fallbackName = rescuedName || cleanName;
+      if (/^(?:front door|front porch|boxes and bins|boxes & bins|storage closet|bathroom|queen|king|full|double|single|twin|jewelry|small|medium|large|sm|med|lg|lrg|reg|std|floor(?:\s+lrg)?)$/i.test(fallbackName)) return;
       let estVol = PROTOCOL.VOL_EST_MEDIUM;
-      const lowerName = cleanName.toLowerCase();
+      const lowerName = fallbackName.toLowerCase();
       let isBoxLike = false;
       if (/box|bin|tote|bag|pack|basket|shoe|lamp|small|mini/i.test(lowerName)) { estVol = PROTOCOL.VOL_EST_SMALL; isBoxLike = true; }
       else if (/table|desk|cabinet|shelf|rack|stand|unit|dresser/i.test(lowerName)) { estVol = PROTOCOL.VOL_EST_LARGE; }
@@ -368,8 +403,8 @@ export function parseInventory(text: string) {
       totalVol += estVol; detectedQtyTotal += qty;
       if (!isBoxLike) furnitureCount += qty;
       estimatedItemCount += qty;
-      detectedItems.push({ name: `${cleanName} (est)`, qty, cf: estVol, raw: rawTok, room, wLbs, isWeightHeavy: !!isWeightHeavy, isManualHeavy: false, flags: { heavy: !!isWeightHeavy, heavyWeight: !!isWeightHeavy } });
-      if (cleanName.length > 2 && !/^(item|qty|pcs|total|set|of)$/i.test(cleanName)) unrecognized.push(cleanName);
+      detectedItems.push({ name: `${fallbackName} (est)`, qty, cf: estVol, raw: rawTok, room, wLbs, isWeightHeavy: !!isWeightHeavy, isManualHeavy: false, flags: { heavy: !!isWeightHeavy, heavyWeight: !!isWeightHeavy } });
+      if (fallbackName?.length > 2 && !/^(item|qty|pcs|total|set|of)$/i.test(fallbackName)) unrecognized.push(fallbackName);
     }
   });
 

@@ -168,7 +168,7 @@ export const ReportPanel = ({
 
             // ========== METRICS ROW ==========
             const metrics = [
-                { label: 'VOLUME', value: `${(estimate.finalVolume || 0).toLocaleString()} cf` },
+                { label: 'VOLUME', value: `${(inputs.moveType === 'LD' && estimate.billableCF ? estimate.billableCF : estimate.finalVolume || 0).toLocaleString()} cf` },
                 { label: 'TIME EST.', value: `${estimate.timeMin || 0}\u2013${estimate.timeMax || 0}h` },
                 { label: 'TRUCKS', value: `${estimate.trucksFinal || 0}` },
                 { label: 'CREW', value: `${estimate.crew || 0} movers` },
@@ -358,11 +358,13 @@ export const ReportPanel = ({
         const label = lower.includes("piano") ? "PIANO" : lower.includes("safe") ? "SAFE" : lower.includes("pool") ? "POOL TABLE" : lower.includes("clock") ? "CLOCK" : lower.includes("copier") ? "COPIER" : lower.includes("treadmill") ? "TREADMILL" : lower.includes("gym") ? "GYM" : first.toUpperCase();
         return `HEAVY: ${label}${arr.length > 1 ? ` +${arr.length - 1}` : ""}`;
     }, [estimate.heavyItemNames]);
+    const primaryVolume = inputs.moveType === "LD" && estimate.billableCF ? estimate.billableCF : estimate.finalVolume;
+    const primaryVolumeSub = inputs.moveType === "LD" && estimate.billableCF ? "Billable Volume" : "Based on Inventory";
 
     return (
         <div id="pdf-export-area" className="flex-1 flex flex-col gap-6">
             <div className={`grid grid-cols-2 lg:grid-cols-4 gap-4 transition-opacity duration-300 ${isCalculating ? 'opacity-60' : 'opacity-100'}`}>
-                <MetricCard icon={Box} label="Volume" value={formatMetric(<AnimatedNumber value={estimate.finalVolume} />, "cu ft")} sub="Based on Inventory" variant="blue" />
+                <MetricCard icon={Box} label="Volume" value={formatMetric(<AnimatedNumber value={primaryVolume} />, "cu ft")} sub={primaryVolumeSub} variant="blue" />
                 <MetricCard icon={estimate.splitRecommended ? CalendarDays : Clock} label={estimate.splitRecommended ? "Split Rec." : "Time Est."} value={<><AnimatedNumber value={estimate.timeMin} />–<AnimatedNumber value={estimate.timeMax} />h</>} sub={estimate.splitRecommended ? "SPLIT TO 2 DAYS" : "Est. Range"} variant={estimate.splitRecommended ? "red" : "purple"} isCritical={estimate.splitRecommended} />
                 {isLabor ? <MetricCard icon={Info} label="Service" value="Labor" sub="No Trucks" variant="gray" /> : <MetricCard icon={Truck} label="Trucks" value={<AnimatedNumber value={estimate.trucksFinal} />} sub={estimate.truckSizeLabel?.replace(/\s*Truck\s*/i, ' ').trim()} variant="orange" />}
                 <MetricCard icon={Users} label="Crew" value={<AnimatedNumber value={estimate.crew} />} sub="Movers" variant="emerald" advice={estimate.crewSuggestion} />
@@ -444,7 +446,7 @@ export const ReportPanel = ({
                                     <div className="text-center">
                                         <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Items Volume</div>
                                         <div className="text-2xl font-black text-gray-900 tabular-nums">{formatMetric(<AnimatedNumber value={estimate.billableCF || 0} />, "cu ft")}</div>
-                                        <div className="text-[11px] font-semibold text-gray-400 mt-0.5 truncate">Net Total</div>
+                                        <div className="text-[11px] font-semibold text-gray-400 mt-0.5 truncate">Billable Total</div>
                                     </div>
                                     <div className="text-center">
                                         <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Truck Load</div>

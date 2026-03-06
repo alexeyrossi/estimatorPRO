@@ -75,6 +75,12 @@ export function buildEstimate(inputs: EstimateInputs, normalizedRows?: Normalize
       if (FRAGILE_REGEX_CACHE.some(re => re.test(n))) fragileCount += it.qty;
     });
     const fragileDensity = parsed.detectedQtyTotal > 0 ? (fragileCount / parsed.detectedQtyTotal) : 0;
+    const estimatedRatio = (parsed.estimatedItemCount || 0) / Math.max(1, parsed.detectedQtyTotal);
+    const highConfidenceDetailedInventory =
+      estimatedRatio <= 0.02 &&
+      !parsed.hasVague &&
+      parsed.detectedQtyTotal >= 25 &&
+      parsed.boxCount >= 20;
 
     let hiddenVolume = 0;
     let missingBoxesCount = 0;
@@ -112,15 +118,26 @@ export function buildEstimate(inputs: EstimateInputs, normalizedRows?: Normalize
     }
 
     if (parsed.mentionsGarageOrAttic) {
-      hiddenVolume += PROTOCOL.HIDDEN_VOL_GARAGE;
-      auditSummary.push(`Added +${PROTOCOL.HIDDEN_VOL_GARAGE} cf (zones mentioned).`);
+      const zoneHiddenVolume = highConfidenceDetailedInventory ? Math.round(PROTOCOL.HIDDEN_VOL_GARAGE / 3) : PROTOCOL.HIDDEN_VOL_GARAGE;
+      hiddenVolume += zoneHiddenVolume;
+      auditSummary.push(`Added +${zoneHiddenVolume} cf (zones mentioned${highConfidenceDetailedInventory ? ", reduced for detailed inventory" : ""}).`);
     }
 
     let llPct = isLD ? PROTOCOL.LL_LD : PROTOCOL.LL_STANDARD;
+    if (highConfidenceDetailedInventory) {
+      llPct = isLD ? 0.02 : 0.10;
+      auditSummary.push(`Loose load base reduced (${isLD ? "detailed LD inventory" : "detailed local inventory"}).`);
+    }
     const irregularRatio = parsed.detectedQtyTotal > 0 ? (parsed.irregularCount / parsed.detectedQtyTotal) : 0;
     if (parsed.hasVague) { llPct += PROTOCOL.LL_VAGUE; auditSummary.push("Loose load increased (vague)."); }
     if (irregularRatio > 0.15) { llPct += PROTOCOL.LL_IRREGULAR; auditSummary.push("Loose load +20% (bulky items)."); }
-    else if (parsed.irregularCount > 0) llPct += 0.05;
+    else if (parsed.irregularCount > 0) {
+      const shouldAddSmallIrregularUplift = !highConfidenceDetailedInventory || parsed.irregularCount >= 3 || irregularRatio >= 0.05;
+      if (shouldAddSmallIrregularUplift) {
+        llPct += 0.05;
+        auditSummary.push("Loose load +5% (irregular items).");
+      }
+    }
     llPct = Math.min(PROTOCOL.LL_CAP, llPct);
 
     const round25 = (num: number) => Math.round(num / 25) * 25;
@@ -251,7 +268,10 @@ export function buildEstimate(inputs: EstimateInputs, normalizedRows?: Normalize
     if (inputs.moveType === "LD") movementManHours *= PROTOCOL.LD_TIER_BUFFER;
 
     const isChairLikeFn = (name: string) => /chair|stool|bench|seat/i.test(name) && !/arm|reclin|sofa|couch/i.test(name);
+    const isWrapExcluded = (name: string) => /\b(box|bin|tote|bag|carton|dish barrel|picture box|tv box|wardrobe box|plastic bin|lamp|clock|scale|walker|vacuum|canister|stool)\b/i.test(name);
     let wrapMinsTotal = (parsed.detectedItems || []).reduce((acc, it) => {
+      const n = (it.name || "").toLowerCase();
+      if (isWrapExcluded(n)) return acc;
       const cfUnit = it.cf / Math.max(1, it.qty);
       let mins = cfUnit > 15 ? 10 : 5;
       if (isCommercial && isChairLikeFn(it.name)) mins = 1.0;
@@ -304,7 +324,9 @@ export function buildEstimate(inputs: EstimateInputs, normalizedRows?: Normalize
 
     const distVal = parseInt(inputs.distance, 10) || 0;
     const effectiveDist = (inputs.moveType === "LD" || isLaborOnly) ? 0 : distVal;
-    const fixedTime = (effectiveDist > 0 ? (effectiveDist / 30) + 0.6 : 0) + PROTOCOL.COORDINATION_HRS + (!isLaborOnly ? (trucksFinal * PROTOCOL.MINS_DOCKING_PER_TRUCK) / 60 : 0) + ((!isLaborOnly && trucksFinal >= 2) ? (trucksFinal * PROTOCOL.MINS_TRUCK_LOGISTICS) / 60 : 0);
+    const dockingHours = !isLaborOnly && !(isLD && trucksFinal === 1) ? (trucksFinal * PROTOCOL.MINS_DOCKING_PER_TRUCK) / 60 : 0;
+    const truckLogisticsHours = (!isLaborOnly && trucksFinal >= 2) ? (trucksFinal * PROTOCOL.MINS_TRUCK_LOGISTICS) / 60 : 0;
+    const fixedTime = (effectiveDist > 0 ? (effectiveDist / 30) + 0.6 : 0) + PROTOCOL.COORDINATION_HRS + dockingHours + truckLogisticsHours;
 
     // SAFE spaceCap Logic (Option 2 applied)
     const isSmallHome = !isCommercial && bedroomCount <= 2;
@@ -356,7 +378,6 @@ export function buildEstimate(inputs: EstimateInputs, normalizedRows?: Normalize
     if (timeMax >= 13) splitRecommended = true;
 
     let confidenceScore = 100; const reasons = [];
-    const estimatedRatio = (parsed.estimatedItemCount || 0) / Math.max(1, parsed.detectedQtyTotal);
     if (estimatedRatio > 0.05) { const penalty = Math.min(30, Math.round(estimatedRatio * 40)); confidenceScore -= penalty; reasons.push(`Estimated items: ${Math.round(estimatedRatio * 100)}% (-${penalty})`); }
     if (estimatedRatio > 0.40) { confidenceScore = Math.min(confidenceScore, 50); reasons.push("Too many unrecognized items (Low Confidence)."); }
     if (parsed.hasVague) { confidenceScore -= 7; reasons.push("Vague inventory description."); }
