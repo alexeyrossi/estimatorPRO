@@ -2,7 +2,6 @@ import React from 'react';
 import { Trash2, Plus } from 'lucide-react';
 import { EstimateInputs, ExtraStop } from '@/lib/types/estimator';
 import { AccessSegmented } from './AccessSegmented';
-import { SmallInput } from './SmallInput';
 import { InputLabel } from './InputLabel';
 import { CLIENT_CONFIG } from '@/lib/config';
 
@@ -20,7 +19,7 @@ export const ExtraStopsBlock = ({ inputs, setInputs }: ExtraStopsBlockProps) => 
         if (extraStops.length < CLIENT_CONFIG.MAX_EXTRA_STOPS) {
             setInputs((prev) => ({
                 ...prev,
-                extraStops: [...(prev.extraStops || []), { access: "ground", stairsFlights: 1, label: "" }]
+                extraStops: [...(prev.extraStops || []), { access: "ground", label: "" }]
             }));
         }
     };
@@ -78,13 +77,6 @@ export const ExtraStopsBlock = ({ inputs, setInputs }: ExtraStopsBlockProps) => 
                                 onChange={(access) => updateStop(i, { access })}
                             />
                         </div>
-                        {stop.access === "stairs" && (
-                            <SmallInput
-                                value={stop.stairsFlights}
-                                onChange={(stairsFlights) => updateStop(i, { stairsFlights })}
-                                placeholder="1"
-                            />
-                        )}
                     </div>
                 </div>
             ))}

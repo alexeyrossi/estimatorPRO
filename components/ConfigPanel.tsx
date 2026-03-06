@@ -5,7 +5,6 @@ import { GlassPanel } from './GlassPanel';
 import { Select } from './Select';
 import { InputLabel } from './InputLabel';
 import { AccessSegmented } from './AccessSegmented';
-import { SmallInput } from './SmallInput';
 
 interface ConfigPanelProps {
     inputs: EstimateInputs;
@@ -78,7 +77,7 @@ export const ConfigPanel = ({
                 <div>
                     <InputLabel label="Size" />
                     <Select id="homeSize" value={inputs.homeSize} onChange={e => setInputs({ ...inputs, homeSize: e.target.value })} options={[
-                        { value: "0", label: "Studio / Less" }, { value: "1", label: "1 BDR" }, { value: "2", label: "2 BDR" },
+                        { value: "1", label: "1 BDR / Less" }, { value: "2", label: "2 BDR" },
                         { value: "3", label: "3 BDR" }, { value: "4", label: "4 BDR" }, { value: "5", label: "5+ BDR" }, { value: "Commercial", label: "Commercial" }
                     ]} />
                 </div>
@@ -107,11 +106,11 @@ export const ConfigPanel = ({
                             const v = e.target.value;
                             setInputs(prev => {
                                 const next = { ...prev, moveType: v as "Local" | "LD" | "Labor" };
-                                if (v !== "Local" && prev.accessDest !== "ground") { next.accessDest = "ground"; next.stairsFlightsDest = 1; }
+                                if (v !== "Local" && prev.accessDest !== "ground") { next.accessDest = "ground"; }
                                 return next;
                             });
                         }}
-                        options={[{ value: "Local", label: "Local" }, { value: "LD", label: "Long Distance" }, { value: "Labor", label: "Labor Only" }]} />
+                        options={[{ value: "Local", label: "Local" }, { value: "LD", label: "Long Distance" }, { value: "Labor", label: "Labor" }]} />
                 </div>
                 <div>
                     <InputLabel label="Packing" />
@@ -122,18 +121,12 @@ export const ConfigPanel = ({
             <div className="space-y-4 pt-2">
                 <div>
                     <InputLabel label={inputs.moveType === "Local" ? "Origin Access" : "Location Access"} />
-                    <div className="flex items-center gap-3 w-full">
-                        <AccessSegmented value={inputs.accessOrigin} onChange={(v) => setInputs({ ...inputs, accessOrigin: v })} />
-                        {inputs.accessOrigin === "stairs" && <SmallInput value={inputs.stairsFlightsOrigin} onChange={v => setInputs({ ...inputs, stairsFlightsOrigin: v })} placeholder="1" aria-label="Origin flights of stairs" />}
-                    </div>
+                    <AccessSegmented value={inputs.accessOrigin} onChange={(v) => setInputs({ ...inputs, accessOrigin: v })} />
                 </div>
                 {inputs.moveType === "Local" && (
                     <div>
                         <InputLabel label="Destination Access" />
-                        <div className="flex items-center gap-3 w-full">
-                            <AccessSegmented value={inputs.accessDest} onChange={(v) => setInputs({ ...inputs, accessDest: v })} />
-                            {inputs.accessDest === "stairs" && <SmallInput value={inputs.stairsFlightsDest} onChange={v => setInputs({ ...inputs, stairsFlightsDest: v })} placeholder="1" aria-label="Destination flights of stairs" />}
-                        </div>
+                        <AccessSegmented value={inputs.accessDest} onChange={(v) => setInputs({ ...inputs, accessDest: v })} />
                     </div>
                 )}
             </div>
@@ -169,18 +162,13 @@ export const ConfigPanel = ({
                                         newStops[idx].access = v as "ground" | "elevator" | "stairs";
                                         setInputs({ ...inputs, extraStops: newStops });
                                     }} />
-                                    {stop.access === "stairs" && <SmallInput value={stop.stairsFlights || 1} onChange={v => {
-                                        const newStops = [...(inputs.extraStops || [])];
-                                        newStops[idx].stairsFlights = v;
-                                        setInputs({ ...inputs, extraStops: newStops });
-                                    }} placeholder="1" aria-label={`Extra stop ${idx + 1} flights of stairs`} />}
                                 </div>
                             </div>
                         </div>
                     ))}
                     {(inputs.extraStops || []).length < 4 && (
                         <button onClick={() => {
-                            const newStops = [...(inputs.extraStops || []), { label: "", access: "ground" as "ground" | "elevator" | "stairs", stairsFlights: 1 }];
+                            const newStops = [...(inputs.extraStops || []), { label: "", access: "ground" as "ground" | "elevator" | "stairs" }];
                             setInputs({ ...inputs, extraStops: newStops });
                         }}
                             className="flex items-center justify-center w-full gap-1.5 text-[10px] font-bold text-gray-400 hover:text-gray-600 bg-transparent hover:bg-gray-50 border-2 border-dashed border-gray-200 hover:border-gray-300 rounded-xl px-3 py-2.5 transition-all active:scale-95">

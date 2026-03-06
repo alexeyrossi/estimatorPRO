@@ -14,7 +14,7 @@ import { applyAliasesRegex, clampInt, normalizeRowsFromText } from "../../lib/pa
 import { SORTED_KEYS, KEY_REGEX, VOLUME_TABLE, TRUE_HEAVY_ITEMS } from "../../lib/dictionaries";
 import { createClient } from "../../lib/supabase/server";
 
-const HOME_SIZE_OPTIONS = new Set(["0", "1", "2", "3", "4", "5", "Commercial"]);
+const HOME_SIZE_OPTIONS = new Set(["1", "2", "3", "4", "5", "Commercial"]);
 const MOVE_TYPE_OPTIONS = new Set(["Local", "LD", "Labor", "Storage"]);
 const PACKING_LEVEL_OPTIONS = new Set(["None", "Partial", "Full"]);
 const ACCESS_OPTIONS = new Set(["ground", "elevator", "stairs"]);
@@ -30,25 +30,23 @@ function sanitizeInventoryMode(mode: string | undefined): InventoryMode {
 function sanitizeEstimateInputs(inputs: EstimateInputs, inventoryMode?: InventoryMode): EstimateInputs {
   const safeMoveType = MOVE_TYPE_OPTIONS.has(inputs.moveType) ? inputs.moveType : "Local";
   const safeInventoryMode = inventoryMode ?? sanitizeInventoryMode(inputs.inventoryMode);
+  const normalizedHomeSize = inputs.homeSize === "0" ? "1" : inputs.homeSize;
   const safeAccessOrigin = ACCESS_OPTIONS.has(inputs.accessOrigin) ? inputs.accessOrigin : "ground";
   const safeAccessDest = safeMoveType === "Local" && ACCESS_OPTIONS.has(inputs.accessDest) ? inputs.accessDest : "ground";
   const extraStops = Array.isArray(inputs.extraStops)
     ? inputs.extraStops.slice(0, MAX_EXTRA_STOPS).map((stop) => ({
       label: String(stop?.label ?? "").trim().slice(0, 30),
       access: ACCESS_OPTIONS.has(stop?.access) ? stop.access : "ground",
-      stairsFlights: clampInt(stop?.stairsFlights ?? 1, 1, 6),
     }))
     : [];
 
   return {
-    homeSize: HOME_SIZE_OPTIONS.has(inputs.homeSize) ? inputs.homeSize : "3",
+    homeSize: HOME_SIZE_OPTIONS.has(normalizedHomeSize) ? normalizedHomeSize : "3",
     moveType: safeMoveType as EstimateInputs["moveType"],
     distance: String(clampInt(inputs.distance, 0, 10000)),
     packingLevel: PACKING_LEVEL_OPTIONS.has(inputs.packingLevel) ? inputs.packingLevel : "None",
     accessOrigin: safeAccessOrigin as EstimateInputs["accessOrigin"],
     accessDest: safeAccessDest as EstimateInputs["accessDest"],
-    stairsFlightsOrigin: clampInt(inputs.stairsFlightsOrigin, 1, 6),
-    stairsFlightsDest: clampInt(inputs.stairsFlightsDest, 1, 6),
     inventoryText: String(inputs.inventoryText ?? "").slice(0, MAX_INVENTORY_CHARS),
     inventoryMode: safeInventoryMode,
     normalizedRows: undefined,
@@ -158,7 +156,7 @@ export async function saveEstimateAction(
     } = buildTrustedEstimate({ ...inputs, inventoryMode }, normalizedRows, overrides);
     const {
       homeSize, moveType, distance, packingLevel,
-      accessOrigin, accessDest, stairsFlightsOrigin, stairsFlightsDest,
+      accessOrigin, accessDest,
       inventoryText, extraStops
     } = safeInputs;
     const inputsState: SavedEstimateState = {
@@ -169,8 +167,6 @@ export async function saveEstimateAction(
         packingLevel,
         accessOrigin,
         accessDest,
-        stairsFlightsOrigin,
-        stairsFlightsDest,
         inventoryText,
         extraStops,
       },

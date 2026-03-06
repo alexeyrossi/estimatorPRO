@@ -11,10 +11,12 @@ import { signOutAction } from '@/app/actions/auth';
 import { ConfigPanel } from '@/components/ConfigPanel';
 import { ReportPanel } from '@/components/ReportPanel';
 
+const normalizeLegacyHomeSize = (homeSize?: string) => homeSize === "0" ? "1" : homeSize;
+
 const DEFAULT_INPUTS: EstimateInputs = {
     homeSize: "3", moveType: "Local", distance: "15",
     packingLevel: "None", accessOrigin: "ground", accessDest: "ground",
-    inventoryText: "", stairsFlightsOrigin: 1, stairsFlightsDest: 1,
+    inventoryText: "",
     extraStops: []
 };
 
@@ -73,7 +75,12 @@ export default function DashboardPage() {
                         setClientName(data.client_name || "");
 
                         if (state.inputs) {
-                            const restoredInputs = { ...DEFAULT_INPUTS, ...state.inputs, inventoryText: state.inputs.inventoryText || "" };
+                            const restoredInputs = {
+                                ...DEFAULT_INPUTS,
+                                ...state.inputs,
+                                homeSize: normalizeLegacyHomeSize(state.inputs.homeSize) || DEFAULT_INPUTS.homeSize,
+                                inventoryText: state.inputs.inventoryText || ""
+                            };
                             setInputs(restoredInputs);
                             // Overwrite local storage so they can continue editing
                             const { inventoryText, ...restInputs } = restoredInputs;
@@ -112,7 +119,11 @@ export default function DashboardPage() {
 
                 if (conf) {
                     const parsedConf = JSON.parse(conf);
-                    initialInputs = { ...initialInputs, ...parsedConf };
+                    initialInputs = {
+                        ...initialInputs,
+                        ...parsedConf,
+                        homeSize: normalizeLegacyHomeSize(parsedConf.homeSize) || initialInputs.homeSize
+                    };
                 }
                 if (text) initialInputs.inventoryText = text;
 
@@ -279,10 +290,10 @@ export default function DashboardPage() {
             ? `${est.billableCF} cf (billable) / ~${est.truckSpaceCF} cf (truck space)`
             : `${est.finalVolume} cf`;
 
-        const originAcc = inputs.accessOrigin === "stairs" ? `stairs (${inputs.stairsFlightsOrigin || 1} fl)` : inputs.accessOrigin;
-        const destAcc = inputs.accessDest === "stairs" ? `stairs (${inputs.stairsFlightsDest || 1} fl)` : inputs.accessDest;
+        const originAcc = inputs.accessOrigin;
+        const destAcc = inputs.accessDest;
         const stopsStr = (inputs.extraStops || []).length > 0
-            ? ` -> ${inputs.extraStops.map((s, i) => `Stop ${i + 1}: ${s.access === "stairs" ? `stairs (${s.stairsFlights || 1} fl)` : s.access}${s.label ? ` [${s.label}]` : ""}`).join(" -> ")}`
+            ? ` -> ${inputs.extraStops.map((s, i) => `Stop ${i + 1}: ${s.access}${s.label ? ` [${s.label}]` : ""}`).join(" -> ")}`
             : "";
         const accessText = `${originAcc} (Origin)${stopsStr} -> ${destAcc} (Dest)`;
 
@@ -372,7 +383,11 @@ ${est.daMins > 0 ? `-Assembly: ~${est.daMins} min total` : ""}
         if (data?.inputs_state) {
             setClientName(data.client_name || "");
             if (data.inputs_state.inputs) {
-                setInputs({ ...DEFAULT_INPUTS, ...data.inputs_state.inputs });
+                setInputs({
+                    ...DEFAULT_INPUTS,
+                    ...data.inputs_state.inputs,
+                    homeSize: normalizeLegacyHomeSize(data.inputs_state.inputs.homeSize) || DEFAULT_INPUTS.homeSize
+                });
             }
             setNormalizedRows(data.inputs_state.normalizedRows || []);
             setInventoryMode(data.inputs_state.inventoryMode || "raw");
@@ -522,7 +537,7 @@ ${est.daMins > 0 ? `-Assembly: ~${est.daMins} min total` : ""}
                                                     <span className="tabular-nums">{(item.net_volume || item.final_volume)?.toLocaleString()} cf</span>
                                                     <span className="text-gray-300">·</span>
                                                     <MapPin className="w-3 h-3 text-gray-400" strokeWidth={2} />
-                                                    <span>{!item.home_size ? "" : item.home_size === "0" ? "Studio" : item.home_size === "Commercial" ? "Comm." : `${item.home_size}BR`}/{item.move_type === "LD" ? "LD" : item.move_type === "Labor" ? "Labor" : "Local"}</span>
+                                                    <span>{!item.home_size ? "" : item.home_size === "Commercial" ? "Comm." : item.home_size === "1" ? "1BR/Less" : `${item.home_size}BR`}/{item.move_type === "LD" ? "LD" : item.move_type === "Labor" ? "Labor" : "Local"}</span>
                                                 </div>
                                                 <div className="flex items-center gap-1 mt-1 text-[10px] font-medium text-gray-400">
                                                     <Calendar className="w-3 h-3" strokeWidth={2} />

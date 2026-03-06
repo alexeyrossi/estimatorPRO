@@ -160,7 +160,7 @@ export const ReportPanel = ({
                 pdf.setTextColor(30, 30, 30);
                 pdf.text(clientName, W - M, y - 7, { align: 'right' });
             }
-            const homeSizeLabel = inputs.homeSize === '0' ? 'Studio' : inputs.homeSize === 'Commercial' ? 'Commercial' : `${inputs.homeSize} BDR`;
+            const homeSizeLabel = inputs.homeSize === 'Commercial' ? 'Commercial' : inputs.homeSize === '1' ? '1 BDR / Less' : `${inputs.homeSize} BDR`;
             const paramLine = [homeSizeLabel, `${inputs.distance} mi`, inputs.moveType]
                 .filter(Boolean).join(' · ');
             pdf.setFontSize(9);
@@ -493,7 +493,7 @@ export const ReportPanel = ({
                             <div className="border-t border-gray-100" />
                             <div className="py-3">
                                 <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
-                                    <span>💡</span> Smart Tips
+                                    <span>💡</span> Move Logic & Tips
                                 </div>
                                 <div className="space-y-1.5">
                                     {estimate.advice.map((x, i) => (
@@ -617,6 +617,12 @@ export const ReportPanel = ({
                                                 <span className="font-bold text-gray-700 text-[11px] truncate mr-2">
                                                     {item.name}
                                                     {item.room && <span className="text-gray-400 ml-1 font-semibold text-[9px]">[{item.room}]</span>}
+                                                    {item.sourceCount && item.sourceCount > 1 && (
+                                                        <span className="text-gray-400 ml-1 font-semibold text-[9px]">({item.sourceCount} lines)</span>
+                                                    )}
+                                                    {item.isSynthetic && (
+                                                        <span className="text-amber-600 ml-1 font-semibold text-[9px]">(bundle)</span>
+                                                    )}
                                                     {item.flags?.heavy && (
                                                         <Weight className="w-3 h-3 text-red-500 ml-1 inline-block" strokeWidth={2.5} />
                                                     )}
