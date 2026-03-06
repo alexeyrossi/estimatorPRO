@@ -400,15 +400,15 @@ ${est.daMins > 0 ? `-Assembly: ~${est.daMins} min total` : ""}
 
     return (
         <div className="min-h-[100dvh] bg-[#F5F7FA] text-gray-900 font-sans p-4 md:p-8 flex flex-col items-center selection:bg-blue-100">
-            <div className="w-full max-w-6xl mb-8 flex items-center justify-between">
-                <div className="flex items-center gap-4">
+            <div className="w-full max-w-6xl mb-8 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div className="flex items-center gap-4 min-w-0">
                     <div className="w-12 h-12 rounded-[1rem] bg-gray-900 flex items-center justify-center relative overflow-hidden group shadow-[0_4px_16px_rgba(0,0,0,0.15)]">
                         <Truck className="w-6 h-6 absolute -left-[2px] text-gray-400 group-hover:text-white transition-colors" />
                         <div className="absolute right-1 bottom-1 bg-white text-gray-900 rounded-[4px] p-0.5 shadow-sm">
                             <Calculator className="w-3.5 h-3.5" />
                         </div>
                     </div>
-                    <div className="flex flex-col">
+                    <div className="flex min-w-0 flex-col">
                         <h1 className="text-xl font-black text-gray-900 leading-none tracking-tight">
                             Estimator
                         </h1>
@@ -423,61 +423,77 @@ ${est.daMins > 0 ? `-Assembly: ~${est.daMins} min total` : ""}
                     </div>
                 </div>
 
-                <div className="flex items-center gap-3">
-                    <div className="hidden md:flex items-center gap-3 relative">
-                        {/* Save Island */}
-                        <div className="flex items-center gap-2 bg-white rounded-[1.5rem] shadow-[0_4px_24px_rgba(0,0,0,0.03)] p-1.5 border border-transparent">
-                            <input
-                                type="text"
-                                placeholder="Client name"
-                                value={clientName}
-                                onChange={e => setClientName(e.target.value)}
-                                className="bg-gray-50 border-transparent rounded-xl px-4 py-2 text-[14px] text-gray-900 font-medium placeholder:text-gray-400 focus:ring-2 focus:ring-gray-200 focus:bg-white transition-all outline-none w-36"
-                            />
-                            <button
-                                onClick={handleSaveEstimate}
-                                disabled={!clientName.trim() || isSaving}
-                                className={`rounded-xl px-4 py-2 text-[14px] font-medium transition-all duration-300 whitespace-nowrap active:scale-95 w-[96px] flex justify-center items-center text-center disabled:opacity-50 disabled:cursor-not-allowed ${saveStatus === 'success' ? 'bg-emerald-500 text-white' :
-                                    isSaving ? 'bg-gray-900 text-white' :
-                                        clientName.trim() ? 'bg-gray-900 text-white hover:bg-gray-800 shadow-sm' :
-                                            'bg-gray-400 text-white'
-                                    }`}
-                            >
-                                {saveStatus === 'success' ? '✓ Saved' : isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save'}
-                            </button>
+                <div className="hidden md:flex items-center gap-3 relative">
+                    {/* Save Island */}
+                    <div className="flex items-center gap-2 bg-white rounded-[1.5rem] shadow-[0_4px_24px_rgba(0,0,0,0.03)] p-1.5 border border-transparent">
+                        <input
+                            type="text"
+                            placeholder="Client name"
+                            value={clientName}
+                            onChange={e => setClientName(e.target.value)}
+                            className="bg-gray-50 border-transparent rounded-xl px-4 py-2 text-[14px] text-gray-900 font-medium placeholder:text-gray-400 focus:ring-2 focus:ring-gray-200 focus:bg-white transition-all outline-none w-36"
+                        />
+                        <button
+                            onClick={handleSaveEstimate}
+                            disabled={!clientName.trim() || isSaving}
+                            className={`rounded-xl px-4 py-2 text-[14px] font-medium transition-all duration-300 whitespace-nowrap active:scale-95 w-[96px] flex justify-center items-center text-center disabled:opacity-50 disabled:cursor-not-allowed ${saveStatus === 'success' ? 'bg-emerald-500 text-white' :
+                                isSaving ? 'bg-gray-900 text-white' :
+                                    clientName.trim() ? 'bg-gray-900 text-white hover:bg-gray-800 shadow-sm' :
+                                        'bg-gray-400 text-white'
+                                }`}
+                        >
+                            {saveStatus === 'success' ? '✓ Saved' : isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save'}
+                        </button>
+                    </div>
+                    {saveStatus === 'error' && (
+                        <div className="absolute top-[105%] left-4 text-red-500 text-[11px] font-bold">
+                            Save failed. Please try again.
                         </div>
-                        {saveStatus === 'error' && (
-                            <div className="absolute top-[105%] left-4 text-red-500 text-[11px] font-bold">
-                                Save failed. Please try again.
-                            </div>
-                        )}
+                    )}
 
-                        {/* History Island */}
-                        <button onClick={toggleHistory}
-                            className="bg-white rounded-[1.5rem] shadow-[0_4px_24px_rgba(0,0,0,0.03)] px-4 py-2 flex items-center gap-2 text-[12px] font-bold text-gray-400 hover:text-gray-600 transition-all duration-200 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:-translate-y-0.5 border border-transparent active:scale-95">
-                            <ClipboardList className="w-4 h-4" strokeWidth={2} />
-                            History
-                        </button>
+                    {/* History Island */}
+                    <button onClick={toggleHistory}
+                        className="bg-white rounded-[1.5rem] shadow-[0_4px_24px_rgba(0,0,0,0.03)] px-4 py-2 flex items-center gap-2 text-[12px] font-bold text-gray-400 hover:text-gray-600 transition-all duration-200 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:-translate-y-0.5 border border-transparent active:scale-95">
+                        <ClipboardList className="w-4 h-4" strokeWidth={2} />
+                        History
+                    </button>
 
-                        {/* Logout Island */}
-                        <button onClick={() => signOutAction()}
-                            className="bg-white rounded-[1.5rem] shadow-[0_4px_24px_rgba(0,0,0,0.03)] px-4 py-2 flex items-center gap-2 text-[12px] font-bold text-gray-400 hover:text-gray-600 transition-all duration-200 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:-translate-y-0.5 border border-transparent active:scale-95">
-                            <LogOut className="w-4 h-4" strokeWidth={2} />
-                            Logout
-                        </button>
+                    {/* Logout Island */}
+                    <button onClick={() => signOutAction()}
+                        className="bg-white rounded-[1.5rem] shadow-[0_4px_24px_rgba(0,0,0,0.03)] px-4 py-2 flex items-center gap-2 text-[12px] font-bold text-gray-400 hover:text-gray-600 transition-all duration-200 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:-translate-y-0.5 border border-transparent active:scale-95">
+                        <LogOut className="w-4 h-4" strokeWidth={2} />
+                        Logout
+                    </button>
+                </div>
+
+                <div className="md:hidden flex w-full items-center gap-2">
+                    <div className="flex min-w-0 flex-1 items-center gap-1 rounded-2xl bg-white border border-transparent shadow-[0_4px_24px_rgba(0,0,0,0.03)] p-1.5">
+                        {(["config", "report"] as const).map(t => (
+                            <button
+                                key={t}
+                                onClick={() => setActiveTab(t)}
+                                className={`flex-1 px-3 py-2 text-xs font-medium rounded-lg transition-all duration-200 whitespace-nowrap ${activeTab === t ? "bg-gray-50 text-gray-900" : "text-gray-500 bg-transparent hover:bg-gray-50 hover:text-gray-900"}`}
+                            >
+                                {t === "config" ? "Config" : "Report"}
+                            </button>
+                        ))}
                     </div>
-
-                    <div className="md:hidden flex items-center gap-1.5 bg-white border border-transparent shadow-[0_4px_24px_rgba(0,0,0,0.03)] p-1.5 rounded-2xl">
-                        {(["config", "report"] as const).map(t => <button key={t} onClick={() => setActiveTab(t)} className={`px-4 py-2 text-xs font-medium rounded-lg transition-all duration-200 ${activeTab === t ? "bg-gray-50 text-gray-900" : "text-gray-500 bg-transparent hover:bg-gray-50 hover:text-gray-900"}`}>{t === "config" ? "Config" : "Report"}</button>)}
-                        <div className="w-px h-5 bg-gray-200 mx-1" />
-                        <button onClick={toggleHistory} className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-gray-500 bg-transparent hover:bg-gray-50 hover:text-gray-900 rounded-lg transition-all duration-200">
-                            <ClipboardList className="w-4 h-4" strokeWidth={2} />
-                            History
-                        </button>
-                        <button onClick={() => signOutAction()} className="px-3 py-2 text-xs font-medium text-gray-500 bg-transparent hover:bg-red-50 hover:text-red-600 rounded-lg transition-all duration-200">
-                            <LogOut className="w-4 h-4" strokeWidth={2} />
-                        </button>
-                    </div>
+                    <button
+                        onClick={toggleHistory}
+                        className="shrink-0 rounded-2xl bg-white border border-transparent shadow-[0_4px_24px_rgba(0,0,0,0.03)] p-2.5 text-gray-500 hover:bg-gray-50 hover:text-gray-900 transition-all duration-200"
+                        aria-label="Open history"
+                        title="History"
+                    >
+                        <ClipboardList className="w-4 h-4" strokeWidth={2} />
+                    </button>
+                    <button
+                        onClick={() => signOutAction()}
+                        className="shrink-0 rounded-2xl bg-white border border-transparent shadow-[0_4px_24px_rgba(0,0,0,0.03)] p-2.5 text-gray-500 hover:bg-red-50 hover:text-red-600 transition-all duration-200"
+                        aria-label="Logout"
+                        title="Logout"
+                    >
+                        <LogOut className="w-4 h-4" strokeWidth={2} />
+                    </button>
                 </div>
             </div>
 

@@ -101,9 +101,9 @@ export const ReportPanel = ({
     const isLabor = inputs.moveType === "Labor";
 
     const formatMetric = (val: React.ReactNode | number, unit: string) => (
-        <span className="tabular-nums whitespace-nowrap inline-flex items-baseline">
-            {typeof val === 'number' ? val.toLocaleString() : (val || 0)}
-            <span className="ml-1.5 text-[13px] font-bold text-gray-400 lowercase tracking-normal">
+        <span className="tabular-nums inline-flex max-w-full flex-wrap items-baseline gap-x-1.5 gap-y-0.5 sm:flex-nowrap">
+            <span>{typeof val === 'number' ? val.toLocaleString() : (val || 0)}</span>
+            <span className="text-[12px] sm:text-[13px] font-bold text-gray-400 lowercase tracking-normal">
                 {unit}
             </span>
         </span>
@@ -369,7 +369,7 @@ export const ReportPanel = ({
 
     return (
         <div id="pdf-export-area" className="flex-1 flex flex-col gap-6">
-            <div className={`grid grid-cols-2 lg:grid-cols-4 gap-4 transition-opacity duration-300 ${isCalculating ? 'opacity-60' : 'opacity-100'}`}>
+            <div className={`grid grid-cols-1 min-[360px]:grid-cols-2 lg:grid-cols-4 gap-4 transition-opacity duration-300 ${isCalculating ? 'opacity-60' : 'opacity-100'}`}>
                 <MetricCard icon={Box} label={primaryVolumeLabel} value={formatMetric(<AnimatedNumber value={primaryVolume} />, "cu ft")} sub={primaryVolumeSub} variant="blue" />
                 <MetricCard icon={estimate.splitRecommended ? CalendarDays : Clock} label={estimate.splitRecommended ? "Split Rec." : "Time Est."} value={<><AnimatedNumber value={estimate.timeMin} />–<AnimatedNumber value={estimate.timeMax} />h</>} sub={estimate.splitRecommended ? "SPLIT TO 2 DAYS" : "Est. Range"} variant={estimate.splitRecommended ? "red" : "purple"} isCritical={estimate.splitRecommended} />
                 {isLabor ? <MetricCard icon={Info} label="Service" value="Labor" sub="No Trucks" variant="gray" /> : <MetricCard icon={Truck} label="Trucks" value={<AnimatedNumber value={estimate.trucksFinal} />} sub={estimate.truckSizeLabel?.replace(/\s*Truck\s*/i, ' ').trim()} variant="orange" />}
