@@ -448,20 +448,20 @@ export const ReportPanel = ({
                                 <div className="text-[10px] font-bold text-blue-500 uppercase tracking-widest mb-3 flex items-center gap-2">
                                     <ArrowUpFromLine className="w-4 h-4" /> Long Distance Breakdown
                                 </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                                    <div className="text-center">
-                                        <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Inventory Volume</div>
-                                        <div className="text-2xl font-black text-gray-900 tabular-nums">{formatMetric(<AnimatedNumber value={rawInventoryVolume} />, "cu ft")}</div>
-                                        <div className="text-[11px] font-semibold text-gray-400 mt-0.5 truncate">Items Only</div>
+                                <div className="grid grid-cols-3 gap-2.5 sm:gap-6">
+                                    <div className="min-w-0 text-center">
+                                        <div className="text-[9px] sm:text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Inventory Volume</div>
+                                        <div className="text-lg min-[375px]:text-xl sm:text-2xl font-black text-gray-900 tabular-nums leading-tight">{formatMetric(<AnimatedNumber value={rawInventoryVolume} />, "cu ft")}</div>
+                                        <div className="text-[10px] sm:text-[11px] font-semibold text-gray-400 mt-1 leading-tight sm:truncate">Items Only</div>
                                     </div>
-                                    <div className="text-center">
-                                        <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Truck Load</div>
-                                        <div className="text-2xl font-black text-gray-900 tabular-nums">{formatMetric(<AnimatedNumber value={estimate.truckSpaceCF || 0} prefix="~" />, "cu ft")}</div>
-                                        <div className="text-[11px] font-semibold text-gray-400 mt-0.5 truncate">Actual Space Needed</div>
+                                    <div className="min-w-0 text-center">
+                                        <div className="text-[9px] sm:text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Truck Load</div>
+                                        <div className="text-lg min-[375px]:text-xl sm:text-2xl font-black text-gray-900 tabular-nums leading-tight">{formatMetric(<AnimatedNumber value={estimate.truckSpaceCF || 0} prefix="~" />, "cu ft")}</div>
+                                        <div className="text-[10px] sm:text-[11px] font-semibold text-gray-400 mt-1 leading-tight sm:truncate">Actual Space Needed</div>
                                     </div>
-                                    <div className="text-center">
-                                        <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Est. Weight</div>
-                                        <div className="text-2xl font-black text-gray-900 tabular-nums">{formatMetric(<AnimatedNumber value={estimate.weight || 0} />, "lbs")}</div>
+                                    <div className="min-w-0 text-center">
+                                        <div className="text-[9px] sm:text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Est. Weight</div>
+                                        <div className="text-lg min-[375px]:text-xl sm:text-2xl font-black text-gray-900 tabular-nums leading-tight">{formatMetric(<AnimatedNumber value={estimate.weight || 0} />, "lbs")}</div>
                                     </div>
                                 </div>
                             </div>
@@ -471,18 +471,18 @@ export const ReportPanel = ({
                     {/* MATERIALS */}
                     <div className="border-t border-gray-100" />
                     <div className="py-4">
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                            <div className="text-center">
-                                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Blankets</div>
-                                <div className="text-2xl font-black text-gray-900 tabular-nums">{estimate.materials?.blankets || 0}</div>
+                        <div className="grid grid-cols-3 gap-2.5 sm:gap-6">
+                            <div className="min-w-0 text-center">
+                                <div className="text-[9px] sm:text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Blankets</div>
+                                <div className="text-lg min-[375px]:text-xl sm:text-2xl font-black text-gray-900 tabular-nums leading-tight">{estimate.materials?.blankets || 0}</div>
                             </div>
-                            <div className="text-center">
-                                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Boxes</div>
-                                <div className="text-2xl font-black text-gray-900 tabular-nums">~{estimate.materials?.boxes || 0}</div>
+                            <div className="min-w-0 text-center">
+                                <div className="text-[9px] sm:text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Boxes</div>
+                                <div className="text-lg min-[375px]:text-xl sm:text-2xl font-black text-gray-900 tabular-nums leading-tight">~{estimate.materials?.boxes || 0}</div>
                             </div>
-                            <div className="text-center">
-                                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Wardrobes</div>
-                                <div className="text-2xl font-black text-gray-900 tabular-nums">{estimate.materials?.wardrobes || 0}</div>
+                            <div className="min-w-0 text-center">
+                                <div className="text-[9px] sm:text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Wardrobes</div>
+                                <div className="text-lg min-[375px]:text-xl sm:text-2xl font-black text-gray-900 tabular-nums leading-tight">{estimate.materials?.wardrobes || 0}</div>
                             </div>
                         </div>
                     </div>
