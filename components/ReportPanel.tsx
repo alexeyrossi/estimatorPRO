@@ -109,6 +109,14 @@ export const ReportPanel = ({
         </span>
     );
 
+    const rawInventoryVolume = useMemo(() => {
+        const raw = (estimate.parsedItems || []).reduce((sum, item) => sum + (item.cf || 0), 0);
+        return raw > 0 ? Math.round(raw / 25) * 25 : 0;
+    }, [estimate.parsedItems]);
+    const primaryVolume = inputs.moveType === "LD" && estimate.billableCF ? estimate.billableCF : estimate.finalVolume;
+    const primaryVolumeLabel = inputs.moveType === "LD" ? "Shipment Size" : "Volume";
+    const primaryVolumeSub = inputs.moveType === "LD" && estimate.billableCF ? "Adjusted Estimate" : "Based on Inventory";
+
     const handleDownloadPDF = async () => {
         setIsGeneratingPDF(true);
         try {
@@ -168,7 +176,7 @@ export const ReportPanel = ({
 
             // ========== METRICS ROW ==========
             const metrics = [
-                { label: 'VOLUME', value: `${(inputs.moveType === 'LD' && estimate.billableCF ? estimate.billableCF : estimate.finalVolume || 0).toLocaleString()} cf` },
+                { label: inputs.moveType === 'LD' ? 'SHIPMENT SIZE' : 'VOLUME', value: `${(inputs.moveType === 'LD' && estimate.billableCF ? estimate.billableCF : estimate.finalVolume || 0).toLocaleString()} cf` },
                 { label: 'TIME EST.', value: `${estimate.timeMin || 0}\u2013${estimate.timeMax || 0}h` },
                 { label: 'TRUCKS', value: `${estimate.trucksFinal || 0}` },
                 { label: 'CREW', value: `${estimate.crew || 0} movers` },
@@ -223,16 +231,17 @@ export const ReportPanel = ({
                 pdf.text('LONG DISTANCE BREAKDOWN', M, y);
                 y += 7;
                 const ldData = [
-                    { label: 'Items Volume', value: `${(estimate.billableCF || 0).toLocaleString()} cf` },
+                    { label: 'Inventory Volume', value: `${rawInventoryVolume.toLocaleString()} cf` },
+                    { label: 'Adjusted Volume', value: `${(estimate.billableCF || 0).toLocaleString()} cf` },
                     { label: 'Truck Load', value: `~${(estimate.truckSpaceCF || 0).toLocaleString()} cf` },
                     { label: 'Est. Weight', value: `${(estimate.weight || 0).toLocaleString()} lbs` },
                 ];
-                const ldColW = (W - M * 2) / 3;
+                const ldColW = (W - M * 2) / 4;
                 ldData.forEach((d, i) => {
                     const x = M + i * ldColW;
                     pdf.setFontSize(8); pdf.setFont('helvetica', 'normal'); pdf.setTextColor(160, 160, 160);
                     pdf.text(d.label, x, y);
-                    pdf.setFontSize(14); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(30, 30, 30);
+                    pdf.setFontSize(13); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(30, 30, 30);
                     pdf.text(d.value, x, y + 6);
                 });
                 y += 14; drawLine(y); y += 8;
@@ -358,13 +367,11 @@ export const ReportPanel = ({
         const label = lower.includes("piano") ? "PIANO" : lower.includes("safe") ? "SAFE" : lower.includes("pool") ? "POOL TABLE" : lower.includes("clock") ? "CLOCK" : lower.includes("copier") ? "COPIER" : lower.includes("treadmill") ? "TREADMILL" : lower.includes("gym") ? "GYM" : first.toUpperCase();
         return `HEAVY: ${label}${arr.length > 1 ? ` +${arr.length - 1}` : ""}`;
     }, [estimate.heavyItemNames]);
-    const primaryVolume = inputs.moveType === "LD" && estimate.billableCF ? estimate.billableCF : estimate.finalVolume;
-    const primaryVolumeSub = inputs.moveType === "LD" && estimate.billableCF ? "Billable Volume" : "Based on Inventory";
 
     return (
         <div id="pdf-export-area" className="flex-1 flex flex-col gap-6">
             <div className={`grid grid-cols-2 lg:grid-cols-4 gap-4 transition-opacity duration-300 ${isCalculating ? 'opacity-60' : 'opacity-100'}`}>
-                <MetricCard icon={Box} label="Volume" value={formatMetric(<AnimatedNumber value={primaryVolume} />, "cu ft")} sub={primaryVolumeSub} variant="blue" />
+                <MetricCard icon={Box} label={primaryVolumeLabel} value={formatMetric(<AnimatedNumber value={primaryVolume} />, "cu ft")} sub={primaryVolumeSub} variant="blue" />
                 <MetricCard icon={estimate.splitRecommended ? CalendarDays : Clock} label={estimate.splitRecommended ? "Split Rec." : "Time Est."} value={<><AnimatedNumber value={estimate.timeMin} />–<AnimatedNumber value={estimate.timeMax} />h</>} sub={estimate.splitRecommended ? "SPLIT TO 2 DAYS" : "Est. Range"} variant={estimate.splitRecommended ? "red" : "purple"} isCritical={estimate.splitRecommended} />
                 {isLabor ? <MetricCard icon={Info} label="Service" value="Labor" sub="No Trucks" variant="gray" /> : <MetricCard icon={Truck} label="Trucks" value={<AnimatedNumber value={estimate.trucksFinal} />} sub={estimate.truckSizeLabel?.replace(/\s*Truck\s*/i, ' ').trim()} variant="orange" />}
                 <MetricCard icon={Users} label="Crew" value={<AnimatedNumber value={estimate.crew} />} sub="Movers" variant="emerald" advice={estimate.crewSuggestion} />
@@ -442,16 +449,21 @@ export const ReportPanel = ({
                                 <div className="text-[10px] font-bold text-blue-500 uppercase tracking-widest mb-3 flex items-center gap-2">
                                     <ArrowUpFromLine className="w-4 h-4" /> Long Distance Breakdown
                                 </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
                                     <div className="text-center">
-                                        <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Items Volume</div>
+                                        <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Inventory Volume</div>
+                                        <div className="text-2xl font-black text-gray-900 tabular-nums">{formatMetric(<AnimatedNumber value={rawInventoryVolume} />, "cu ft")}</div>
+                                        <div className="text-[11px] font-semibold text-gray-400 mt-0.5 truncate">Items Only</div>
+                                    </div>
+                                    <div className="text-center">
+                                        <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Adjusted Volume</div>
                                         <div className="text-2xl font-black text-gray-900 tabular-nums">{formatMetric(<AnimatedNumber value={estimate.billableCF || 0} />, "cu ft")}</div>
-                                        <div className="text-[11px] font-semibold text-gray-400 mt-0.5 truncate">Billable Total</div>
+                                        <div className="text-[11px] font-semibold text-gray-400 mt-0.5 truncate">With Safety Margin</div>
                                     </div>
                                     <div className="text-center">
                                         <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Truck Load</div>
                                         <div className="text-2xl font-black text-gray-900 tabular-nums">{formatMetric(<AnimatedNumber value={estimate.truckSpaceCF || 0} prefix="~" />, "cu ft")}</div>
-                                        <div className="text-[11px] font-semibold text-gray-400 mt-0.5 truncate">Actual Space</div>
+                                        <div className="text-[11px] font-semibold text-gray-400 mt-0.5 truncate">Actual Space Needed</div>
                                     </div>
                                     <div className="text-center">
                                         <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Est. Weight</div>
@@ -628,25 +640,25 @@ export const ReportPanel = ({
                                     <div className="flex items-center gap-2 mb-2"><Terminal className="w-4 h-4 text-gray-400" /><span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Volume Calculation Path</span></div>
                                     <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
                                         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-0">
-                                            {/* Step 1: Raw Inventory */}
+                                            {/* Step 1: Inventory Volume */}
                                             <div className="flex flex-col">
-                                                <span className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-1">Raw Inventory</span>
-                                                <span className="text-xl font-black text-gray-300">{estimate.netVolume || Math.round((estimate.finalVolume || 0) / 1.05)} <span className="text-sm font-medium text-gray-500">cu ft</span></span>
+                                                <span className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-1">Inventory Volume</span>
+                                                <span className="text-xl font-black text-gray-300">{rawInventoryVolume} <span className="text-sm font-medium text-gray-500">cu ft</span></span>
                                             </div>
 
                                             <ChevronRight className="w-5 h-5 text-gray-700 hidden md:block" />
 
-                                            {/* Step 2: Safety Margin */}
+                                            {/* Step 2: Adjusted Volume */}
                                             <div className="flex flex-col">
-                                                <span className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-1">+ Safety Margin (5-10%)</span>
+                                                <span className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-1">Adjusted Volume</span>
                                                 <span className="text-xl font-black text-gray-300">{estimate.billableCF || estimate.finalVolume || 0} <span className="text-sm font-medium text-gray-500">cu ft</span></span>
                                             </div>
 
                                             <ChevronRight className="w-5 h-5 text-gray-700 hidden md:block" />
 
-                                            {/* Step 3: Actual Space (Final) */}
+                                            {/* Step 3: Truck Space */}
                                             <div className="flex flex-col">
-                                                <span className="text-[11px] font-bold text-emerald-500/80 uppercase tracking-widest mb-1">+ Loading Gaps ({`~`}8.3%)</span>
+                                                <span className="text-[11px] font-bold text-emerald-500/80 uppercase tracking-widest mb-1">Truck Space</span>
                                                 <span className="text-2xl font-black text-emerald-400">{estimate.truckSpaceCF || Math.round((estimate.finalVolume || 0) * 1.083)} <span className="text-sm font-medium text-emerald-500/50">cu ft</span></span>
                                             </div>
                                         </div>
