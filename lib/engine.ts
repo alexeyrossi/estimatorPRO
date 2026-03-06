@@ -64,6 +64,17 @@ export function buildEstimate(inputs: EstimateInputs, normalizedRows?: Normalize
 
     const items = (parsed.detectedItems || []);
     const countBy = (re: RegExp) => items.reduce((a, it) => a + (re.test((it.name || "").toLowerCase()) ? it.qty : 0), 0);
+    const norm = (s: string) => (s || "").toLowerCase();
+    const hasHeavyByWeight = items.some(it => it.isWeightHeavy);
+    const manualHeavy = items.some(r => r.flags?.heavy);
+    const hasHeavy = useNormalized
+      ? manualHeavy
+      : items.some(it => {
+          const n = norm(it.name);
+          const r = norm(it.raw);
+          return TRUE_HEAVY_ITEMS.some(lg => new RegExp(`\\b${lg}\\b`, 'i').test(n) || new RegExp(`\\b${lg}\\b`, 'i').test(r));
+        });
+    const anyHeavySignal = parsed.heavyCount > 0 || hasHeavy || manualHeavy || hasHeavyByWeight;
 
     logs.push(`Config: ${inputs.moveType}, ${scopeLabel}`);
     logs.push(`Inventory: ${parsed.detectedQtyTotal} items. Vol: ${parsed.totalVol} cf.`);
@@ -81,6 +92,22 @@ export function buildEstimate(inputs: EstimateInputs, normalizedRows?: Normalize
       !parsed.hasVague &&
       parsed.detectedQtyTotal >= 25 &&
       parsed.boxCount >= 20;
+    const hasGenericCatchall = items.some(it => /\bitem\b/i.test(it.name || ""));
+    const microDetailedLocal =
+      inputs.moveType === "Local" &&
+      !isCommercial &&
+      !isLaborOnly &&
+      bedroomCount <= 1 &&
+      inputs.packingLevel === "None" &&
+      parsed.totalVol <= 120 &&
+      parsed.detectedQtyTotal <= 6 &&
+      parsed.boxCount <= 5 &&
+      estimatedRatio === 0 &&
+      !parsed.hasVague &&
+      !parsed.mentionsGarageOrAttic &&
+      !anyHeavySignal &&
+      parsed.irregularCount === 0 &&
+      !hasGenericCatchall;
 
     let hiddenVolume = 0;
     let missingBoxesCount = 0;
@@ -90,9 +117,10 @@ export function buildEstimate(inputs: EstimateInputs, normalizedRows?: Normalize
       if (!isTinyScope && !isLD) {
         const hvRow = HV_TABLE[Math.min(bedroomCount, 5)];
         if (parsed.totalVol < hvRow.min) {
-          hiddenVolume += hvRow.add;
-          logs.push(`Volume Check: +${hvRow.add} cf added.`);
-          auditSummary.push(`Added +${hvRow.add} cf (low volume for ${hvRow.label}).`);
+          const hvAdd = microDetailedLocal ? 100 : hvRow.add;
+          hiddenVolume += hvAdd;
+          logs.push(`Volume Check: +${hvAdd} cf added.`);
+          auditSummary.push(`Added +${hvAdd} cf (low volume for ${hvRow.label}${microDetailedLocal ? ", micro local reduced floor" : ""}).`);
         }
       }
       const minBoxes = PROTOCOL.MIN_BOXES[Math.min(bedroomCount, 5) as keyof typeof PROTOCOL.MIN_BOXES] || 10;
@@ -102,7 +130,7 @@ export function buildEstimate(inputs: EstimateInputs, normalizedRows?: Normalize
           hiddenVolume += missingBoxesCount * 5;
           auditSummary.push(`Added ${missingBoxesCount} boxes (min expected).`);
         }
-      } else if (!isTinyScope) {
+      } else if (!isTinyScope && !microDetailedLocal) {
         const softCap = Math.min(minBoxes, parsed.boxCount + 10);
         if (parsed.boxCount < softCap) {
           missingBoxesCount = softCap - parsed.boxCount;
@@ -127,6 +155,9 @@ export function buildEstimate(inputs: EstimateInputs, normalizedRows?: Normalize
     if (highConfidenceDetailedInventory) {
       llPct = isLD ? 0.02 : 0.10;
       auditSummary.push(`Loose load base reduced (${isLD ? "detailed LD inventory" : "detailed local inventory"}).`);
+    } else if (microDetailedLocal) {
+      llPct = 0.05;
+      auditSummary.push("Loose load base reduced (micro local inventory).");
     }
     const irregularRatio = parsed.detectedQtyTotal > 0 ? (parsed.irregularCount / parsed.detectedQtyTotal) : 0;
     if (parsed.hasVague) { llPct += PROTOCOL.LL_VAGUE; auditSummary.push("Loose load increased (vague)."); }
@@ -176,16 +207,7 @@ export function buildEstimate(inputs: EstimateInputs, normalizedRows?: Normalize
     let truckSizeLabel = "N/A";
     let highCapRisk = false;
 
-    const norm = (s: string) => (s || "").toLowerCase();
     const hasPallets = (parsed.detectedItems || []).some(it => { const n = norm(it.name); const r = norm(it.raw); return n.includes("pallet") || n.includes("skid") || r.includes("pallet") || r.includes("skid"); });
-    const hasHeavyByWeight = (parsed.detectedItems || []).some(it => it.isWeightHeavy);
-    const manualHeavy = (parsed.detectedItems || []).some(r => r.flags?.heavy);
-
-    // In normalized mode, only respect manual flags for heavy detection
-    const hasHeavy = useNormalized
-      ? manualHeavy
-      : (parsed.detectedItems || []).some(it => { const n = norm(it.name); const r = norm(it.raw); return TRUE_HEAVY_ITEMS.some(lg => new RegExp(`\\b${lg}\\b`, 'i').test(n) || new RegExp(`\\b${lg}\\b`, 'i').test(r)); });
-
     let truckFeatureLabel = "";
     // Lift-gate: in normalized mode, only trigger if user checked heavy OR item is bulky by name
     const needsLiftGate = useNormalized
@@ -306,7 +328,6 @@ export function buildEstimate(inputs: EstimateInputs, normalizedRows?: Normalize
     if (bedroomCount >= 4) crew = Math.max(4, crew);
     if (bedroomCount >= 5) crew = Math.max(5, crew);
 
-    const anyHeavySignal = parsed.heavyCount > 0 || hasHeavy || manualHeavy || hasHeavyByWeight;
     if (anyHeavySignal) crew = Math.max(crew, 3);
 
     let league = 0; const leagueItems: { l1: string[], l2: string[] } = { l1: [], l2: [] };
