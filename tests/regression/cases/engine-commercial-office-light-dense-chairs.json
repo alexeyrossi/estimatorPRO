@@ -1,0 +1,51 @@
+{
+  "id": "engine-commercial-office-light-dense-chairs",
+  "kind": "engine",
+  "description": "Dense chair-heavy office inventory should avoid the old extra-mover uplift and stay at 5 movers.",
+  "input": {
+    "homeSize": "Commercial",
+    "moveType": "Local",
+    "distance": "3",
+    "packingLevel": "None",
+    "accessOrigin": "elevator",
+    "accessDest": "elevator",
+    "inventoryText": "25 desks, 40 office chairs, 12 file cabinets, 20 monitor boxes, 10 boxes",
+    "extraStops": []
+  },
+  "expect": {
+    "finalVolume": 2150,
+    "netVolume": 1790,
+    "billableCF": 1875,
+    "truckSpaceCF": 2150,
+    "trucksFinal": 2,
+    "truckSizeLabel": "26ft Truck",
+    "crew": 5,
+    "timeMin": 10,
+    "timeMax": 12,
+    "splitRecommended": false,
+    "confidence": {
+      "score": 100,
+      "label": "High"
+    },
+    "materials": {
+      "blankets": 75,
+      "boxes": 20,
+      "wardrobes": 0
+    },
+    "smartEquipment": [],
+    "anyHeavySignal": false,
+    "heavyItemNames": [],
+    "detectedQtyTotal": 107,
+    "totalManHours": 35.1,
+    "daMins": 375,
+    "league": 0,
+    "boxDensity": 0,
+    "extraStopCount": 0,
+    "risks": [],
+    "overridesApplied": []
+  },
+  "adviceExpect": [
+    "Confirm building move window, freight elevator booking, and COI requirements.",
+    "Reserve loading dock time and truck staging in advance."
+  ]
+}

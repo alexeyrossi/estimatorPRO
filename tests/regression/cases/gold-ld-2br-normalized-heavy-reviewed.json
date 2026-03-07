@@ -1,0 +1,140 @@
+{
+  "id": "gold-ld-2br-normalized-heavy-reviewed",
+  "tier": "gold",
+  "kind": "engine",
+  "description": "Reviewed normalized LD inventory with manual heavy flags on true heavy pieces only.",
+  "input": {
+    "homeSize": "2",
+    "moveType": "LD",
+    "distance": "940",
+    "packingLevel": "Partial",
+    "accessOrigin": "ground",
+    "accessDest": "ground",
+    "inventoryText": "Reviewed normalized inventory",
+    "inventoryMode": "normalized",
+    "extraStops": []
+  },
+  "normalizedRows": [
+    {
+      "id": "safe",
+      "name": "gun safe",
+      "qty": 1,
+      "cfUnit": 40,
+      "raw": "gun safe",
+      "room": "Garage",
+      "flags": {
+        "heavy": true,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "server",
+      "name": "server rack",
+      "qty": 1,
+      "cfUnit": 45,
+      "raw": "server rack",
+      "room": "Office",
+      "flags": {
+        "heavy": true,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "washer",
+      "name": "washer",
+      "qty": 1,
+      "cfUnit": 25,
+      "raw": "washer",
+      "room": "Laundry",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "dryer",
+      "name": "dryer",
+      "qty": 1,
+      "cfUnit": 25,
+      "raw": "dryer",
+      "room": "Laundry",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "bed",
+      "name": "queen bed",
+      "qty": 1,
+      "cfUnit": 60,
+      "raw": "queen bed",
+      "room": "Bedroom",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "dresser",
+      "name": "dresser",
+      "qty": 1,
+      "cfUnit": 35,
+      "raw": "dresser",
+      "room": "Bedroom",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "boxes",
+      "name": "medium box",
+      "qty": 20,
+      "cfUnit": 5,
+      "raw": "20 medium boxes",
+      "room": "Mixed",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    }
+  ],
+  "expect": {
+    "finalVolume": 375,
+    "netVolume": 355,
+    "billableCF": 375,
+    "truckSpaceCF": 375,
+    "trucksFinal": 1,
+    "truckSizeLabel": "18ft Truck + Lift-gate",
+    "crew": 4,
+    "timeMin": 3,
+    "timeMax": 4,
+    "splitRecommended": false,
+    "confidence": {
+      "score": 100,
+      "label": "High"
+    },
+    "materials": {
+      "blankets": 20,
+      "boxes": 30,
+      "wardrobes": 10
+    },
+    "smartEquipment": [
+      "Appliance Dolly"
+    ],
+    "anyHeavySignal": true,
+    "heavyItemNames": [
+      "gun safe",
+      "server rack"
+    ],
+    "detectedQtyTotal": 26,
+    "totalManHours": 5.9,
+    "daMins": 20,
+    "league": 2,
+    "boxDensity": 77,
+    "extraStopCount": 0,
+    "risks": [],
+    "overridesApplied": []
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "id": "engine-local-1br-elevator-box-dense",
+  "kind": "engine",
+  "description": "Box-dense 1BR condo with elevator access and full packing.",
+  "input": {
+    "homeSize": "1",
+    "moveType": "Local",
+    "distance": "9",
+    "packingLevel": "Full",
+    "accessOrigin": "elevator",
+    "accessDest": "elevator",
+    "inventoryText": "Living room: sofa, accent chair, tv stand, 18 boxes\nBedroom: queen bed, dresser, 12 boxes\nCloset: 6 boxes",
+    "extraStops": []
+  },
+  "expect": {
+    "finalVolume": 525,
+    "netVolume": 420,
+    "billableCF": 450,
+    "truckSpaceCF": 525,
+    "trucksFinal": 1,
+    "truckSizeLabel": "18ft Truck",
+    "crew": 3,
+    "timeMin": 5,
+    "timeMax": 7,
+    "splitRecommended": false,
+    "confidence": {
+      "score": 100,
+      "label": "High"
+    },
+    "materials": {
+      "blankets": 40,
+      "boxes": 40,
+      "wardrobes": 5
+    },
+    "smartEquipment": [],
+    "anyHeavySignal": false,
+    "heavyItemNames": [],
+    "detectedQtyTotal": 41,
+    "totalManHours": 11.2,
+    "daMins": 20,
+    "league": 0,
+    "boxDensity": 0,
+    "extraStopCount": 0,
+    "risks": [],
+    "overridesApplied": []
+  }
+}

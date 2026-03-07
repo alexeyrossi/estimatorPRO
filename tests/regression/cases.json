@@ -1,0 +1,550 @@
+[
+  {
+    "id": "engine-local-1br-basic",
+    "kind": "engine",
+    "description": "Baseline 1BR local move with straightforward inventory.",
+    "input": {
+      "homeSize": "1",
+      "moveType": "Local",
+      "distance": "12",
+      "packingLevel": "None",
+      "accessOrigin": "ground",
+      "accessDest": "ground",
+      "inventoryText": "Living room: sofa, coffee table, tv stand, 6 boxes\nBedroom: queen bed, dresser, 6 boxes",
+      "extraStops": []
+    },
+    "expect": {
+      "finalVolume": 375,
+      "netVolume": 300,
+      "billableCF": 325,
+      "truckSpaceCF": 375,
+      "trucksFinal": 1,
+      "truckSizeLabel": "18ft Truck",
+      "crew": 2,
+      "timeMin": 4,
+      "timeMax": 6,
+      "splitRecommended": false,
+      "confidence": {
+        "score": 100,
+        "label": "High"
+      },
+      "materials": {
+        "blankets": 25,
+        "boxes": 10,
+        "wardrobes": 5
+      },
+      "smartEquipment": [],
+      "anyHeavySignal": false,
+      "heavyItemNames": [],
+      "detectedQtyTotal": 17,
+      "totalManHours": 5.5,
+      "daMins": 35,
+      "league": 0,
+      "boxDensity": 0,
+      "extraStopCount": 0,
+      "risks": [],
+      "overridesApplied": []
+    }
+  },
+  {
+    "id": "engine-local-3br-extra-stops",
+    "kind": "engine",
+    "description": "Local move with two extra stops affecting routing complexity.",
+    "input": {
+      "homeSize": "3",
+      "moveType": "Local",
+      "distance": "15",
+      "packingLevel": "None",
+      "accessOrigin": "ground",
+      "accessDest": "ground",
+      "inventoryText": "Living room: sofa, loveseat, coffee table, tv stand, 10 boxes\nBedroom: queen bed, dresser, 10 boxes\nBedroom 2: bed, dresser, 8 boxes\nKitchen: table, 4 chairs, 8 boxes",
+      "extraStops": [
+        {
+          "label": "Storage",
+          "access": "stairs"
+        },
+        {
+          "label": "Office",
+          "access": "elevator"
+        }
+      ]
+    },
+    "expect": {
+      "finalVolume": 850,
+      "netVolume": 713,
+      "billableCF": 750,
+      "truckSpaceCF": 850,
+      "trucksFinal": 1,
+      "truckSizeLabel": "24ft Truck",
+      "crew": 4,
+      "timeMin": 7,
+      "timeMax": 8,
+      "splitRecommended": false,
+      "confidence": {
+        "score": 100,
+        "label": "High"
+      },
+      "materials": {
+        "blankets": 55,
+        "boxes": 10,
+        "wardrobes": 15
+      },
+      "smartEquipment": [],
+      "anyHeavySignal": false,
+      "heavyItemNames": [],
+      "detectedQtyTotal": 48,
+      "totalManHours": 13,
+      "daMins": 80,
+      "league": 0,
+      "boxDensity": 0,
+      "extraStopCount": 2,
+      "risks": [],
+      "overridesApplied": []
+    }
+  },
+  {
+    "id": "engine-ld-4br-full-pack",
+    "kind": "engine",
+    "description": "Large long-distance full-pack move.",
+    "input": {
+      "homeSize": "4",
+      "moveType": "LD",
+      "distance": "1200",
+      "packingLevel": "Full",
+      "accessOrigin": "ground",
+      "accessDest": "ground",
+      "inventoryText": "Living room: sectional sofa, coffee table, media console, 20 boxes\nDining room: dining table, 8 chairs, china cabinet, 10 boxes\nKitchen: refrigerator, washer, dryer, 15 boxes\nMaster bedroom: king bed, dresser, nightstand, nightstand, 15 boxes\nBedroom 2: queen bed, dresser, desk, 10 boxes\nBedroom 3: queen bed, dresser, desk, 10 boxes\nGarage: tool chest, treadmill, bike, 15 boxes",
+      "extraStops": []
+    },
+    "expect": {
+      "finalVolume": 2150,
+      "netVolume": 1788,
+      "billableCF": 1875,
+      "truckSpaceCF": 2150,
+      "trucksFinal": 2,
+      "truckSizeLabel": "26ft Truck + Lift-gate",
+      "crew": 7,
+      "timeMin": 7,
+      "timeMax": 9,
+      "splitRecommended": false,
+      "confidence": {
+        "score": 100,
+        "label": "High"
+      },
+      "materials": {
+        "blankets": 145,
+        "boxes": 90,
+        "wardrobes": 20
+      },
+      "smartEquipment": [
+        "Appliance Dolly"
+      ],
+      "anyHeavySignal": true,
+      "heavyItemNames": [
+        "china cabinet",
+        "treadmill"
+      ],
+      "detectedQtyTotal": 124,
+      "totalManHours": 33.4,
+      "daMins": 190,
+      "league": 1,
+      "boxDensity": 0,
+      "extraStopCount": 0,
+      "risks": [],
+      "overridesApplied": []
+    }
+  },
+  {
+    "id": "engine-commercial-office",
+    "kind": "engine",
+    "description": "Commercial office move with equipment and elevator access.",
+    "input": {
+      "homeSize": "Commercial",
+      "moveType": "Local",
+      "distance": "6",
+      "packingLevel": "Partial",
+      "accessOrigin": "elevator",
+      "accessDest": "ground",
+      "inventoryText": "Open office: 12 desks, 12 office chairs, 6 file cabinets, 20 boxes\nConference room: conference table, 8 chairs\nServer room: server rack, 10 boxes\nReception: sofa, coffee table, 4 boxes",
+      "extraStops": []
+    },
+    "expect": {
+      "finalVolume": 1550,
+      "netVolume": 1281,
+      "billableCF": 1350,
+      "truckSpaceCF": 1550,
+      "trucksFinal": 2,
+      "truckSizeLabel": "26ft Truck + Lift-gate",
+      "crew": 6,
+      "timeMin": 7,
+      "timeMax": 9,
+      "splitRecommended": false,
+      "confidence": {
+        "score": 100,
+        "label": "High"
+      },
+      "materials": {
+        "blankets": 70,
+        "boxes": 30,
+        "wardrobes": 0
+      },
+      "smartEquipment": [],
+      "anyHeavySignal": true,
+      "heavyItemNames": [
+        "conference table",
+        "server rack"
+      ],
+      "detectedQtyTotal": 76,
+      "totalManHours": 28.5,
+      "daMins": 205,
+      "league": 2,
+      "boxDensity": 0,
+      "extraStopCount": 0,
+      "risks": [
+        {
+          "text": "Borderline capacity: 2 trucks recommended.",
+          "level": "caution"
+        }
+      ],
+      "overridesApplied": []
+    }
+  },
+  {
+    "id": "engine-normalized-manual-heavy",
+    "kind": "engine",
+    "description": "Normalized inventory with manual heavy flag preserved from client view.",
+    "input": {
+      "homeSize": "2",
+      "moveType": "Local",
+      "distance": "8",
+      "packingLevel": "None",
+      "accessOrigin": "ground",
+      "accessDest": "ground",
+      "inventoryText": "Garage items already reviewed",
+      "inventoryMode": "normalized",
+      "extraStops": []
+    },
+    "normalizedRows": [
+      {
+        "id": "row_storage_cabinet",
+        "name": "storage cabinet",
+        "qty": 1,
+        "cfUnit": 30,
+        "raw": "storage cabinet",
+        "room": "Garage",
+        "flags": {
+          "heavy": true,
+          "heavyWeight": false
+        }
+      },
+      {
+        "id": "row_medium_boxes",
+        "name": "medium box",
+        "qty": 10,
+        "cfUnit": 5,
+        "raw": "10 medium boxes",
+        "room": "Garage",
+        "flags": {
+          "heavy": false,
+          "heavyWeight": false
+        }
+      },
+      {
+        "id": "row_couch",
+        "name": "couch",
+        "qty": 1,
+        "cfUnit": 65,
+        "raw": "couch",
+        "room": "Living Room",
+        "flags": {
+          "heavy": false,
+          "heavyWeight": false
+        }
+      }
+    ],
+    "expect": {
+      "finalVolume": 600,
+      "netVolume": 495,
+      "billableCF": 525,
+      "truckSpaceCF": 600,
+      "trucksFinal": 1,
+      "truckSizeLabel": "18ft Truck + Lift-gate",
+      "crew": 3,
+      "timeMin": 3,
+      "timeMax": 5,
+      "splitRecommended": false,
+      "confidence": {
+        "score": 100,
+        "label": "High"
+      },
+      "materials": {
+        "blankets": 20,
+        "boxes": 10,
+        "wardrobes": 10
+      },
+      "smartEquipment": [],
+      "anyHeavySignal": true,
+      "heavyItemNames": [
+        "storage cabinet"
+      ],
+      "detectedQtyTotal": 12,
+      "totalManHours": 5.3,
+      "daMins": 0,
+      "league": 0,
+      "boxDensity": 83,
+      "extraStopCount": 0,
+      "risks": [],
+      "overridesApplied": []
+    }
+  },
+  {
+    "id": "engine-override-volume-borderline",
+    "kind": "engine",
+    "description": "Override-driven borderline load where extra stops push truck recommendation.",
+    "input": {
+      "homeSize": "3",
+      "moveType": "Local",
+      "distance": "15",
+      "packingLevel": "None",
+      "accessOrigin": "ground",
+      "accessDest": "ground",
+      "inventoryText": "Living room: sofa, loveseat, coffee table, tv stand, 10 boxes\nBedroom: queen bed, dresser, 10 boxes\nBedroom 2: bed, dresser, 8 boxes\nKitchen: table, 4 chairs, 8 boxes",
+      "extraStops": [
+        {
+          "label": "Storage",
+          "access": "stairs"
+        },
+        {
+          "label": "Office",
+          "access": "elevator"
+        }
+      ]
+    },
+    "overrides": {
+      "volume": "1300"
+    },
+    "expect": {
+      "finalVolume": 1300,
+      "netVolume": 713,
+      "billableCF": 750,
+      "truckSpaceCF": 850,
+      "trucksFinal": 2,
+      "truckSizeLabel": "26ft Truck",
+      "crew": 5,
+      "timeMin": 8,
+      "timeMax": 10,
+      "splitRecommended": false,
+      "confidence": {
+        "score": 100,
+        "label": "High"
+      },
+      "materials": {
+        "blankets": 55,
+        "boxes": 10,
+        "wardrobes": 15
+      },
+      "smartEquipment": [],
+      "anyHeavySignal": false,
+      "heavyItemNames": [],
+      "detectedQtyTotal": 48,
+      "totalManHours": 17.8,
+      "daMins": 80,
+      "league": 0,
+      "boxDensity": 0,
+      "extraStopCount": 2,
+      "risks": [
+        {
+          "text": "Multi-stop routing reduces practical 1-truck capacity: 2 trucks recommended.",
+          "level": "caution"
+        }
+      ],
+      "overridesApplied": [
+        "volume"
+      ]
+    }
+  },
+  {
+    "id": "parser-storage-unit",
+    "kind": "parser",
+    "description": "Storage unit should remain a room/inventory concept, not a service mode.",
+    "input": {
+      "inventoryText": "Storage unit: 10 boxes, dresser, lamp"
+    },
+    "expect": {
+      "totalVol": 90,
+      "boxCount": 0,
+      "heavyCount": 0,
+      "furnitureCount": 11,
+      "detectedQtyTotal": 12,
+      "irregularCount": 0,
+      "estimatedItemCount": 0,
+      "hasVague": false,
+      "mentionsGarageOrAttic": false,
+      "unrecognized": [],
+      "detectedItems": [
+        {
+          "name": "boxes",
+          "qty": 10,
+          "room": "Storage/Outdoor",
+          "cf": 50,
+          "isSynthetic": false,
+          "isWeightHeavy": false
+        },
+        {
+          "name": "dresser",
+          "qty": 1,
+          "room": "Storage/Outdoor",
+          "cf": 35,
+          "isSynthetic": false,
+          "isWeightHeavy": false
+        },
+        {
+          "name": "lamp",
+          "qty": 1,
+          "room": "Storage/Outdoor",
+          "cf": 5,
+          "isSynthetic": false,
+          "isWeightHeavy": false
+        }
+      ]
+    }
+  },
+  {
+    "id": "parser-storage-closet",
+    "kind": "parser",
+    "description": "Storage closet should stay recognized in parsing rules.",
+    "input": {
+      "inventoryText": "Storage closet: vacuum, 4 boxes, folding chair"
+    },
+    "expect": {
+      "totalVol": 28,
+      "boxCount": 0,
+      "heavyCount": 0,
+      "furnitureCount": 5,
+      "detectedQtyTotal": 6,
+      "irregularCount": 0,
+      "estimatedItemCount": 0,
+      "hasVague": false,
+      "mentionsGarageOrAttic": false,
+      "unrecognized": [],
+      "detectedItems": [
+        {
+          "name": "boxes",
+          "qty": 4,
+          "room": "Storage closet",
+          "cf": 20,
+          "isSynthetic": false,
+          "isWeightHeavy": false
+        },
+        {
+          "name": "folding chair",
+          "qty": 1,
+          "room": "Storage closet",
+          "cf": 3,
+          "isSynthetic": false,
+          "isWeightHeavy": false
+        },
+        {
+          "name": "vacuum",
+          "qty": 1,
+          "room": "Storage closet",
+          "cf": 5,
+          "isSynthetic": false,
+          "isWeightHeavy": false
+        }
+      ]
+    }
+  },
+  {
+    "id": "parser-misc-storage",
+    "kind": "parser",
+    "description": "Misc storage bundle heuristics should stay intact.",
+    "input": {
+      "inventoryText": "Garage: lots of packed boxes, misc storage, tool chest"
+    },
+    "expect": {
+      "totalVol": 30,
+      "boxCount": 1,
+      "heavyCount": 1,
+      "furnitureCount": 2,
+      "detectedQtyTotal": 3,
+      "irregularCount": 0,
+      "estimatedItemCount": 0,
+      "hasVague": true,
+      "mentionsGarageOrAttic": true,
+      "unrecognized": [],
+      "detectedItems": [
+        {
+          "name": "boxes",
+          "qty": 1,
+          "room": "Storage/Outdoor",
+          "cf": 5,
+          "isSynthetic": false,
+          "isWeightHeavy": false
+        },
+        {
+          "name": "medium box",
+          "qty": 1,
+          "room": "Storage/Outdoor",
+          "cf": 5,
+          "isSynthetic": false,
+          "isWeightHeavy": false
+        },
+        {
+          "name": "tool chest",
+          "qty": 1,
+          "room": "Storage/Outdoor",
+          "cf": 20,
+          "isSynthetic": false,
+          "isWeightHeavy": false
+        }
+      ]
+    }
+  },
+  {
+    "id": "parser-tv-size-not-qty",
+    "kind": "parser",
+    "description": "TV size should not be treated as quantity.",
+    "input": {
+      "inventoryText": "Living room: TV 65, tv stand, 2 lamps"
+    },
+    "expect": {
+      "totalVol": 40,
+      "boxCount": 0,
+      "heavyCount": 0,
+      "furnitureCount": 2,
+      "detectedQtyTotal": 4,
+      "irregularCount": 0,
+      "estimatedItemCount": 0,
+      "hasVague": false,
+      "mentionsGarageOrAttic": false,
+      "unrecognized": [],
+      "detectedItems": [
+        {
+          "name": "lamp",
+          "qty": 2,
+          "room": "Living room",
+          "cf": 10,
+          "isSynthetic": false,
+          "isWeightHeavy": false
+        },
+        {
+          "name": "tv stand",
+          "qty": 1,
+          "room": "Living room",
+          "cf": 20,
+          "isSynthetic": false,
+          "isWeightHeavy": false
+        },
+        {
+          "name": "tv",
+          "qty": 1,
+          "room": "Living room",
+          "cf": 10,
+          "isSynthetic": false,
+          "isWeightHeavy": false
+        }
+      ]
+    }
+  }
+]

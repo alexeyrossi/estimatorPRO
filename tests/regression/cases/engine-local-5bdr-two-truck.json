@@ -1,0 +1,50 @@
+{
+  "id": "engine-local-5bdr-two-truck",
+  "kind": "engine",
+  "description": "5BDR local with 2 trucks should still keep 5+ movers via truck-driven workload.",
+  "input": {
+    "homeSize": "5",
+    "moveType": "Local",
+    "distance": "15",
+    "packingLevel": "None",
+    "accessOrigin": "ground",
+    "accessDest": "ground",
+    "inventoryText": "5 beds, 6 dressers, sectional, dining table, 8 chairs, washer, dryer, patio set, 60 boxes, 15 totes, 5 tvs",
+    "extraStops": []
+  },
+  "expect": {
+    "finalVolume": 1950,
+    "netVolume": 1476,
+    "billableCF": 1550,
+    "truckSpaceCF": 1950,
+    "trucksFinal": 2,
+    "truckSizeLabel": "26ft Truck",
+    "crew": 6,
+    "timeMin": 8,
+    "timeMax": 9,
+    "splitRecommended": false,
+    "confidence": {
+      "score": 100,
+      "label": "High"
+    },
+    "materials": {
+      "blankets": 105,
+      "boxes": 20,
+      "wardrobes": 20
+    },
+    "smartEquipment": [
+      "Appliance Dolly",
+      "Protective Wrap"
+    ],
+    "anyHeavySignal": false,
+    "heavyItemNames": [],
+    "detectedQtyTotal": 104,
+    "totalManHours": 28.1,
+    "daMins": 185,
+    "league": 1,
+    "boxDensity": 14,
+    "extraStopCount": 0,
+    "risks": [],
+    "overridesApplied": []
+  }
+}

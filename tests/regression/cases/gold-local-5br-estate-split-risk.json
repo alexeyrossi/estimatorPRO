@@ -1,0 +1,56 @@
+{
+  "id": "gold-local-5br-estate-split-risk",
+  "tier": "gold",
+  "kind": "engine",
+  "description": "Large local estate move that should stay on the split-risk path.",
+  "input": {
+    "homeSize": "5",
+    "moveType": "Local",
+    "distance": "26",
+    "packingLevel": "Partial",
+    "accessOrigin": "stairs",
+    "accessDest": "ground",
+    "inventoryText": "Living room: grand piano, sectional sofa, sectional sofa, coffee table, media console, 18 boxes\nDining room: pool table, dining table, 8 chairs, buffet, 10 boxes\nGarage: safe, tool chest, treadmill, elliptical, squat rack, bike, 18 boxes\nPrimary bedroom: king bed, dresser, 2 nightstands, 10 boxes\nBedroom 2: queen bed, dresser, desk, 8 boxes\nBedroom 3: queen bed, dresser, desk, 8 boxes\nBedroom 4: full bed, dresser, 8 boxes\nBedroom 5: full bed, dresser, 8 boxes\nPatio: patio dining table, 6 chairs, grill, umbrella, 6 boxes",
+    "extraStops": []
+  },
+  "expect": {
+    "finalVolume": 3325,
+    "netVolume": 2535,
+    "billableCF": 2650,
+    "truckSpaceCF": 3325,
+    "trucksFinal": 3,
+    "truckSizeLabel": "26ft Truck + Lift-gate",
+    "crew": 7,
+    "timeMin": 12,
+    "timeMax": 15,
+    "splitRecommended": true,
+    "confidence": {
+      "score": 100,
+      "label": "High"
+    },
+    "materials": {
+      "blankets": 170,
+      "boxes": 40,
+      "wardrobes": 20
+    },
+    "smartEquipment": [
+      "Appliance Dolly",
+      "Piano Board"
+    ],
+    "anyHeavySignal": true,
+    "heavyItemNames": [
+      "elliptical",
+      "grand piano",
+      "safe",
+      "treadmill"
+    ],
+    "detectedQtyTotal": 138,
+    "totalManHours": 53.7,
+    "daMins": 281,
+    "league": 2,
+    "boxDensity": 0,
+    "extraStopCount": 0,
+    "risks": [],
+    "overridesApplied": []
+  }
+}

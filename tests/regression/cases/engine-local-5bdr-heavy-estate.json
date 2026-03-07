@@ -1,0 +1,54 @@
+{
+  "id": "engine-local-5bdr-heavy-estate",
+  "kind": "engine",
+  "description": "Heavy 5BDR estate inventory should still keep 5+ movers.",
+  "input": {
+    "homeSize": "5",
+    "moveType": "Local",
+    "distance": "15",
+    "packingLevel": "None",
+    "accessOrigin": "ground",
+    "accessDest": "ground",
+    "inventoryText": "grand piano, safe, pool table, 2 sectionals, 5 beds, gym set, tool chest, patio dining, 70 boxes",
+    "extraStops": []
+  },
+  "expect": {
+    "finalVolume": 2500,
+    "netVolume": 1910,
+    "billableCF": 2000,
+    "truckSpaceCF": 2500,
+    "trucksFinal": 2,
+    "truckSizeLabel": "26ft Truck + Lift-gate",
+    "crew": 6,
+    "timeMin": 9,
+    "timeMax": 11,
+    "splitRecommended": false,
+    "confidence": {
+      "score": 100,
+      "label": "High"
+    },
+    "materials": {
+      "blankets": 100,
+      "boxes": 10,
+      "wardrobes": 20
+    },
+    "smartEquipment": [
+      "Appliance Dolly",
+      "Piano Board"
+    ],
+    "anyHeavySignal": true,
+    "heavyItemNames": [
+      "grand piano",
+      "pool table",
+      "safe"
+    ],
+    "detectedQtyTotal": 83,
+    "totalManHours": 35.5,
+    "daMins": 400,
+    "league": 2,
+    "boxDensity": 0,
+    "extraStopCount": 0,
+    "risks": [],
+    "overridesApplied": []
+  }
+}

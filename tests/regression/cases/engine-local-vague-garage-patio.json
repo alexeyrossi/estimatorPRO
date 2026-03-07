@@ -1,0 +1,49 @@
+{
+  "id": "engine-local-vague-garage-patio",
+  "kind": "engine",
+  "description": "Vague local inventory with garage and patio language that should still quote consistently.",
+  "input": {
+    "homeSize": "2",
+    "moveType": "Local",
+    "distance": "14",
+    "packingLevel": "None",
+    "accessOrigin": "ground",
+    "accessDest": "ground",
+    "inventoryText": "2 bedroom apartment. Main stuff only: sofa, bed, dresser, some boxes, garage stuff, misc patio furniture, maybe a treadmill.",
+    "extraStops": []
+  },
+  "expect": {
+    "finalVolume": 725,
+    "netVolume": 530,
+    "billableCF": 550,
+    "truckSpaceCF": 725,
+    "trucksFinal": 1,
+    "truckSizeLabel": "18ft Truck + Lift-gate",
+    "crew": 3,
+    "timeMin": 4,
+    "timeMax": 6,
+    "splitRecommended": false,
+    "confidence": {
+      "score": 88,
+      "label": "High"
+    },
+    "materials": {
+      "blankets": 20,
+      "boxes": 20,
+      "wardrobes": 10
+    },
+    "smartEquipment": [],
+    "anyHeavySignal": true,
+    "heavyItemNames": [
+      "treadmill"
+    ],
+    "detectedQtyTotal": 8,
+    "totalManHours": 8.3,
+    "daMins": 60,
+    "league": 1,
+    "boxDensity": 0,
+    "extraStopCount": 0,
+    "risks": [],
+    "overridesApplied": []
+  }
+}

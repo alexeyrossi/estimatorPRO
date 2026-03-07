@@ -1,0 +1,55 @@
+{
+  "id": "gold-commercial-medical-suite",
+  "tier": "gold",
+  "kind": "engine",
+  "description": "Commercial medical suite quote with elevator logistics and mixed room inventory.",
+  "input": {
+    "homeSize": "Commercial",
+    "moveType": "Local",
+    "distance": "7",
+    "packingLevel": "Partial",
+    "accessOrigin": "elevator",
+    "accessDest": "ground",
+    "inventoryText": "Exam rooms: 4 exam tables, 6 file cabinets, 12 medical supply boxes\nReception: reception desk, waiting room sofa, 8 boxes\nServer room: server rack, 10 medical supply boxes",
+    "extraStops": []
+  },
+  "expect": {
+    "finalVolume": 825,
+    "netVolume": 700,
+    "billableCF": 725,
+    "truckSpaceCF": 825,
+    "trucksFinal": 1,
+    "truckSizeLabel": "24ft Truck + Lift-gate",
+    "crew": 4,
+    "timeMin": 5,
+    "timeMax": 6,
+    "splitRecommended": false,
+    "confidence": {
+      "score": 100,
+      "label": "High"
+    },
+    "materials": {
+      "blankets": 45,
+      "boxes": 30,
+      "wardrobes": 0
+    },
+    "smartEquipment": [],
+    "anyHeavySignal": true,
+    "heavyItemNames": [
+      "server rack"
+    ],
+    "detectedQtyTotal": 43,
+    "totalManHours": 14.4,
+    "daMins": 15,
+    "league": 2,
+    "boxDensity": 0,
+    "extraStopCount": 0,
+    "risks": [],
+    "overridesApplied": []
+  },
+  "adviceExpect": [
+    "Comm. Packing: Label all boxes by office/room number.",
+    "Confirm freight elevator access, move window, and cab dimensions.",
+    "Pre-measure oversized equipment, cabinets, and appliance paths."
+  ]
+}

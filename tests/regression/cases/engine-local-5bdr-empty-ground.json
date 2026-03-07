@@ -1,0 +1,47 @@
+{
+  "id": "engine-local-5bdr-empty-ground",
+  "kind": "engine",
+  "description": "Sparse 5BDR local with no inventory should stay at 4 movers without the old automatic 5th mover floor.",
+  "input": {
+    "homeSize": "5",
+    "moveType": "Local",
+    "distance": "15",
+    "packingLevel": "None",
+    "accessOrigin": "ground",
+    "accessDest": "ground",
+    "inventoryText": "",
+    "extraStops": []
+  },
+  "expect": {
+    "finalVolume": 1075,
+    "netVolume": 875,
+    "billableCF": 925,
+    "truckSpaceCF": 1075,
+    "trucksFinal": 1,
+    "truckSizeLabel": "24ft Truck",
+    "crew": 4,
+    "timeMin": 4,
+    "timeMax": 5,
+    "splitRecommended": false,
+    "confidence": {
+      "score": 100,
+      "label": "High"
+    },
+    "materials": {
+      "blankets": 20,
+      "boxes": 10,
+      "wardrobes": 20
+    },
+    "smartEquipment": [],
+    "anyHeavySignal": false,
+    "heavyItemNames": [],
+    "detectedQtyTotal": 0,
+    "totalManHours": 9,
+    "daMins": 0,
+    "league": 0,
+    "boxDensity": 0,
+    "extraStopCount": 0,
+    "risks": [],
+    "overridesApplied": []
+  }
+}

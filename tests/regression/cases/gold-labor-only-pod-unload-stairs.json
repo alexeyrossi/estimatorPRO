@@ -1,0 +1,50 @@
+{
+  "id": "gold-labor-only-pod-unload-stairs",
+  "tier": "gold",
+  "kind": "engine",
+  "description": "Labor-only POD unload flow with stair delivery and one heavy item.",
+  "input": {
+    "homeSize": "2",
+    "moveType": "Labor",
+    "distance": "0",
+    "packingLevel": "None",
+    "accessOrigin": "ground",
+    "accessDest": "stairs",
+    "inventoryText": "POD unload: sectional sofa, queen bed, dresser, 2 nightstands, dining table, 4 chairs, 25 boxes, treadmill",
+    "extraStops": []
+  },
+  "expect": {
+    "finalVolume": 700,
+    "netVolume": 513,
+    "billableCF": 550,
+    "truckSpaceCF": 700,
+    "trucksFinal": 0,
+    "truckSizeLabel": "N/A",
+    "crew": 3,
+    "timeMin": 3,
+    "timeMax": 4,
+    "splitRecommended": false,
+    "confidence": {
+      "score": 100,
+      "label": "High"
+    },
+    "materials": {
+      "blankets": 45,
+      "boxes": 10,
+      "wardrobes": 10
+    },
+    "smartEquipment": [],
+    "anyHeavySignal": true,
+    "heavyItemNames": [
+      "treadmill"
+    ],
+    "detectedQtyTotal": 36,
+    "totalManHours": 7.8,
+    "daMins": 85,
+    "league": 1,
+    "boxDensity": 0,
+    "extraStopCount": 0,
+    "risks": [],
+    "overridesApplied": []
+  }
+}

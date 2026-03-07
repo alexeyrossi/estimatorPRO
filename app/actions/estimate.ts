@@ -15,7 +15,7 @@ import { SORTED_KEYS, KEY_REGEX, VOLUME_TABLE, TRUE_HEAVY_ITEMS } from "../../li
 import { createClient } from "../../lib/supabase/server";
 
 const HOME_SIZE_OPTIONS = new Set(["1", "2", "3", "4", "5", "Commercial"]);
-const MOVE_TYPE_OPTIONS = new Set(["Local", "LD", "Labor", "Storage"]);
+const MOVE_TYPE_OPTIONS = new Set(["Local", "LD", "Labor"]);
 const PACKING_LEVEL_OPTIONS = new Set(["None", "Partial", "Full"]);
 const ACCESS_OPTIONS = new Set(["ground", "elevator", "stairs"]);
 const OVERRIDE_KEYS = new Set(["volume", "trucks", "crew", "timeMin", "timeMax", "blankets", "boxes"]);
@@ -27,8 +27,13 @@ function sanitizeInventoryMode(mode: string | undefined): InventoryMode {
   return mode === "normalized" ? "normalized" : "raw";
 }
 
+function normalizeLegacyMoveType(moveType: string | undefined): EstimateInputs["moveType"] {
+  return moveType === "LD" || moveType === "Labor" ? moveType : "Local";
+}
+
 function sanitizeEstimateInputs(inputs: EstimateInputs, inventoryMode?: InventoryMode): EstimateInputs {
-  const safeMoveType = MOVE_TYPE_OPTIONS.has(inputs.moveType) ? inputs.moveType : "Local";
+  const requestedMoveType = String(inputs.moveType ?? "");
+  const safeMoveType = MOVE_TYPE_OPTIONS.has(requestedMoveType) ? requestedMoveType : normalizeLegacyMoveType(requestedMoveType);
   const safeInventoryMode = inventoryMode ?? sanitizeInventoryMode(inputs.inventoryMode);
   const normalizedHomeSize = inputs.homeSize === "0" ? "1" : inputs.homeSize;
   const safeAccessOrigin = ACCESS_OPTIONS.has(inputs.accessOrigin) ? inputs.accessOrigin : "ground";
@@ -58,6 +63,11 @@ function sanitizeEstimateInputs(inputs: EstimateInputs, inventoryMode?: Inventor
 function sanitizeNormalizedRows(rows: NormalizedRow[] | undefined): NormalizedRow[] {
   if (!Array.isArray(rows)) return [];
 
+  const sanitizeExactVolume = (value: unknown): number | undefined => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+  };
+
   return rows
     .slice(0, MAX_ROWS)
     .map((row, index) => ({
@@ -65,6 +75,8 @@ function sanitizeNormalizedRows(rows: NormalizedRow[] | undefined): NormalizedRo
       name: String(row?.name ?? "").trim().slice(0, 120),
       qty: clampInt(row?.qty ?? 1, 1, 500),
       cfUnit: clampInt(row?.cfUnit ?? 1, 1, 500),
+      cfExact: sanitizeExactVolume(row?.cfExact),
+      isSynthetic: !!row?.isSynthetic,
       raw: String(row?.raw ?? "").slice(0, 240),
       room: String(row?.room ?? "").trim().slice(0, 80),
       flags: {
@@ -231,7 +243,7 @@ export async function fetchHistoryAction(): Promise<EstimateHistoryItem[]> {
   return ((data || []) as EstimateHistoryRow[]).map(item => ({
     ...item,
     home_size: item.inputs_state?.inputs?.homeSize || null,
-    move_type: item.inputs_state?.inputs?.moveType || null,
+    move_type: item.inputs_state?.inputs?.moveType ? normalizeLegacyMoveType(String(item.inputs_state.inputs.moveType)) : null,
   }));
 }
 

@@ -1,0 +1,49 @@
+{
+  "id": "engine-local-2br-stairs-garage-heavy",
+  "kind": "engine",
+  "description": "2BR local with stairs on both ends, garage items, and heavy garage equipment.",
+  "input": {
+    "homeSize": "2",
+    "moveType": "Local",
+    "distance": "18",
+    "packingLevel": "Partial",
+    "accessOrigin": "stairs",
+    "accessDest": "stairs",
+    "inventoryText": "Living room: sofa, loveseat, coffee table, tv stand, 12 boxes\nBedroom: queen bed, dresser, 8 boxes\nBedroom 2: twin bed, desk, 6 boxes\nGarage: treadmill, tool chest, bike, 10 boxes",
+    "extraStops": []
+  },
+  "expect": {
+    "finalVolume": 1000,
+    "netVolume": 762,
+    "billableCF": 800,
+    "truckSpaceCF": 1000,
+    "trucksFinal": 1,
+    "truckSizeLabel": "24ft Truck + Lift-gate",
+    "crew": 4,
+    "timeMin": 7,
+    "timeMax": 8,
+    "splitRecommended": false,
+    "confidence": {
+      "score": 100,
+      "label": "High"
+    },
+    "materials": {
+      "blankets": 55,
+      "boxes": 30,
+      "wardrobes": 10
+    },
+    "smartEquipment": [],
+    "anyHeavySignal": true,
+    "heavyItemNames": [
+      "treadmill"
+    ],
+    "detectedQtyTotal": 46,
+    "totalManHours": 20,
+    "daMins": 95,
+    "league": 1,
+    "boxDensity": 0,
+    "extraStopCount": 0,
+    "risks": [],
+    "overridesApplied": []
+  }
+}

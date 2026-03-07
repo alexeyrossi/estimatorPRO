@@ -1,0 +1,47 @@
+{
+  "id": "engine-ld-1br-elevator-detailed",
+  "kind": "engine",
+  "description": "Small detailed LD move from elevator condo to elevator condo.",
+  "input": {
+    "homeSize": "1",
+    "moveType": "LD",
+    "distance": "780",
+    "packingLevel": "Partial",
+    "accessOrigin": "elevator",
+    "accessDest": "elevator",
+    "inventoryText": "Living room: sofa, coffee table, tv stand, 8 boxes\nBedroom: queen bed, dresser, 2 nightstands, 8 boxes\nKitchen: dining table, 4 chairs, 6 boxes",
+    "extraStops": []
+  },
+  "expect": {
+    "finalVolume": 475,
+    "netVolume": 428,
+    "billableCF": 450,
+    "truckSpaceCF": 475,
+    "trucksFinal": 1,
+    "truckSizeLabel": "18ft Truck",
+    "crew": 3,
+    "timeMin": 3,
+    "timeMax": 5,
+    "splitRecommended": false,
+    "confidence": {
+      "score": 100,
+      "label": "High"
+    },
+    "materials": {
+      "blankets": 35,
+      "boxes": 30,
+      "wardrobes": 5
+    },
+    "smartEquipment": [],
+    "anyHeavySignal": false,
+    "heavyItemNames": [],
+    "detectedQtyTotal": 34,
+    "totalManHours": 9.5,
+    "daMins": 50,
+    "league": 0,
+    "boxDensity": 0,
+    "extraStopCount": 0,
+    "risks": [],
+    "overridesApplied": []
+  }
+}

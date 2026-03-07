@@ -1,0 +1,53 @@
+{
+  "id": "engine-commercial-skid-plural",
+  "kind": "engine",
+  "description": "Plural skids wording should behave identically to singular skid.",
+  "input": {
+    "homeSize": "Commercial",
+    "moveType": "Local",
+    "distance": "15",
+    "packingLevel": "None",
+    "accessOrigin": "ground",
+    "accessDest": "ground",
+    "inventoryText": "skids",
+    "extraStops": []
+  },
+  "expect": {
+    "finalVolume": 350,
+    "netVolume": 250,
+    "billableCF": 275,
+    "truckSpaceCF": 350,
+    "trucksFinal": 1,
+    "truckSizeLabel": "18ft Truck + Lift-gate",
+    "crew": 4,
+    "timeMin": 3,
+    "timeMax": 4,
+    "splitRecommended": false,
+    "confidence": {
+      "score": 100,
+      "label": "High"
+    },
+    "materials": {
+      "blankets": 20,
+      "boxes": 20,
+      "wardrobes": 0
+    },
+    "smartEquipment": [
+      "Pallet Jack"
+    ],
+    "anyHeavySignal": true,
+    "heavyItemNames": [],
+    "detectedQtyTotal": 1,
+    "totalManHours": 3.3,
+    "daMins": 0,
+    "league": 0,
+    "boxDensity": 0,
+    "extraStopCount": 0,
+    "risks": [],
+    "overridesApplied": []
+  },
+  "adviceExpect": [
+    "Commercial: Palletjack & Lift-gate required for skids.",
+    "Confirm dock door access, pallet counts, and receiving window before dispatch."
+  ]
+}

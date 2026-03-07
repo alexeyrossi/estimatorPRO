@@ -76,6 +76,7 @@ interface ReportPanelProps {
     saveStatus: "idle" | "success" | "error";
     overrides: Record<string, string>;
     setOverrides: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+    clearOverrides: () => void;
 }
 
 export const ReportPanel = ({
@@ -93,12 +94,14 @@ export const ReportPanel = ({
     isSaving,
     saveStatus,
     overrides,
-    setOverrides
+    setOverrides,
+    clearOverrides
 }: ReportPanelProps) => {
 
     const [isGeneratingPDF, setIsGeneratingPDF] = React.useState(false);
 
     const isLabor = inputs.moveType === "Labor";
+    const hasUsableEstimate = typeof estimate.finalVolume === "number" && estimate.finalVolume > 0;
 
     const formatMetric = (val: React.ReactNode | number, unit: string) => (
         <span className="tabular-nums inline-flex max-w-full flex-wrap items-baseline gap-x-1.5 gap-y-0.5 sm:flex-nowrap">
@@ -373,7 +376,7 @@ export const ReportPanel = ({
                 <MetricCard icon={Box} label={primaryVolumeLabel} value={formatMetric(<AnimatedNumber value={primaryVolume} />, "cu ft")} sub={primaryVolumeSub} variant="blue" />
                 <MetricCard icon={estimate.splitRecommended ? CalendarDays : Clock} label={estimate.splitRecommended ? "Split Rec." : "Time Est."} value={<><AnimatedNumber value={estimate.timeMin} />–<AnimatedNumber value={estimate.timeMax} />h</>} sub={estimate.splitRecommended ? "SPLIT TO 2 DAYS" : "Est. Range"} variant={estimate.splitRecommended ? "red" : "purple"} isCritical={estimate.splitRecommended} />
                 {isLabor ? <MetricCard icon={Info} label="Service" value="Labor" sub="No Trucks" variant="gray" /> : <MetricCard icon={Truck} label="Trucks" value={<AnimatedNumber value={estimate.trucksFinal} />} sub={estimate.truckSizeLabel?.replace(/\s*Truck\s*/i, ' ').trim()} variant="orange" />}
-                <MetricCard icon={Users} label="Crew" value={<AnimatedNumber value={estimate.crew} />} sub="Movers" variant="emerald" advice={estimate.crewSuggestion} />
+                <MetricCard icon={Users} label="Crew" value={<AnimatedNumber value={estimate.crew} />} sub="Movers" variant="emerald" advice={estimate.nextMoverSavingsLabel} />
             </div>
 
             <GlassPanel><div className="p-7 flex flex-col pb-32 md:pb-7">
@@ -398,7 +401,7 @@ export const ReportPanel = ({
                         </div>
 
                         {heavyBadgeText && (
-                            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-rose-50 rounded-full select-none cursor-default">
+                            <div className="inline-flex w-fit max-w-full self-start sm:self-auto items-center gap-2 px-3 py-1.5 bg-rose-50 rounded-full select-none cursor-default">
                                 <Weight className="w-3.5 h-3.5 text-rose-600" strokeWidth={2.5} />
                                 <span className="text-[10px] font-bold text-rose-600 uppercase tracking-widest">
                                     {heavyBadgeText}
@@ -530,7 +533,7 @@ export const ReportPanel = ({
                     <input type="text" placeholder="Client name" value={clientName}
                         onChange={e => setClientName(e.target.value)}
                         className="flex-1 bg-gray-50 border-transparent rounded-xl px-3 py-2.5 text-[12px] font-semibold outline-none" />
-                    <button onClick={handleSaveEstimate} disabled={!clientName.trim() || isSaving}
+                    <button onClick={handleSaveEstimate} disabled={!clientName.trim() || isSaving || !hasUsableEstimate}
                         className={`px-4 py-2.5 rounded-xl text-[11px] font-bold whitespace-nowrap transition-all duration-300 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${saveStatus === 'success' ? 'bg-emerald-500 text-white' :
                             isSaving ? 'bg-gray-900 text-white' :
                                 clientName.trim() ? 'bg-gray-900 text-white hover:bg-gray-800' :
@@ -550,12 +553,12 @@ export const ReportPanel = ({
                     <div className="border-t border-gray-100" />
                     <div className="flex items-center justify-between w-full pt-4">
                         <div className="flex items-center gap-3">
-                            <button onClick={handleCopy} className={`flex-1 md:flex-none md:w-[220px] flex items-center justify-center gap-2 px-6 py-4 rounded-xl text-[12px] font-bold transition-all duration-300 active:scale-[0.98] shadow-[0_8px_20px_rgba(0,0,0,0.15)] whitespace-nowrap overflow-hidden ${copyStatus === 'success' ? 'bg-emerald-500 text-white' : 'bg-gray-900 text-white hover:bg-black'}`}>
+                            <button onClick={handleCopy} disabled={!hasUsableEstimate} className={`flex-1 md:flex-none md:w-[220px] flex items-center justify-center gap-2 px-6 py-4 rounded-xl text-[12px] font-bold transition-all duration-300 active:scale-[0.98] shadow-[0_8px_20px_rgba(0,0,0,0.15)] whitespace-nowrap overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed ${copyStatus === 'success' ? 'bg-emerald-500 text-white' : 'bg-gray-900 text-white hover:bg-black'}`}>
                                 {copyStatus === 'success' ? <><Check className="w-4 h-4 shrink-0" /><span className="truncate">✓ Copied!</span></> : <><Clipboard className="w-4 h-4 shrink-0" /><span className="truncate">COPY REPORT</span></>}
                             </button>
                             <button
                                 onClick={handleDownloadPDF}
-                                disabled={isGeneratingPDF}
+                                disabled={isGeneratingPDF || !hasUsableEstimate}
                                 className={`flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-[14px] font-bold transition-all duration-200 text-gray-500 hover:text-gray-900 hover:bg-gray-100 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed`}
                             >
                                 {isGeneratingPDF ? (
@@ -585,6 +588,13 @@ export const ReportPanel = ({
                                 <div className="mb-6 bg-gray-900 rounded-[2rem] p-6 shadow-lg">
                                     <div className="text-[10px] font-bold text-gray-400 mb-4 uppercase tracking-widest flex items-center gap-2">
                                         <Lock className="w-4 h-4 text-white" /> Manager Overrides
+                                        <button
+                                            onClick={clearOverrides}
+                                            disabled={Object.keys(overrides).length === 0}
+                                            className="ml-auto rounded-lg border border-gray-700 px-2 py-1 text-[9px] font-bold text-gray-300 transition-colors hover:border-gray-500 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed"
+                                        >
+                                            Clear
+                                        </button>
                                     </div>
                                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                                         {["volume", "trucks", "crew", "timeMin", "timeMax", "blankets"].map(k => {

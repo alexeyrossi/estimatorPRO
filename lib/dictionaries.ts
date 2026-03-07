@@ -662,3 +662,39 @@ export const SIZE_UNIT_PATTERNS = [
   /\b(?:inch|inches)\b/i, /\d\s*(?:in)\b/i, /\b(?:ft|feet|foot)\b/i,
   /\d\s*(?:cm)\b/i, /\d\s*(?:mm)\b/i, /["″]/,
 ];
+
+export function buildLiteralRegexCache(labels: string[]) {
+  return labels.map((label) => new RegExp(`\\b${reEscape(label)}\\b`, "i"));
+}
+
+export function matchesAnyRegex(cache: RegExp[], text: string) {
+  return cache.some((re) => re.test(text));
+}
+
+export function matchesAnyRegexAcross(cache: RegExp[], ...texts: string[]) {
+  return texts.some((text) => matchesAnyRegex(cache, text));
+}
+
+export const ELECTRIC_PIANO_REGEX = /\b(?:electric|digital)\s+piano\b|\bpiano\s+(?:keyboard|electric|digital)\b/i;
+export const MANDATORY_FOUR_CREW_SPECIALTY_REGEX = /\b(?:upright piano|grand piano|baby grand(?: piano)?|piano|pool table|jacuzzi|hot tub)\b/i;
+
+export function isElectricPianoText(...texts: string[]) {
+  return texts.some((text) => ELECTRIC_PIANO_REGEX.test(text));
+}
+
+export function isMandatoryFourCrewSpecialtyText(...texts: string[]) {
+  return !isElectricPianoText(...texts) && texts.some((text) => MANDATORY_FOUR_CREW_SPECIALTY_REGEX.test(text));
+}
+
+export const BOX_LIKE_REGEX = /\b(box|bin|tote)s?\b/i;
+export const GARAGE_ATTIC_REGEX = /\bgarage\b|\bpatio\b|\bchristmas\b|\battic\b|\bshed\b/i;
+
+export const TRUE_HEAVY_REGEX_CACHE = buildLiteralRegexCache(TRUE_HEAVY_ITEMS);
+export const LIFT_GATE_REGEX_CACHE = buildLiteralRegexCache(LIFT_GATE_ITEMS);
+export const LEAGUE_1_REGEX_CACHE = buildLiteralRegexCache(LEAGUE_1_ITEMS);
+export const LEAGUE_2_REGEX_CACHE = buildLiteralRegexCache(LEAGUE_2_ITEMS);
+export const IRREGULAR_REGEX_CACHE = buildLiteralRegexCache(IRREGULAR_SIGNALS);
+export const VAGUE_REGEX_CACHE = buildLiteralRegexCache(VAGUE_SIGNALS);
+export const DA_COMPLEX_REGEX_CACHE = buildLiteralRegexCache(DA_COMPLEX);
+export const DA_SIMPLE_REGEX_CACHE = buildLiteralRegexCache(DA_SIMPLE);
+export const STRICT_NO_BLANKET_REGEX_CACHE = buildLiteralRegexCache(STRICT_NO_BLANKET_ITEMS);

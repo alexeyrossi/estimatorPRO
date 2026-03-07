@@ -7,15 +7,19 @@ import {
   ABBREVIATIONS,
   SORTED_KEYS,
   KEY_REGEX,
-  LIFT_GATE_ITEMS,
-  TRUE_HEAVY_ITEMS,
   VOLUME_TABLE,
-  IRREGULAR_SIGNALS,
-  VAGUE_SIGNALS,
-  DA_COMPLEX,
-  DA_SIMPLE,
   SIZE_UNIT_PATTERNS,
-  STRICT_NO_BLANKET_ITEMS
+  BOX_LIKE_REGEX,
+  DA_COMPLEX_REGEX_CACHE,
+  DA_SIMPLE_REGEX_CACHE,
+  GARAGE_ATTIC_REGEX,
+  IRREGULAR_REGEX_CACHE,
+  LIFT_GATE_REGEX_CACHE,
+  STRICT_NO_BLANKET_REGEX_CACHE,
+  TRUE_HEAVY_REGEX_CACHE,
+  VAGUE_REGEX_CACHE,
+  matchesAnyRegex,
+  matchesAnyRegexAcross,
 } from "./dictionaries";
 import { PROTOCOL } from "./config";
 import { NormalizedRow, ParsedItem } from "./types/estimator";
@@ -130,6 +134,10 @@ export function applyAliasesRegex(t: string): string {
   return t;
 }
 
+function isOutdoorContextRoom(room: string): boolean {
+  return /storage\/outdoor|exterior|patio|deck|backyard|shed|garage|attic|storage/i.test(room || "");
+}
+
 type SyntheticBundleItem = {
   name: keyof typeof VOLUME_TABLE;
   qty: number;
@@ -212,9 +220,9 @@ export function normalizeRowsFromText(text: string) {
     const cfUnit = Math.max(1, Math.round((it.cf || 0) / Math.max(1, it.qty || 1)));
     const nameLower = (it.name || "").toLowerCase();
     const rawLower = (it.raw || "").toLowerCase();
-    const isHeavy = it.isWeightHeavy || TRUE_HEAVY_ITEMS.some(h => new RegExp(`\\b${h}\\b`, 'i').test(nameLower) || new RegExp(`\\b${h}\\b`, 'i').test(rawLower));
+    const isHeavy = it.isWeightHeavy || matchesAnyRegexAcross(TRUE_HEAVY_REGEX_CACHE, nameLower, rawLower);
     return {
-      id: uid(), name: it.name, qty: clampInt(it.qty, 1, 500), cfUnit,
+      id: uid(), name: it.name, qty: clampInt(it.qty, 1, 500), cfUnit, cfExact: it.cf, isSynthetic: !!it.isSynthetic,
       raw: it.raw || "", room: it.room || "", flags: { heavy: !!isHeavy, heavyWeight: !!it.isWeightHeavy }
     };
   });
@@ -230,12 +238,14 @@ export function summarizeNormalizedRows(rows: NormalizedRow[], rawTextForSignals
   const detectedItems: ParsedItem[] = validRows.map(r => ({
     name: r.name,
     qty: clampInt(r.qty, 1, 500),
-    cf: Math.max(1, Math.round((r.cfUnit || 1) * clampInt(r.qty, 1, 500))),
+    cf: typeof r.cfExact === "number" && r.cfExact > 0
+      ? r.cfExact
+      : Math.max(1, Math.round((r.cfUnit || 1) * clampInt(r.qty, 1, 500))),
     raw: r.raw || "",
     rawExamples: r.raw ? [r.raw] : [],
     room: r.room || "",
     sourceCount: 1,
-    isSynthetic: false,
+    isSynthetic: !!r.isSynthetic,
     isWeightHeavy: !!r.flags?.heavyWeight,
     isManualHeavy: !!r.flags?.heavy,
     wLbs: null,
@@ -245,7 +255,7 @@ export function summarizeNormalizedRows(rows: NormalizedRow[], rawTextForSignals
   const detectedQtyTotal = (detectedItems || []).reduce((a, it) => a + (it.qty || 0), 0);
   const boxCount = detectedItems.reduce((a, it) => {
     const n = (it.name || "").toLowerCase();
-    return new RegExp(`\\b(box|bin|tote)s?\\b`, 'i').test(n) ? a + it.qty : a;
+    return BOX_LIKE_REGEX.test(n) ? a + it.qty : a;
   }, 0);
   const heavyCount = validRows.reduce((a, r) => a + (r.flags?.heavy ? clampInt(r.qty, 1, 500) : 0), 0);
 
@@ -255,25 +265,25 @@ export function summarizeNormalizedRows(rows: NormalizedRow[], rawTextForSignals
     // SAFE Bed Unit Check
     const isBedUnit = n.includes("bed") && !n.includes("frame") && !n.includes("mattress") && !n.includes("boxspring") && !n.includes("slat");
     if (isBedUnit) daComplexQty += it.qty;
-    else if (DA_COMPLEX.some(s => new RegExp(`\\b${s}\\b`, 'i').test(n))) daComplexQty += it.qty;
-    else if (DA_SIMPLE.some(s => new RegExp(`\\b${s}\\b`, 'i').test(n))) daSimpleQty += it.qty;
+    else if (matchesAnyRegex(DA_COMPLEX_REGEX_CACHE, n)) daComplexQty += it.qty;
+    else if (matchesAnyRegex(DA_SIMPLE_REGEX_CACHE, n)) daSimpleQty += it.qty;
   });
 
   let furnitureCount = 0, noBlanketVol = 0;
   detectedItems.forEach(it => {
     const n = (it.name || "").toLowerCase();
-    if (STRICT_NO_BLANKET_ITEMS.some(nb => new RegExp(`\\b${nb}\\b`, 'i').test(n))) noBlanketVol += it.cf;
+    if (matchesAnyRegex(STRICT_NO_BLANKET_REGEX_CACHE, n)) noBlanketVol += it.cf;
     else furnitureCount += it.qty;
   });
-  const irregularCount = detectedItems.reduce((a, it) => IRREGULAR_SIGNALS.some(s => new RegExp(`\\b${s}\\b`, 'i').test((it.name || "").toLowerCase())) ? a + it.qty : a, 0);
+  const irregularCount = detectedItems.reduce((a, it) => matchesAnyRegex(IRREGULAR_REGEX_CACHE, (it.name || "").toLowerCase()) ? a + it.qty : a, 0);
   const rawLower = (rawTextForSignals || "").toLowerCase();
 
   return {
     detectedItems, totalVol, boxCount, heavyCount, furnitureCount, detectedQtyTotal, noBlanketVol,
     irregularCount, daComplexQty, daSimpleQty, unrecognized: [],
     estimatedItemCount: validRows.reduce((a, r) => a + (/\(est\)$/.test((r.name || "").toLowerCase()) ? clampInt(r.qty, 1, 500) : 0), 0),
-    hasVague: VAGUE_SIGNALS.some(s => new RegExp(`\\b${s}\\b`).test(rawLower)),
-    mentionsGarageOrAttic: /\bgarage\b|\bpatio\b|\bchristmas\b|\battic\b|\bshed\b/i.test(rawLower)
+    hasVague: matchesAnyRegex(VAGUE_REGEX_CACHE, rawLower),
+    mentionsGarageOrAttic: GARAGE_ATTIC_REGEX.test(rawLower)
   };
 }
 
@@ -286,10 +296,6 @@ export function parseInventory(text: string) {
     .replace(inlineRoomBreak, ".\n")
     .split("\n")
     .filter(l => l?.trim()?.length > 0);
-
-  let totalVol = 0, boxCount = 0, heavyCount = 0, detectedQtyTotal = 0, noBlanketVol = 0;
-  let daComplexQty = 0, daSimpleQty = 0, furnitureCount = 0;
-  let irregularCount = 0, estimatedItemCount = 0;
 
   const detectedItems: ParsedItem[] = [];
   const unrecognized: string[] = [];
@@ -313,6 +319,15 @@ export function parseInventory(text: string) {
       .replace(/\s+/g, " ")
       .trim();
     return EXACT_ROOM_HEADERS.get(key) || null;
+  };
+  const isStandaloneRoomHeader = (line: string) => {
+    const stripped = (line || "").replace(/\([^)]*\)/g, "").replace(/:$/, "").trim();
+    if (!stripped || /\d/.test(stripped)) return null;
+    const segments = stripped.split(/\s*\/\s*|\s+[—–-]\s+/).map((segment) => segment.trim()).filter(Boolean);
+    if (segments.length < 2) return null;
+    const roomOnly = new RegExp(`^(${ROOM_ALIAS_REGEX_BASE})(\\s+room|\\s+area|\\s+rooms|\\s+offices|\\s+area)?$`, "i");
+    if (!segments.every((segment) => roomOnly.test(segment))) return null;
+    return segments[segments.length - 1];
   };
 
   for (const line of rawLines) {
@@ -346,6 +361,13 @@ export function parseInventory(text: string) {
       currentRoom = exactRoomHeader;
       clean = "";
     } else if (!isProtectedItem) {
+      const standaloneRoomHeader = isStandaloneRoomHeader(clean);
+      if (standaloneRoomHeader) {
+        currentRoom = normalizeRoomData(standaloneRoomHeader);
+        clean = "";
+      }
+    }
+    if (!isProtectedItem && clean) {
       if ((ROOM_ONLY.test(clean) || GENERIC_SECTION_HEADER) && !/[0-9]/.test(clean)) {
         currentRoom = normalizeRoomData(clean.replace(/:$/, "").split("/")[0].trim()); clean = "";
       } else {
@@ -362,8 +384,6 @@ export function parseInventory(text: string) {
 
   const registerMatchedItem = (name: keyof typeof VOLUME_TABLE, qty: number, raw: string, room: string, wLbs: number | null, isWeightHeavy: boolean, isSynthetic = false) => {
     const cf = VOLUME_TABLE[name] * qty;
-    totalVol += cf;
-    detectedQtyTotal += qty;
     detectedItems.push({
       name,
       qty,
@@ -378,23 +398,15 @@ export function parseInventory(text: string) {
       isManualHeavy: false,
       flags: { heavy: isWeightHeavy, heavyWeight: isWeightHeavy }
     });
-    if (new RegExp(`\\b(box|bin|tote)s?\\b`, "i").test(name)) boxCount += qty;
-    if (LIFT_GATE_ITEMS.some(h => new RegExp(`\\b${h}\\b`, "i").test(name)) || isWeightHeavy) heavyCount += qty;
-    if (IRREGULAR_SIGNALS.some(s => new RegExp(`\\b${s}\\b`, "i").test(name))) irregularCount += qty;
-
-    const isBedUnit = name.includes("bed") && !name.includes("frame") && !name.includes("mattress") && !name.includes("boxspring") && !name.includes("slat");
-    if (isBedUnit) daComplexQty += qty;
-    else if (DA_COMPLEX.some(s => new RegExp(`\\b${s}\\b`, "i").test(name))) daComplexQty += qty;
-    else if (DA_SIMPLE.some(s => new RegExp(`\\b${s}\\b`, "i").test(name))) daSimpleQty += qty;
-
-    if (!STRICT_NO_BLANKET_ITEMS.some(nb => new RegExp(`\\b${nb}\\b`, "i").test(name))) furnitureCount += qty;
-    else noBlanketVol += cf;
   };
 
   tokens.forEach(({ text: tok, room }) => {
     const rawTok = (tok || "").trim();
     let t = scrubNoise(rawTok.toLowerCase());
     if (!t) return;
+    const contextualAlias = isOutdoorContextRoom(room) && /\b(planters?|pots?)\b/i.test(rawTok)
+      ? "plant"
+      : null;
 
     // Strip parenthetical notes that aren't quantities
     t = t.replace(/\s*\([^)]*(?:estimated|approx|ratio|mounted|commercial|light|heavy|uncertain|included|client)[^)]*\)\s*/gi, " ").trim();
@@ -419,7 +431,7 @@ export function parseInventory(text: string) {
     }
 
     t = t.replace(/\b(boxed|packed)\b/gi, " ").replace(/\s+/g, " ").trim();
-    const aliasFromRaw = applyAliasesRegex(rawTok.toLowerCase());
+    const aliasFromRaw = contextualAlias || applyAliasesRegex(rawTok.toLowerCase());
 
     if (aliasFromRaw !== rawTok.toLowerCase() && aliasFromRaw !== t) t = aliasFromRaw;
 
@@ -462,14 +474,10 @@ export function parseInventory(text: string) {
       if (/^(?:front door|front porch|boxes and bins|boxes & bins|storage closet|bathroom|queen|king|full|double|single|twin|jewelry|small|medium|large|sm|med|lg|lrg|reg|std|floor(?:\s+lrg)?)$/i.test(fallbackName)) return;
       let estVol = PROTOCOL.VOL_EST_MEDIUM;
       const lowerName = fallbackName.toLowerCase();
-      let isBoxLike = false;
-      if (/box|bin|tote|bag|pack|basket|shoe|lamp|small|mini/i.test(lowerName)) { estVol = PROTOCOL.VOL_EST_SMALL; isBoxLike = true; }
+      if (/box|bin|tote|bag|pack|basket|shoe|lamp|small|mini/i.test(lowerName)) { estVol = PROTOCOL.VOL_EST_SMALL; }
       else if (/table|desk|cabinet|shelf|rack|stand|unit|dresser/i.test(lowerName)) { estVol = PROTOCOL.VOL_EST_LARGE; }
 
       estVol = estVol * qty;
-      totalVol += estVol; detectedQtyTotal += qty;
-      if (!isBoxLike) furnitureCount += qty;
-      estimatedItemCount += qty;
       detectedItems.push({
         name: `${fallbackName} (est)`,
         qty,
@@ -507,12 +515,40 @@ export function parseInventory(text: string) {
     }
   }
   const consolidatedItems = Array.from(consolidationMap.values());
+  const derivedDetectedQtyTotal = consolidatedItems.reduce((sum, item) => sum + (item.qty || 0), 0);
+  const derivedTotalVol = consolidatedItems.reduce((sum, item) => sum + (item.cf || 0), 0);
+  const derivedBoxCount = consolidatedItems.reduce((sum, item) => (
+    BOX_LIKE_REGEX.test((item.name || "").toLowerCase()) ? sum + item.qty : sum
+  ), 0);
+  const derivedHeavyCount = consolidatedItems.reduce((sum, item) => (
+    matchesAnyRegex(LIFT_GATE_REGEX_CACHE, (item.name || "").toLowerCase()) || item.isWeightHeavy ? sum + item.qty : sum
+  ), 0);
+  const derivedIrregularCount = consolidatedItems.reduce((sum, item) => (
+    matchesAnyRegex(IRREGULAR_REGEX_CACHE, (item.name || "").toLowerCase()) ? sum + item.qty : sum
+  ), 0);
+  const derivedEstimatedItemCount = consolidatedItems.reduce((sum, item) => (
+    /\(est\)$/.test((item.name || "").toLowerCase()) ? sum + item.qty : sum
+  ), 0);
+  let derivedDaComplexQty = 0;
+  let derivedDaSimpleQty = 0;
+  let derivedFurnitureCount = 0;
+  let derivedNoBlanketVol = 0;
+  consolidatedItems.forEach((item) => {
+    const nameLower = (item.name || "").toLowerCase();
+    const isBedUnit = nameLower.includes("bed") && !nameLower.includes("frame") && !nameLower.includes("mattress") && !nameLower.includes("boxspring") && !nameLower.includes("slat");
+    if (isBedUnit) derivedDaComplexQty += item.qty;
+    else if (matchesAnyRegex(DA_COMPLEX_REGEX_CACHE, nameLower)) derivedDaComplexQty += item.qty;
+    else if (matchesAnyRegex(DA_SIMPLE_REGEX_CACHE, nameLower)) derivedDaSimpleQty += item.qty;
+
+    if (matchesAnyRegex(STRICT_NO_BLANKET_REGEX_CACHE, nameLower)) derivedNoBlanketVol += item.cf;
+    else derivedFurnitureCount += item.qty;
+  });
 
   const rawLower = (text || "").toLowerCase();
   return {
-    detectedItems: consolidatedItems, totalVol, boxCount, heavyCount, furnitureCount, detectedQtyTotal, noBlanketVol,
-    irregularCount, daComplexQty, daSimpleQty, unrecognized, estimatedItemCount,
-    hasVague: VAGUE_SIGNALS.some(s => new RegExp(`\\b${s}\\b`).test(rawLower)),
-    mentionsGarageOrAttic: /\bgarage\b|\bpatio\b|\bchristmas\b|\battic\b|\bshed\b/i.test(rawLower)
+    detectedItems: consolidatedItems, totalVol: derivedTotalVol, boxCount: derivedBoxCount, heavyCount: derivedHeavyCount, furnitureCount: derivedFurnitureCount, detectedQtyTotal: derivedDetectedQtyTotal, noBlanketVol: derivedNoBlanketVol,
+    irregularCount: derivedIrregularCount, daComplexQty: derivedDaComplexQty, daSimpleQty: derivedDaSimpleQty, unrecognized, estimatedItemCount: derivedEstimatedItemCount,
+    hasVague: matchesAnyRegex(VAGUE_REGEX_CACHE, rawLower),
+    mentionsGarageOrAttic: GARAGE_ATTIC_REGEX.test(rawLower)
   };
 }

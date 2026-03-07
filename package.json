@@ -6,7 +6,15 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint . --max-warnings=0",
+    "ci:check": "npm run lint && npm run test && npm run build",
+    "test:unit": "node --test tests/unit/*.test.mjs",
+    "bench:hotpath": "node tests/perf/hotpath.mjs",
+    "regression": "node tests/regression/run-regression.mjs",
+    "regression:gold": "node tests/regression/run-regression.mjs --tier gold",
+    "regression:update": "node tests/regression/run-regression.mjs --update",
+    "regression:update:gold": "node tests/regression/run-regression.mjs --tier gold --update --allow-gold-update",
+    "test": "npm run test:unit && npm run regression"
   },
   "dependencies": {
     "@supabase/ssr": "^0.8.0",

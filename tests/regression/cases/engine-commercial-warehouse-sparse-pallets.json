@@ -1,0 +1,53 @@
+{
+  "id": "engine-commercial-warehouse-sparse-pallets",
+  "kind": "engine",
+  "description": "Sparse warehouse inventory with pallets should keep a conservative 4-mover floor and warehouse logistics advice.",
+  "input": {
+    "homeSize": "Commercial",
+    "moveType": "Local",
+    "distance": "6",
+    "packingLevel": "None",
+    "accessOrigin": "ground",
+    "accessDest": "ground",
+    "inventoryText": "small warehouse contents, some racks, pallets, tools, bins",
+    "extraStops": []
+  },
+  "expect": {
+    "finalVolume": 425,
+    "netVolume": 300,
+    "billableCF": 325,
+    "truckSpaceCF": 425,
+    "trucksFinal": 1,
+    "truckSizeLabel": "18ft Truck + Lift-gate",
+    "crew": 4,
+    "timeMin": 3,
+    "timeMax": 4,
+    "splitRecommended": false,
+    "confidence": {
+      "score": 77,
+      "label": "Medium"
+    },
+    "materials": {
+      "blankets": 20,
+      "boxes": 20,
+      "wardrobes": 0
+    },
+    "smartEquipment": [
+      "Pallet Jack"
+    ],
+    "anyHeavySignal": true,
+    "heavyItemNames": [],
+    "detectedQtyTotal": 5,
+    "totalManHours": 4.4,
+    "daMins": 0,
+    "league": 0,
+    "boxDensity": 20,
+    "extraStopCount": 0,
+    "risks": [],
+    "overridesApplied": []
+  },
+  "adviceExpect": [
+    "Commercial: Palletjack & Lift-gate required for skids.",
+    "Confirm dock door access, pallet counts, and receiving window before dispatch."
+  ]
+}

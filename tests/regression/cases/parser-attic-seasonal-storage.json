@@ -1,0 +1,56 @@
+{
+  "id": "parser-attic-seasonal-storage",
+  "kind": "parser",
+  "description": "Attic seasonal storage should stay vague-aware without losing bins and folding furniture.",
+  "input": {
+    "inventoryText": "Attic: seasonal decor, 12 bins, misc storage, folding table"
+  },
+  "expect": {
+    "totalVol": 100,
+    "boxCount": 13,
+    "heavyCount": 0,
+    "furnitureCount": 2,
+    "detectedQtyTotal": 15,
+    "irregularCount": 0,
+    "estimatedItemCount": 1,
+    "hasVague": true,
+    "mentionsGarageOrAttic": true,
+    "unrecognized": [
+      "seasonal decor"
+    ],
+    "detectedItems": [
+      {
+        "name": "bin",
+        "qty": 12,
+        "room": "Storage/Outdoor",
+        "cf": 60,
+        "isSynthetic": false,
+        "isWeightHeavy": false
+      },
+      {
+        "name": "folding table",
+        "qty": 1,
+        "room": "Storage/Outdoor",
+        "cf": 15,
+        "isSynthetic": false,
+        "isWeightHeavy": false
+      },
+      {
+        "name": "medium box",
+        "qty": 1,
+        "room": "Storage/Outdoor",
+        "cf": 5,
+        "isSynthetic": false,
+        "isWeightHeavy": false
+      },
+      {
+        "name": "seasonal decor (est)",
+        "qty": 1,
+        "room": "Storage/Outdoor",
+        "cf": 20,
+        "isSynthetic": false,
+        "isWeightHeavy": false
+      }
+    ]
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "id": "engine-labor-large-full-pack",
+  "kind": "engine",
+  "description": "Large labor-only full-pack job should still allow 4+ movers when workload clearly justifies it.",
+  "input": {
+    "homeSize": "4",
+    "moveType": "Labor",
+    "distance": "0",
+    "packingLevel": "Full",
+    "accessOrigin": "ground",
+    "accessDest": "ground",
+    "inventoryText": "4 beds, 5 dressers, sectional, dining table, 6 chairs, washer, dryer, patio set, 55 boxes, 20 totes, treadmill, china cabinet, mirror, 4 tvs",
+    "extraStops": []
+  },
+  "expect": {
+    "finalVolume": 2000,
+    "netVolume": 1525,
+    "billableCF": 1600,
+    "truckSpaceCF": 2000,
+    "trucksFinal": 0,
+    "truckSizeLabel": "N/A",
+    "crew": 4,
+    "timeMin": 6,
+    "timeMax": 8,
+    "splitRecommended": false,
+    "confidence": {
+      "score": 100,
+      "label": "High"
+    },
+    "materials": {
+      "blankets": 100,
+      "boxes": 90,
+      "wardrobes": 20
+    },
+    "smartEquipment": [
+      "Appliance Dolly",
+      "Protective Wrap"
+    ],
+    "anyHeavySignal": true,
+    "heavyItemNames": [
+      "china cabinet",
+      "treadmill"
+    ],
+    "detectedQtyTotal": 102,
+    "totalManHours": 25.2,
+    "daMins": 200,
+    "league": 1,
+    "boxDensity": 20,
+    "extraStopCount": 0,
+    "risks": [],
+    "overridesApplied": []
+  }
+}

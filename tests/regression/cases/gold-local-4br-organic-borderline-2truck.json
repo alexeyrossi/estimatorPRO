@@ -1,0 +1,50 @@
+{
+  "id": "gold-local-4br-organic-borderline-2truck",
+  "tier": "gold",
+  "kind": "engine",
+  "description": "Organic 4BR local quote that lands in a natural 2-truck recommendation without overrides.",
+  "input": {
+    "homeSize": "4",
+    "moveType": "Local",
+    "distance": "16",
+    "packingLevel": "Partial",
+    "accessOrigin": "ground",
+    "accessDest": "ground",
+    "inventoryText": "Living room: sectional sofa, loveseat, coffee table, media console, 10 boxes\nDining room: dining table, 6 chairs, buffet, 6 boxes\nKitchen: washer, dryer, refrigerator, 8 boxes\nPrimary bedroom: king bed, dresser, 2 nightstands, 8 boxes\nBedroom 2: queen bed, dresser, 6 boxes\nBedroom 3: queen bed, dresser, 6 boxes\nBedroom 4: twin bed, dresser, 4 boxes\nPatio: patio table, 4 chairs, 4 boxes",
+    "extraStops": []
+  },
+  "expect": {
+    "finalVolume": 1725,
+    "netVolume": 1420,
+    "billableCF": 1500,
+    "truckSpaceCF": 1725,
+    "trucksFinal": 2,
+    "truckSizeLabel": "26ft Truck",
+    "crew": 6,
+    "timeMin": 8,
+    "timeMax": 9,
+    "splitRecommended": false,
+    "confidence": {
+      "score": 100,
+      "label": "High"
+    },
+    "materials": {
+      "blankets": 100,
+      "boxes": 30,
+      "wardrobes": 20
+    },
+    "smartEquipment": [
+      "Appliance Dolly"
+    ],
+    "anyHeavySignal": false,
+    "heavyItemNames": [],
+    "detectedQtyTotal": 81,
+    "totalManHours": 27.3,
+    "daMins": 125,
+    "league": 1,
+    "boxDensity": 0,
+    "extraStopCount": 0,
+    "risks": [],
+    "overridesApplied": []
+  }
+}

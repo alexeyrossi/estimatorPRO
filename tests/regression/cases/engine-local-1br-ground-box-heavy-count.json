@@ -1,0 +1,47 @@
+{
+  "id": "engine-local-1br-ground-box-heavy-count",
+  "kind": "engine",
+  "description": "Small ground-to-ground 1BR local with dense boxes should stay at 2 movers when 2-man duration is workable.",
+  "input": {
+    "homeSize": "1",
+    "moveType": "Local",
+    "distance": "4",
+    "packingLevel": "None",
+    "accessOrigin": "ground",
+    "accessDest": "ground",
+    "inventoryText": "1 Bed, Footboard\n1 Bed, Headboard\n15 Box, LG PBO\n6 Box, Med. PBO\n10 Box, Small PBO\n1 Computer Chair\n4 Computer Screen (PBO)\n\n1 Dresser, Triple\n1 Fan, Floor\n1 Hamper\n2 Ironing Board\n1 Mattress DBL/QN\n1 Mirror, Regular\n3 Plastic Bin, LG.\n\n1 Soundbar\n2 Suitcase, LG.\n1 T.V. Flat Screen - 76\n1 Table, Coffee\n2 Table, End\n18 Totes\n1 Work Bench, Reg.",
+    "extraStops": []
+  },
+  "expect": {
+    "finalVolume": 575,
+    "netVolume": 493,
+    "billableCF": 525,
+    "truckSpaceCF": 575,
+    "trucksFinal": 1,
+    "truckSizeLabel": "18ft Truck",
+    "crew": 2,
+    "timeMin": 5,
+    "timeMax": 7,
+    "splitRecommended": false,
+    "confidence": {
+      "score": 100,
+      "label": "High"
+    },
+    "materials": {
+      "blankets": 20,
+      "boxes": 50,
+      "wardrobes": 5
+    },
+    "smartEquipment": [],
+    "anyHeavySignal": false,
+    "heavyItemNames": [],
+    "detectedQtyTotal": 74,
+    "totalManHours": 7.6,
+    "daMins": 45,
+    "league": 0,
+    "boxDensity": 70,
+    "extraStopCount": 0,
+    "risks": [],
+    "overridesApplied": []
+  }
+}

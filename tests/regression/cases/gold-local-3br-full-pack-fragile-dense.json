@@ -1,0 +1,52 @@
+{
+  "id": "gold-local-3br-full-pack-fragile-dense",
+  "tier": "gold",
+  "kind": "engine",
+  "description": "3BR full-pack fragile-dense quote with wrap-heavy item mix.",
+  "input": {
+    "homeSize": "3",
+    "moveType": "Local",
+    "distance": "11",
+    "packingLevel": "Full",
+    "accessOrigin": "elevator",
+    "accessDest": "ground",
+    "inventoryText": "Living room: china cabinet, glass dining table, TV 55, TV 65, TV 75, 10 framed art, 4 mirrors, curio cabinet, sofa, coffee table, 40 boxes\nBedroom: king bed, dresser, 10 boxes\nBedroom 2: queen bed, dresser, 8 boxes\nKitchen: 12 boxes",
+    "extraStops": []
+  },
+  "expect": {
+    "finalVolume": 1325,
+    "netVolume": 1092,
+    "billableCF": 1150,
+    "truckSpaceCF": 1325,
+    "trucksFinal": 1,
+    "truckSizeLabel": "26ft Truck + Lift-gate",
+    "crew": 4,
+    "timeMin": 8,
+    "timeMax": 10,
+    "splitRecommended": false,
+    "confidence": {
+      "score": 96,
+      "label": "High"
+    },
+    "materials": {
+      "blankets": 100,
+      "boxes": 70,
+      "wardrobes": 15
+    },
+    "smartEquipment": [
+      "Protective Wrap"
+    ],
+    "anyHeavySignal": true,
+    "heavyItemNames": [
+      "china cabinet"
+    ],
+    "detectedQtyTotal": 96,
+    "totalManHours": 26.9,
+    "daMins": 90,
+    "league": 0,
+    "boxDensity": 0,
+    "extraStopCount": 0,
+    "risks": [],
+    "overridesApplied": []
+  }
+}

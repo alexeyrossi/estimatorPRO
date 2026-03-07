@@ -1,0 +1,48 @@
+{
+  "id": "engine-commercial-rack-singular-only",
+  "kind": "engine",
+  "description": "A lone rack mention should not force warehouse rules by itself.",
+  "input": {
+    "homeSize": "Commercial",
+    "moveType": "Local",
+    "distance": "8",
+    "packingLevel": "None",
+    "accessOrigin": "ground",
+    "accessDest": "ground",
+    "inventoryText": "rack",
+    "extraStops": []
+  },
+  "expect": {
+    "finalVolume": 250,
+    "netVolume": 220,
+    "billableCF": 225,
+    "truckSpaceCF": 250,
+    "trucksFinal": 1,
+    "truckSizeLabel": "18ft Truck",
+    "crew": 2,
+    "timeMin": 3,
+    "timeMax": 4,
+    "splitRecommended": false,
+    "confidence": {
+      "score": 100,
+      "label": "High"
+    },
+    "materials": {
+      "blankets": 20,
+      "boxes": 20,
+      "wardrobes": 0
+    },
+    "smartEquipment": [],
+    "anyHeavySignal": false,
+    "heavyItemNames": [],
+    "detectedQtyTotal": 1,
+    "totalManHours": 2.4,
+    "daMins": 0,
+    "league": 0,
+    "boxDensity": 0,
+    "extraStopCount": 0,
+    "risks": [],
+    "overridesApplied": []
+  },
+  "adviceExpect": []
+}

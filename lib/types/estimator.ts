@@ -4,10 +4,11 @@ export interface ExtraStop {
 }
 
 export type InventoryMode = "raw" | "normalized";
+export type RowsStatus = "empty" | "fresh" | "stale";
 
 export interface EstimateInputs {
   homeSize: string;
-  moveType: "Local" | "LD" | "Labor" | "Storage";
+  moveType: "Local" | "LD" | "Labor";
   distance: string;
   packingLevel: "None" | "Partial" | "Full";
   accessOrigin: "ground" | "elevator" | "stairs";
@@ -24,6 +25,8 @@ export interface NormalizedRow {
   name: string;
   qty: number | "";
   cfUnit: number | "";
+  cfExact?: number;
+  isSynthetic?: boolean;
   raw: string;
   room: string;
   flags: { heavy: boolean; heavyWeight: boolean };
@@ -65,6 +68,8 @@ export interface EstimateResult {
   risks: RiskItem[];
   splitRecommended: boolean;
   crewSuggestion: string | null;
+  nextMoverTimeSavedHours: number | null;
+  nextMoverSavingsLabel: string | null;
   parsedItems: ParsedItem[];
   detectedQtyTotal: number;
   unrecognized: string[];
@@ -96,6 +101,14 @@ export interface SavedEstimateState {
   overrides: Record<string, string>;
 }
 
+export interface EstimateDraftState {
+  inputs: EstimateInputs;
+  inventoryMode: InventoryMode;
+  normalizedRows: NormalizedRow[];
+  rowsStatus: RowsStatus;
+  overrides: Record<string, string>;
+}
+
 export interface EstimateHistoryItem {
   id: string;
   client_name: string;
@@ -114,4 +127,26 @@ export interface SavedEstimateRecord {
   truck_space_cf: number | null;
   inputs_state: SavedEstimateState;
   created_at: string;
+}
+
+export interface DraftEnvelope {
+  version: string;
+  savedAt: string;
+  expiresAt: string;
+  inputs: EstimateInputs;
+  inventoryMode: InventoryMode;
+  normalizedRows: NormalizedRow[];
+  rowsStatus: RowsStatus;
+}
+
+export interface DraftState {
+  inputs: EstimateInputs;
+  inventoryMode: InventoryMode;
+  normalizedRows: NormalizedRow[];
+  rowsStatus: RowsStatus;
+}
+
+export interface DraftLoadResult {
+  state: DraftState | null;
+  status: "loaded" | "missing" | "invalid";
 }

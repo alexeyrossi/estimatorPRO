@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { EstimateInputs, NormalizedRow, EstimateResult } from '@/lib/types/estimator';
+import { EstimateInputs, NormalizedRow, EstimateResult, RowsStatus } from '@/lib/types/estimator';
 import { Settings, MapPin, Trash2, Shield, User, Plus, Weight, Undo2 } from 'lucide-react';
 import { GlassPanel } from './GlassPanel';
 import { Select } from './Select';
@@ -11,24 +11,25 @@ interface ConfigPanelProps {
     setInputs: React.Dispatch<React.SetStateAction<EstimateInputs>>;
     adminMode: boolean;
     inventoryMode: "raw" | "normalized";
-    setInventoryMode: React.Dispatch<React.SetStateAction<"raw" | "normalized">>;
     normalizedRows: NormalizedRow[];
     setNormalizedRows: React.Dispatch<React.SetStateAction<NormalizedRow[]>>;
+    rowsStatus: RowsStatus;
     inventoryClipped: boolean;
     setInventoryClipped: (v: boolean) => void;
     addRowInput: string;
     setAddRowInput: (v: string) => void;
     suggestedItems: string[];
-    handleNormalize: () => void;
+    handleInventoryModeToggle: () => void | Promise<void>;
+    handleRawInventoryChange: (text: string) => void;
     handleAddRow: () => void;
     handleRowQtyChange: (id: string, value: string, blur?: boolean) => void;
     estimate: EstimateResult | Partial<EstimateResult>;
 }
 
 export const ConfigPanel = ({
-    inputs, setInputs, adminMode, inventoryMode, setInventoryMode, normalizedRows, setNormalizedRows,
+    inputs, setInputs, adminMode, inventoryMode, normalizedRows, setNormalizedRows, rowsStatus,
     inventoryClipped, setInventoryClipped, addRowInput, setAddRowInput, suggestedItems,
-    handleNormalize, handleAddRow, handleRowQtyChange, estimate
+    handleInventoryModeToggle, handleRawInventoryChange, handleAddRow, handleRowQtyChange, estimate
 }: ConfigPanelProps) => {
 
     const isLabor = inputs.moveType === "Labor";
@@ -207,52 +208,39 @@ export const ConfigPanel = ({
                     )}
 
                     {adminMode && (
-                        <button onClick={async () => {
-                            const grouped = normalizedRows.reduce((acc, row) => {
-                                const room = row.room || 'General';
-                                if (!acc[room]) acc[room] = [];
-                                acc[room].push(`${row.qty === "" ? 1 : row.qty} ${row.name}`);
-                                return acc;
-                            }, {} as Record<string, string[]>);
-
-                            const genText = Object.entries(grouped)
-                                .map(([room, items]) => `${room === 'General' ? '' : room + ': '}${items.join(', ')}`)
-                                .join('\n');
-
-                            if (inventoryMode === "raw") {
-                                if (inputs.inventoryText.trim() === genText.trim() && normalizedRows.length > 0) {
-                                    setInventoryMode("normalized");
-                                } else {
-                                    handleNormalize();
-                                }
-                            } else {
-                                setInputs({ ...inputs, inventoryText: genText });
-                                setInventoryMode("raw");
-                            }
-                        }}
+                        <button onClick={handleInventoryModeToggle}
                             className="flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[11px] font-bold transition-colors w-[110px] bg-gray-50 text-gray-500 hover:bg-gray-100 hover:text-gray-700">
                             {inventoryMode === "normalized"
                                 ? <><User className="w-4 h-4" strokeWidth={2} /> Client View</>
-                                : <><Shield className="w-4 h-4" strokeWidth={2} /> Admin Mode</>}
+                                : rowsStatus === "stale"
+                                    ? <><Shield className="w-4 h-4" strokeWidth={2} /> Re-normalize</>
+                                    : <><Shield className="w-4 h-4" strokeWidth={2} /> Admin Mode</>}
                         </button>
                     )}
                 </div>
 
                 <div className="w-full">
                     {inventoryMode === "raw" ? (
-                        <textarea
-                            value={inputs.inventoryText}
-                            onChange={e => {
-                                const raw = e.target.value;
-                                const limited = limitInventoryText(raw);
-                                setInventoryClipped(limited.length !== raw.length);
-                                setInputs({ ...inputs, inventoryText: limited });
-                            }}
-                            className="block w-full h-56 bg-white border border-gray-200 rounded-2xl p-4 sm:p-5 text-[14px] leading-relaxed text-gray-800 outline-none resize-none shadow-sm font-mono"
-                            placeholder="Paste inventory here (e.g. Living Room: Sofa, TV...)"
-                            style={{ WebkitOverflowScrolling: 'touch' }}
-                            aria-label="Raw inventory text input"
-                        />
+                        <>
+                            <textarea
+                                value={inputs.inventoryText}
+                                onChange={e => {
+                                    const raw = e.target.value;
+                                    const limited = limitInventoryText(raw);
+                                    setInventoryClipped(limited.length !== raw.length);
+                                    handleRawInventoryChange(limited);
+                                }}
+                                className="block w-full h-56 bg-white border border-gray-200 rounded-2xl p-4 sm:p-5 text-[14px] leading-relaxed text-gray-800 outline-none resize-none shadow-sm font-mono"
+                                placeholder="Paste inventory here (e.g. Living Room: Sofa, TV...)"
+                                style={{ WebkitOverflowScrolling: 'touch' }}
+                                aria-label="Raw inventory text input"
+                            />
+                            {rowsStatus === "stale" && (
+                                <div className="mt-2 px-1 text-[10px] font-bold text-amber-600">
+                                    Rows stale. Re-normalize to sync.
+                                </div>
+                            )}
+                        </>
                     ) : (
                         <div className="bg-white border border-gray-200 rounded-2xl p-3 shadow-sm">
                             <div className="text-[10px] font-bold text-gray-400 mb-2 uppercase tracking-widest px-1">Inventory Editor</div>
@@ -265,7 +253,7 @@ export const ConfigPanel = ({
                                         <div key={row.id} className="grid grid-cols-[1fr_2.5rem_2.5rem_2.5rem_1.5rem] gap-1.5 items-center mb-1 text-[10px] font-semibold">
                                             <input className="min-w-0 rounded px-2 h-7 outline-none bg-gray-50 border-transparent hover:bg-gray-100 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
                                                 value={row.name}
-                                                onChange={e => setNormalizedRows(prev => prev.map(r => r.id === row.id ? { ...r, name: e.target.value } : r))}
+                                                onChange={e => setNormalizedRows(prev => prev.map(r => r.id === row.id ? { ...r, name: e.target.value, cfExact: undefined, isSynthetic: false } : r))}
                                                 aria-label={`Item name for ${row.name}`}
                                             />
                                             <input type="number" className="rounded px-1 h-7 text-center outline-none bg-gray-50 border-transparent hover:bg-gray-100 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
@@ -276,7 +264,7 @@ export const ConfigPanel = ({
                                             />
                                             <input type="number" className="rounded px-1 h-7 text-center outline-none bg-gray-50 border-transparent hover:bg-gray-100 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
                                                 value={row.cfUnit as string | number}
-                                                onChange={e => setNormalizedRows(prev => prev.map(r => r.id === row.id ? { ...r, cfUnit: Number(e.target.value) || 1 } : r))}
+                                                onChange={e => setNormalizedRows(prev => prev.map(r => r.id === row.id ? { ...r, cfUnit: Number(e.target.value) || 1, cfExact: undefined, isSynthetic: false } : r))}
                                                 aria-label={`Cubic feet per unit for ${row.name}`}
                                             />
                                             <div className="flex justify-center">

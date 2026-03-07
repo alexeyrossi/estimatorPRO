@@ -1,0 +1,53 @@
+{
+  "id": "engine-commercial-server-rack-office",
+  "kind": "engine",
+  "description": "Office desks plus a server rack should stay conservative and not get office-light relief.",
+  "input": {
+    "homeSize": "Commercial",
+    "moveType": "Local",
+    "distance": "6",
+    "packingLevel": "None",
+    "accessOrigin": "elevator",
+    "accessDest": "ground",
+    "inventoryText": "Open office: 10 desks, 12 office chairs, 4 file cabinets\nServer room: server rack",
+    "extraStops": []
+  },
+  "expect": {
+    "finalVolume": 975,
+    "netVolume": 820,
+    "billableCF": 850,
+    "truckSpaceCF": 975,
+    "trucksFinal": 1,
+    "truckSizeLabel": "24ft Truck + Lift-gate",
+    "crew": 4,
+    "timeMin": 5,
+    "timeMax": 6,
+    "splitRecommended": false,
+    "confidence": {
+      "score": 100,
+      "label": "High"
+    },
+    "materials": {
+      "blankets": 30,
+      "boxes": 20,
+      "wardrobes": 0
+    },
+    "smartEquipment": [],
+    "anyHeavySignal": true,
+    "heavyItemNames": [
+      "server rack"
+    ],
+    "detectedQtyTotal": 27,
+    "totalManHours": 14.1,
+    "daMins": 150,
+    "league": 2,
+    "boxDensity": 0,
+    "extraStopCount": 0,
+    "risks": [],
+    "overridesApplied": []
+  },
+  "adviceExpect": [
+    "Confirm freight elevator access, move window, and cab dimensions.",
+    "Pre-measure oversized equipment, cabinets, and appliance paths."
+  ]
+}

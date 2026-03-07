@@ -1,0 +1,47 @@
+{
+  "id": "engine-labor-small-basic",
+  "kind": "engine",
+  "description": "Small labor-only job should stay at 2 movers when the 2-man day is workable.",
+  "input": {
+    "homeSize": "1",
+    "moveType": "Labor",
+    "distance": "0",
+    "packingLevel": "None",
+    "accessOrigin": "ground",
+    "accessDest": "ground",
+    "inventoryText": "sofa, queen bed, dresser, 10 boxes",
+    "extraStops": []
+  },
+  "expect": {
+    "finalVolume": 375,
+    "netVolume": 305,
+    "billableCF": 325,
+    "truckSpaceCF": 375,
+    "trucksFinal": 0,
+    "truckSizeLabel": "N/A",
+    "crew": 2,
+    "timeMin": 3,
+    "timeMax": 4,
+    "splitRecommended": false,
+    "confidence": {
+      "score": 100,
+      "label": "High"
+    },
+    "materials": {
+      "blankets": 20,
+      "boxes": 10,
+      "wardrobes": 5
+    },
+    "smartEquipment": [],
+    "anyHeavySignal": false,
+    "heavyItemNames": [],
+    "detectedQtyTotal": 13,
+    "totalManHours": 3.2,
+    "daMins": 20,
+    "league": 0,
+    "boxDensity": 0,
+    "extraStopCount": 0,
+    "risks": [],
+    "overridesApplied": []
+  }
+}

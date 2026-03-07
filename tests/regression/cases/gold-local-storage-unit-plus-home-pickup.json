@@ -1,0 +1,155 @@
+{
+  "id": "gold-local-storage-unit-plus-home-pickup",
+  "tier": "gold",
+  "kind": "engine",
+  "description": "Local home pickup with one extra stop and exact storage-unit wording preserved.",
+  "input": {
+    "homeSize": "2",
+    "moveType": "Local",
+    "distance": "14",
+    "packingLevel": "None",
+    "accessOrigin": "ground",
+    "accessDest": "elevator",
+    "inventoryText": "Living room: sofa, coffee table, tv stand, 8 boxes\nBedroom: queen bed, dresser, 6 boxes\nStorage unit: 20 boxes, dresser, shelving, bike",
+    "extraStops": [
+      {
+        "label": "Storage Unit",
+        "access": "ground"
+      }
+    ]
+  },
+  "expect": {
+    "finalVolume": 750,
+    "netVolume": 572,
+    "billableCF": 600,
+    "truckSpaceCF": 750,
+    "trucksFinal": 1,
+    "truckSizeLabel": "18ft Truck",
+    "crew": 3,
+    "timeMin": 6,
+    "timeMax": 8,
+    "splitRecommended": false,
+    "confidence": {
+      "score": 100,
+      "label": "High"
+    },
+    "materials": {
+      "blankets": 50,
+      "boxes": 10,
+      "wardrobes": 10
+    },
+    "smartEquipment": [],
+    "anyHeavySignal": false,
+    "heavyItemNames": [],
+    "detectedQtyTotal": 42,
+    "totalManHours": 11.4,
+    "daMins": 35,
+    "league": 0,
+    "boxDensity": 0,
+    "extraStopCount": 1,
+    "risks": [],
+    "overridesApplied": []
+  },
+  "parserExpect": {
+    "totalVol": 397,
+    "boxCount": 0,
+    "heavyCount": 0,
+    "furnitureCount": 42,
+    "detectedQtyTotal": 42,
+    "irregularCount": 1,
+    "estimatedItemCount": 0,
+    "hasVague": false,
+    "mentionsGarageOrAttic": false,
+    "unrecognized": [],
+    "detectedItems": [
+      {
+        "name": "boxes",
+        "qty": 6,
+        "room": "Bedroom",
+        "cf": 30,
+        "isSynthetic": false,
+        "isWeightHeavy": false
+      },
+      {
+        "name": "dresser",
+        "qty": 1,
+        "room": "Bedroom",
+        "cf": 35,
+        "isSynthetic": false,
+        "isWeightHeavy": false
+      },
+      {
+        "name": "queen bed",
+        "qty": 1,
+        "room": "Bedroom",
+        "cf": 60,
+        "isSynthetic": false,
+        "isWeightHeavy": false
+      },
+      {
+        "name": "boxes",
+        "qty": 8,
+        "room": "Living room",
+        "cf": 40,
+        "isSynthetic": false,
+        "isWeightHeavy": false
+      },
+      {
+        "name": "coffee table",
+        "qty": 1,
+        "room": "Living room",
+        "cf": 15,
+        "isSynthetic": false,
+        "isWeightHeavy": false
+      },
+      {
+        "name": "sofa",
+        "qty": 1,
+        "room": "Living room",
+        "cf": 35,
+        "isSynthetic": false,
+        "isWeightHeavy": false
+      },
+      {
+        "name": "tv stand",
+        "qty": 1,
+        "room": "Living room",
+        "cf": 20,
+        "isSynthetic": false,
+        "isWeightHeavy": false
+      },
+      {
+        "name": "bike",
+        "qty": 1,
+        "room": "Storage/Outdoor",
+        "cf": 7,
+        "isSynthetic": false,
+        "isWeightHeavy": false
+      },
+      {
+        "name": "boxes",
+        "qty": 20,
+        "room": "Storage/Outdoor",
+        "cf": 100,
+        "isSynthetic": false,
+        "isWeightHeavy": false
+      },
+      {
+        "name": "dresser",
+        "qty": 1,
+        "room": "Storage/Outdoor",
+        "cf": 35,
+        "isSynthetic": false,
+        "isWeightHeavy": false
+      },
+      {
+        "name": "shelving unit",
+        "qty": 1,
+        "room": "Storage/Outdoor",
+        "cf": 20,
+        "isSynthetic": false,
+        "isWeightHeavy": false
+      }
+    ]
+  }
+}

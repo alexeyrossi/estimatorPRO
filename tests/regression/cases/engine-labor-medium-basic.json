@@ -1,0 +1,47 @@
+{
+  "id": "engine-labor-medium-basic",
+  "kind": "engine",
+  "description": "Medium labor-only job should bias to 3 movers without unnecessary 4-man uplift.",
+  "input": {
+    "homeSize": "3",
+    "moveType": "Labor",
+    "distance": "0",
+    "packingLevel": "Partial",
+    "accessOrigin": "ground",
+    "accessDest": "ground",
+    "inventoryText": "sectional sofa, dining table, 6 chairs, king bed, queen bed, 3 dressers, 2 nightstands, coffee table, 30 boxes, 12 totes, desk, office chair, tv stand",
+    "extraStops": []
+  },
+  "expect": {
+    "finalVolume": 1000,
+    "netVolume": 757,
+    "billableCF": 800,
+    "truckSpaceCF": 1000,
+    "trucksFinal": 0,
+    "truckSizeLabel": "N/A",
+    "crew": 3,
+    "timeMin": 4,
+    "timeMax": 6,
+    "splitRecommended": false,
+    "confidence": {
+      "score": 100,
+      "label": "High"
+    },
+    "materials": {
+      "blankets": 60,
+      "boxes": 30,
+      "wardrobes": 15
+    },
+    "smartEquipment": [],
+    "anyHeavySignal": false,
+    "heavyItemNames": [],
+    "detectedQtyTotal": 59,
+    "totalManHours": 12.9,
+    "daMins": 85,
+    "league": 0,
+    "boxDensity": 20,
+    "extraStopCount": 0,
+    "risks": [],
+    "overridesApplied": []
+  }
+}

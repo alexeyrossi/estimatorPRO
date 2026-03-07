@@ -1,0 +1,47 @@
+{
+  "id": "engine-ld-small-basic",
+  "kind": "engine",
+  "description": "Small basic LD move should keep the hard 3-mover floor without auto-adding a fourth mover.",
+  "input": {
+    "homeSize": "1",
+    "moveType": "LD",
+    "distance": "200",
+    "packingLevel": "None",
+    "accessOrigin": "ground",
+    "accessDest": "ground",
+    "inventoryText": "sofa, queen bed, dresser, 10 boxes",
+    "extraStops": []
+  },
+  "expect": {
+    "finalVolume": 225,
+    "netVolume": 205,
+    "billableCF": 225,
+    "truckSpaceCF": 225,
+    "trucksFinal": 1,
+    "truckSizeLabel": "18ft Truck",
+    "crew": 3,
+    "timeMin": 3,
+    "timeMax": 4,
+    "splitRecommended": false,
+    "confidence": {
+      "score": 100,
+      "label": "High"
+    },
+    "materials": {
+      "blankets": 20,
+      "boxes": 10,
+      "wardrobes": 5
+    },
+    "smartEquipment": [],
+    "anyHeavySignal": false,
+    "heavyItemNames": [],
+    "detectedQtyTotal": 13,
+    "totalManHours": 2.7,
+    "daMins": 20,
+    "league": 0,
+    "boxDensity": 0,
+    "extraStopCount": 0,
+    "risks": [],
+    "overridesApplied": []
+  }
+}

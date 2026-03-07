@@ -1,0 +1,205 @@
+{
+  "id": "gold-local-multi-stop-home-storage-office",
+  "tier": "gold",
+  "kind": "engine",
+  "description": "Multi-stop local quote with home inventory plus storage-unit and office content.",
+  "input": {
+    "homeSize": "3",
+    "moveType": "Local",
+    "distance": "18",
+    "packingLevel": "None",
+    "accessOrigin": "ground",
+    "accessDest": "ground",
+    "inventoryText": "Living room: sofa, loveseat, coffee table, tv stand, 10 boxes\nBedroom: queen bed, dresser, 8 boxes\nBedroom 2: full bed, dresser, 6 boxes\nStorage unit: 15 office boxes, desk, file cabinet\nHome office: desk, file cabinet, chair",
+    "extraStops": [
+      {
+        "label": "Storage Unit",
+        "access": "ground"
+      },
+      {
+        "label": "Office",
+        "access": "elevator"
+      }
+    ]
+  },
+  "expect": {
+    "finalVolume": 950,
+    "netVolume": 782,
+    "billableCF": 825,
+    "truckSpaceCF": 950,
+    "trucksFinal": 1,
+    "truckSizeLabel": "24ft Truck",
+    "crew": 4,
+    "timeMin": 7,
+    "timeMax": 8,
+    "splitRecommended": false,
+    "confidence": {
+      "score": 100,
+      "label": "High"
+    },
+    "materials": {
+      "blankets": 60,
+      "boxes": 10,
+      "wardrobes": 15
+    },
+    "smartEquipment": [],
+    "anyHeavySignal": false,
+    "heavyItemNames": [],
+    "detectedQtyTotal": 51,
+    "totalManHours": 14.4,
+    "daMins": 83,
+    "league": 0,
+    "boxDensity": 0,
+    "extraStopCount": 2,
+    "risks": [],
+    "overridesApplied": []
+  },
+  "parserExpect": {
+    "totalVol": 557,
+    "boxCount": 0,
+    "heavyCount": 0,
+    "furnitureCount": 51,
+    "detectedQtyTotal": 51,
+    "irregularCount": 0,
+    "estimatedItemCount": 0,
+    "hasVague": false,
+    "mentionsGarageOrAttic": false,
+    "unrecognized": [],
+    "detectedItems": [
+      {
+        "name": "boxes",
+        "qty": 6,
+        "room": "Bedroom 2",
+        "cf": 30,
+        "isSynthetic": false,
+        "isWeightHeavy": false
+      },
+      {
+        "name": "dresser",
+        "qty": 1,
+        "room": "Bedroom 2",
+        "cf": 35,
+        "isSynthetic": false,
+        "isWeightHeavy": false
+      },
+      {
+        "name": "full bed",
+        "qty": 1,
+        "room": "Bedroom 2",
+        "cf": 50,
+        "isSynthetic": false,
+        "isWeightHeavy": false
+      },
+      {
+        "name": "boxes",
+        "qty": 8,
+        "room": "Bedroom",
+        "cf": 40,
+        "isSynthetic": false,
+        "isWeightHeavy": false
+      },
+      {
+        "name": "dresser",
+        "qty": 1,
+        "room": "Bedroom",
+        "cf": 35,
+        "isSynthetic": false,
+        "isWeightHeavy": false
+      },
+      {
+        "name": "queen bed",
+        "qty": 1,
+        "room": "Bedroom",
+        "cf": 60,
+        "isSynthetic": false,
+        "isWeightHeavy": false
+      },
+      {
+        "name": "boxes",
+        "qty": 10,
+        "room": "Living room",
+        "cf": 50,
+        "isSynthetic": false,
+        "isWeightHeavy": false
+      },
+      {
+        "name": "coffee table",
+        "qty": 1,
+        "room": "Living room",
+        "cf": 15,
+        "isSynthetic": false,
+        "isWeightHeavy": false
+      },
+      {
+        "name": "loveseat",
+        "qty": 1,
+        "room": "Living room",
+        "cf": 30,
+        "isSynthetic": false,
+        "isWeightHeavy": false
+      },
+      {
+        "name": "tv stand",
+        "qty": 1,
+        "room": "Living room",
+        "cf": 20,
+        "isSynthetic": false,
+        "isWeightHeavy": false
+      },
+      {
+        "name": "chair",
+        "qty": 1,
+        "room": "Office",
+        "cf": 7,
+        "isSynthetic": false,
+        "isWeightHeavy": false
+      },
+      {
+        "name": "desk",
+        "qty": 1,
+        "room": "Office",
+        "cf": 35,
+        "isSynthetic": false,
+        "isWeightHeavy": false
+      },
+      {
+        "name": "file cabinet",
+        "qty": 1,
+        "room": "Office",
+        "cf": 20,
+        "isSynthetic": false,
+        "isWeightHeavy": false
+      },
+      {
+        "name": "boxes",
+        "qty": 15,
+        "room": "Storage/Outdoor",
+        "cf": 75,
+        "isSynthetic": false,
+        "isWeightHeavy": false
+      },
+      {
+        "name": "desk",
+        "qty": 1,
+        "room": "Storage/Outdoor",
+        "cf": 35,
+        "isSynthetic": false,
+        "isWeightHeavy": false
+      },
+      {
+        "name": "file cabinet",
+        "qty": 1,
+        "room": "Storage/Outdoor",
+        "cf": 20,
+        "isSynthetic": false,
+        "isWeightHeavy": false
+      }
+    ]
+  },
+  "adviceExpect": [
+    "Crew Driver: Multi-stop routing increased coordination needs.",
+    "Multi-stop route: confirm stop order, parking, and stop-level access before dispatch.",
+    "Time Driver: Extra stops added routing, staging, and access time.",
+    "Volume Driver: Missing box allowance increased the volume baseline."
+  ]
+}

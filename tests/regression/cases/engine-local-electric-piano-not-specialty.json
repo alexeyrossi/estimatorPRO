@@ -1,0 +1,47 @@
+{
+  "id": "engine-local-electric-piano-not-specialty",
+  "kind": "engine",
+  "description": "Electric piano should not trigger the non-electric piano 4-mover specialty floor.",
+  "input": {
+    "homeSize": "1",
+    "moveType": "Local",
+    "distance": "4",
+    "packingLevel": "None",
+    "accessOrigin": "ground",
+    "accessDest": "ground",
+    "inventoryText": "electric piano, loveseat, queen bed, dresser, 10 boxes",
+    "extraStops": []
+  },
+  "expect": {
+    "finalVolume": 400,
+    "netVolume": 310,
+    "billableCF": 325,
+    "truckSpaceCF": 400,
+    "trucksFinal": 1,
+    "truckSizeLabel": "18ft Truck",
+    "crew": 2,
+    "timeMin": 4,
+    "timeMax": 5,
+    "splitRecommended": false,
+    "confidence": {
+      "score": 100,
+      "label": "High"
+    },
+    "materials": {
+      "blankets": 20,
+      "boxes": 10,
+      "wardrobes": 5
+    },
+    "smartEquipment": [],
+    "anyHeavySignal": false,
+    "heavyItemNames": [],
+    "detectedQtyTotal": 14,
+    "totalManHours": 5.2,
+    "daMins": 20,
+    "league": 0,
+    "boxDensity": 0,
+    "extraStopCount": 0,
+    "risks": [],
+    "overridesApplied": []
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "id": "engine-ld-small-heavy",
+  "kind": "engine",
+  "description": "Small LD move with league-2 heavy item should still escalate beyond the 3-mover floor.",
+  "input": {
+    "homeSize": "1",
+    "moveType": "LD",
+    "distance": "200",
+    "packingLevel": "None",
+    "accessOrigin": "ground",
+    "accessDest": "ground",
+    "inventoryText": "upright piano, sofa, queen bed, dresser, 10 boxes",
+    "extraStops": []
+  },
+  "expect": {
+    "finalVolume": 300,
+    "netVolume": 265,
+    "billableCF": 275,
+    "truckSpaceCF": 300,
+    "trucksFinal": 1,
+    "truckSizeLabel": "18ft Truck + Lift-gate",
+    "crew": 4,
+    "timeMin": 3,
+    "timeMax": 4,
+    "splitRecommended": false,
+    "confidence": {
+      "score": 100,
+      "label": "High"
+    },
+    "materials": {
+      "blankets": 25,
+      "boxes": 10,
+      "wardrobes": 5
+    },
+    "smartEquipment": [
+      "Piano Board"
+    ],
+    "anyHeavySignal": true,
+    "heavyItemNames": [
+      "upright piano"
+    ],
+    "detectedQtyTotal": 14,
+    "totalManHours": 3.3,
+    "daMins": 20,
+    "league": 2,
+    "boxDensity": 0,
+    "extraStopCount": 0,
+    "risks": [],
+    "overridesApplied": []
+  }
+}

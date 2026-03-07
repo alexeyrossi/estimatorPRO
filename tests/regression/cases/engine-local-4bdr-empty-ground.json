@@ -1,0 +1,47 @@
+{
+  "id": "engine-local-4bdr-empty-ground",
+  "kind": "engine",
+  "description": "Sparse 4BDR local should remain unchanged at 4 movers.",
+  "input": {
+    "homeSize": "4",
+    "moveType": "Local",
+    "distance": "15",
+    "packingLevel": "None",
+    "accessOrigin": "ground",
+    "accessDest": "ground",
+    "inventoryText": "",
+    "extraStops": []
+  },
+  "expect": {
+    "finalVolume": 800,
+    "netVolume": 675,
+    "billableCF": 700,
+    "truckSpaceCF": 800,
+    "trucksFinal": 1,
+    "truckSizeLabel": "24ft Truck",
+    "crew": 4,
+    "timeMin": 3,
+    "timeMax": 5,
+    "splitRecommended": false,
+    "confidence": {
+      "score": 100,
+      "label": "High"
+    },
+    "materials": {
+      "blankets": 20,
+      "boxes": 10,
+      "wardrobes": 20
+    },
+    "smartEquipment": [],
+    "anyHeavySignal": false,
+    "heavyItemNames": [],
+    "detectedQtyTotal": 0,
+    "totalManHours": 6.7,
+    "daMins": 0,
+    "league": 0,
+    "boxDensity": 0,
+    "extraStopCount": 0,
+    "risks": [],
+    "overridesApplied": []
+  }
+}

@@ -1,0 +1,130 @@
+{
+  "id": "gold-ld-3br-sparse-garage-attic",
+  "tier": "gold",
+  "kind": "engine",
+  "description": "Sparse LD quote with vague garage and attic language that should retain low-confidence signals.",
+  "input": {
+    "homeSize": "3",
+    "moveType": "LD",
+    "distance": "1280",
+    "packingLevel": "Partial",
+    "accessOrigin": "ground",
+    "accessDest": "ground",
+    "inventoryText": "3 bedroom house, normal furniture, about 30 boxes, garage tools, attic holiday stuff, patio set, maybe a treadmill",
+    "extraStops": []
+  },
+  "expect": {
+    "finalVolume": 825,
+    "netVolume": 620,
+    "billableCF": 650,
+    "truckSpaceCF": 825,
+    "trucksFinal": 1,
+    "truckSizeLabel": "24ft Truck + Lift-gate",
+    "crew": 3,
+    "timeMin": 3,
+    "timeMax": 5,
+    "splitRecommended": false,
+    "confidence": {
+      "score": 43,
+      "label": "Low"
+    },
+    "materials": {
+      "blankets": 20,
+      "boxes": 30,
+      "wardrobes": 15
+    },
+    "smartEquipment": [],
+    "anyHeavySignal": true,
+    "heavyItemNames": [
+      "treadmill"
+    ],
+    "detectedQtyTotal": 9,
+    "totalManHours": 10.2,
+    "daMins": 120,
+    "league": 1,
+    "boxDensity": 0,
+    "extraStopCount": 0,
+    "risks": [],
+    "overridesApplied": []
+  },
+  "parserExpect": {
+    "totalVol": 320,
+    "boxCount": 0,
+    "heavyCount": 1,
+    "furnitureCount": 8,
+    "detectedQtyTotal": 9,
+    "irregularCount": 2,
+    "estimatedItemCount": 6,
+    "hasVague": true,
+    "mentionsGarageOrAttic": true,
+    "unrecognized": [
+      "attic holiday stuff",
+      "bedroom house",
+      "garage tools",
+      "normal furniture"
+    ],
+    "detectedItems": [
+      {
+        "name": "attic holiday stuff (est)",
+        "qty": 1,
+        "room": "",
+        "cf": 20,
+        "isSynthetic": false,
+        "isWeightHeavy": false
+      },
+      {
+        "name": "bedroom house (est)",
+        "qty": 3,
+        "room": "",
+        "cf": 60,
+        "isSynthetic": false,
+        "isWeightHeavy": false
+      },
+      {
+        "name": "boxes",
+        "qty": 1,
+        "room": "",
+        "cf": 5,
+        "isSynthetic": false,
+        "isWeightHeavy": false
+      },
+      {
+        "name": "garage tools (est)",
+        "qty": 1,
+        "room": "",
+        "cf": 20,
+        "isSynthetic": false,
+        "isWeightHeavy": false
+      },
+      {
+        "name": "normal furniture (est)",
+        "qty": 1,
+        "room": "",
+        "cf": 20,
+        "isSynthetic": false,
+        "isWeightHeavy": false
+      },
+      {
+        "name": "patio set",
+        "qty": 1,
+        "room": "",
+        "cf": 150,
+        "isSynthetic": false,
+        "isWeightHeavy": false
+      },
+      {
+        "name": "treadmill",
+        "qty": 1,
+        "room": "",
+        "cf": 45,
+        "isSynthetic": false,
+        "isWeightHeavy": false
+      }
+    ]
+  },
+  "adviceExpect": [
+    "Crew Driver: Heavy or oversized items increased crew needs.",
+    "Time Driver: Packing prep adds handling time.",
+    "Volume Driver: Safety margin and truck-space buffer applied."
+  ]
+}

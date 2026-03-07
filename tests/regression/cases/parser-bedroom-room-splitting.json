@@ -1,0 +1,86 @@
+{
+  "id": "parser-bedroom-room-splitting",
+  "kind": "parser",
+  "description": "Bedroom headers should preserve room context across multiple bedroom variants.",
+  "input": {
+    "inventoryText": "Master bedroom: king bed, 2 nightstands, dresser\nBedroom 2: queen bed, desk, chair\nBedroom 3: bunk bed, toy chest"
+  },
+  "expect": {
+    "totalVol": 352,
+    "boxCount": 0,
+    "heavyCount": 0,
+    "furnitureCount": 9,
+    "detectedQtyTotal": 9,
+    "irregularCount": 0,
+    "estimatedItemCount": 0,
+    "hasVague": false,
+    "mentionsGarageOrAttic": false,
+    "unrecognized": [],
+    "detectedItems": [
+      {
+        "name": "chair",
+        "qty": 1,
+        "room": "Bedroom 2",
+        "cf": 7,
+        "isSynthetic": false,
+        "isWeightHeavy": false
+      },
+      {
+        "name": "desk",
+        "qty": 1,
+        "room": "Bedroom 2",
+        "cf": 35,
+        "isSynthetic": false,
+        "isWeightHeavy": false
+      },
+      {
+        "name": "queen bed",
+        "qty": 1,
+        "room": "Bedroom 2",
+        "cf": 60,
+        "isSynthetic": false,
+        "isWeightHeavy": false
+      },
+      {
+        "name": "bunk bed",
+        "qty": 1,
+        "room": "Bedroom 3",
+        "cf": 90,
+        "isSynthetic": false,
+        "isWeightHeavy": false
+      },
+      {
+        "name": "chest",
+        "qty": 1,
+        "room": "Bedroom 3",
+        "cf": 35,
+        "isSynthetic": false,
+        "isWeightHeavy": false
+      },
+      {
+        "name": "dresser",
+        "qty": 1,
+        "room": "Master Bedroom",
+        "cf": 35,
+        "isSynthetic": false,
+        "isWeightHeavy": false
+      },
+      {
+        "name": "king bed",
+        "qty": 1,
+        "room": "Master Bedroom",
+        "cf": 70,
+        "isSynthetic": false,
+        "isWeightHeavy": false
+      },
+      {
+        "name": "nightstand",
+        "qty": 2,
+        "room": "Master Bedroom",
+        "cf": 20,
+        "isSynthetic": false,
+        "isWeightHeavy": false
+      }
+    ]
+  }
+}

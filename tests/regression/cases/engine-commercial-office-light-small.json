@@ -1,0 +1,50 @@
+{
+  "id": "engine-commercial-office-light-small",
+  "kind": "engine",
+  "description": "Light office inventory should avoid the old sparse-commercial overestimate and stay at 3 movers.",
+  "input": {
+    "homeSize": "Commercial",
+    "moveType": "Local",
+    "distance": "5",
+    "packingLevel": "None",
+    "accessOrigin": "elevator",
+    "accessDest": "elevator",
+    "inventoryText": "8 desks, 8 office chairs, 6 file cabinets, conference table, 10 boxes",
+    "extraStops": []
+  },
+  "expect": {
+    "finalVolume": 850,
+    "netVolume": 705,
+    "billableCF": 750,
+    "truckSpaceCF": 850,
+    "trucksFinal": 1,
+    "truckSizeLabel": "24ft Truck",
+    "crew": 3,
+    "timeMin": 6,
+    "timeMax": 7,
+    "splitRecommended": false,
+    "confidence": {
+      "score": 100,
+      "label": "High"
+    },
+    "materials": {
+      "blankets": 30,
+      "boxes": 20,
+      "wardrobes": 0
+    },
+    "smartEquipment": [],
+    "anyHeavySignal": false,
+    "heavyItemNames": [],
+    "detectedQtyTotal": 33,
+    "totalManHours": 13.5,
+    "daMins": 140,
+    "league": 0,
+    "boxDensity": 0,
+    "extraStopCount": 0,
+    "risks": [],
+    "overridesApplied": []
+  },
+  "adviceExpect": [
+    "Confirm building move window, freight elevator booking, and COI requirements."
+  ]
+}

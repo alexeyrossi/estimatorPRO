@@ -1,0 +1,49 @@
+{
+  "id": "engine-local-pool-table-min-four",
+  "kind": "engine",
+  "description": "Pool table should always keep the 4-mover specialty floor.",
+  "input": {
+    "homeSize": "1",
+    "moveType": "Local",
+    "distance": "4",
+    "packingLevel": "None",
+    "accessOrigin": "ground",
+    "accessDest": "ground",
+    "inventoryText": "pool table, loveseat, queen bed, dresser, 10 boxes",
+    "extraStops": []
+  },
+  "expect": {
+    "finalVolume": 400,
+    "netVolume": 330,
+    "billableCF": 350,
+    "truckSpaceCF": 400,
+    "trucksFinal": 1,
+    "truckSizeLabel": "18ft Truck + Lift-gate",
+    "crew": 4,
+    "timeMin": 3,
+    "timeMax": 5,
+    "splitRecommended": false,
+    "confidence": {
+      "score": 100,
+      "label": "High"
+    },
+    "materials": {
+      "blankets": 20,
+      "boxes": 10,
+      "wardrobes": 5
+    },
+    "smartEquipment": [],
+    "anyHeavySignal": true,
+    "heavyItemNames": [
+      "pool table"
+    ],
+    "detectedQtyTotal": 14,
+    "totalManHours": 8.2,
+    "daMins": 200,
+    "league": 2,
+    "boxDensity": 0,
+    "extraStopCount": 0,
+    "risks": [],
+    "overridesApplied": []
+  }
+}

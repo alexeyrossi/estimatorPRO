@@ -1,0 +1,64 @@
+{
+  "id": "parser-garage-vague-heavy",
+  "kind": "parser",
+  "description": "Garage-heavy vague inventory should keep heavy signals and estimated tool bundles.",
+  "input": {
+    "inventoryText": "Garage: lots of packed boxes, power tools, tool chest, work bench, misc garage storage"
+  },
+  "expect": {
+    "totalVol": 85,
+    "boxCount": 0,
+    "heavyCount": 1,
+    "furnitureCount": 4,
+    "detectedQtyTotal": 5,
+    "irregularCount": 0,
+    "estimatedItemCount": 1,
+    "hasVague": true,
+    "mentionsGarageOrAttic": true,
+    "unrecognized": [
+      "power tools"
+    ],
+    "detectedItems": [
+      {
+        "name": "boxes",
+        "qty": 1,
+        "room": "Storage/Outdoor",
+        "cf": 5,
+        "isSynthetic": false,
+        "isWeightHeavy": false
+      },
+      {
+        "name": "misc",
+        "qty": 1,
+        "room": "Storage/Outdoor",
+        "cf": 10,
+        "isSynthetic": false,
+        "isWeightHeavy": false
+      },
+      {
+        "name": "power tools (est)",
+        "qty": 1,
+        "room": "Storage/Outdoor",
+        "cf": 20,
+        "isSynthetic": false,
+        "isWeightHeavy": false
+      },
+      {
+        "name": "tool chest",
+        "qty": 1,
+        "room": "Storage/Outdoor",
+        "cf": 20,
+        "isSynthetic": false,
+        "isWeightHeavy": false
+      },
+      {
+        "name": "workbench",
+        "qty": 1,
+        "room": "Storage/Outdoor",
+        "cf": 30,
+        "isSynthetic": false,
+        "isWeightHeavy": false
+      }
+    ]
+  }
+}

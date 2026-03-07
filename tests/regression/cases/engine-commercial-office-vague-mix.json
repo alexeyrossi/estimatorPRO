@@ -1,0 +1,50 @@
+{
+  "id": "engine-commercial-office-vague-mix",
+  "kind": "engine",
+  "description": "Sparse but obvious office mix should still stay on office-light crew policy.",
+  "input": {
+    "homeSize": "Commercial",
+    "moveType": "Local",
+    "distance": "5",
+    "packingLevel": "None",
+    "accessOrigin": "elevator",
+    "accessDest": "elevator",
+    "inventoryText": "Open office: around 12 desks, 20 office chairs, 6 file cabinets, some monitor boxes",
+    "extraStops": []
+  },
+  "expect": {
+    "finalVolume": 575,
+    "netVolume": 485,
+    "billableCF": 500,
+    "truckSpaceCF": 575,
+    "trucksFinal": 1,
+    "truckSizeLabel": "18ft Truck",
+    "crew": 3,
+    "timeMin": 4,
+    "timeMax": 5,
+    "splitRecommended": false,
+    "confidence": {
+      "score": 100,
+      "label": "High"
+    },
+    "materials": {
+      "blankets": 20,
+      "boxes": 20,
+      "wardrobes": 0
+    },
+    "smartEquipment": [],
+    "anyHeavySignal": false,
+    "heavyItemNames": [],
+    "detectedQtyTotal": 28,
+    "totalManHours": 7.1,
+    "daMins": 15,
+    "league": 0,
+    "boxDensity": 0,
+    "extraStopCount": 0,
+    "risks": [],
+    "overridesApplied": []
+  },
+  "adviceExpect": [
+    "Confirm building move window, freight elevator booking, and COI requirements."
+  ]
+}

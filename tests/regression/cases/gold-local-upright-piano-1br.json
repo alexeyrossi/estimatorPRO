@@ -1,0 +1,52 @@
+{
+  "id": "gold-local-upright-piano-1br",
+  "tier": "gold",
+  "kind": "engine",
+  "description": "1BR specialty quote with upright piano and small supporting inventory.",
+  "input": {
+    "homeSize": "1",
+    "moveType": "Local",
+    "distance": "9",
+    "packingLevel": "None",
+    "accessOrigin": "ground",
+    "accessDest": "ground",
+    "inventoryText": "Living room: upright piano, loveseat, coffee table, 6 boxes\nBedroom: queen bed, dresser, 4 boxes",
+    "extraStops": []
+  },
+  "expect": {
+    "finalVolume": 450,
+    "netVolume": 325,
+    "billableCF": 350,
+    "truckSpaceCF": 450,
+    "trucksFinal": 1,
+    "truckSizeLabel": "18ft Truck + Lift-gate",
+    "crew": 4,
+    "timeMin": 3,
+    "timeMax": 4,
+    "splitRecommended": false,
+    "confidence": {
+      "score": 100,
+      "label": "High"
+    },
+    "materials": {
+      "blankets": 25,
+      "boxes": 10,
+      "wardrobes": 5
+    },
+    "smartEquipment": [
+      "Piano Board"
+    ],
+    "anyHeavySignal": true,
+    "heavyItemNames": [
+      "upright piano"
+    ],
+    "detectedQtyTotal": 15,
+    "totalManHours": 5.9,
+    "daMins": 35,
+    "league": 2,
+    "boxDensity": 0,
+    "extraStopCount": 0,
+    "risks": [],
+    "overridesApplied": []
+  }
+}

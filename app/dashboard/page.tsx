@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useReducer, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { LogOut, Truck, Calculator, ClipboardList, X, Package, MapPin, Calendar, Undo2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -10,15 +10,24 @@ import { getEstimate, normalizeInventoryAction, resolveItemAction, suggestItemsA
 import { signOutAction } from '@/app/actions/auth';
 import { ConfigPanel } from '@/components/ConfigPanel';
 import { ReportPanel } from '@/components/ReportPanel';
-
-const normalizeLegacyHomeSize = (homeSize?: string) => homeSize === "0" ? "1" : homeSize;
-
-const DEFAULT_INPUTS: EstimateInputs = {
-    homeSize: "3", moveType: "Local", distance: "15",
-    packingLevel: "None", accessOrigin: "ground", accessDest: "ground",
-    inventoryText: "",
-    extraStops: []
-};
+import {
+    DEFAULT_ESTIMATE_INPUTS,
+    clearDraft,
+    loadDraft,
+    migrateLegacyDraft,
+    normalizeLegacyHomeSize,
+    normalizeLegacyMoveType,
+    saveDraft,
+} from '@/lib/draftStorage';
+import {
+    buildEstimateRequest,
+    buildRawTextFromRows,
+    canReuseNormalizedRows,
+    createInitialEstimateDraftState,
+    estimateDraftReducer,
+    hydrateDraftState,
+    hydrateSavedEstimate,
+} from '@/lib/estimateDraftReducer';
 
 export default function DashboardPage() {
     const router = useRouter();
@@ -32,17 +41,15 @@ export default function DashboardPage() {
     const [isSaving, setIsSaving] = useState(false);
     const [saveStatus, setSaveStatus] = useState<"idle" | "success" | "error">("idle");
 
-    const [inputs, setInputs] = useState<EstimateInputs>(DEFAULT_INPUTS);
-    const [adminMode, setAdminMode] = useState(true);
+    const [draftState, dispatchDraft] = useReducer(estimateDraftReducer, undefined, createInitialEstimateDraftState);
+    const adminMode = true;
 
-    const [inventoryMode, setInventoryMode] = useState<InventoryMode>("raw");
-    const [normalizedRows, setNormalizedRows] = useState<NormalizedRow[]>([]);
-    const [overrides, setOverrides] = useState<Record<string, string>>({});
     const [addRowInput, setAddRowInput] = useState("");
     const [suggestedItems, setSuggestedItems] = useState<string[]>([]);
     const [inventoryClipped, setInventoryClipped] = useState(false);
 
     const [estimate, setEstimate] = useState<EstimateResult | Partial<EstimateResult>>({});
+    const [estimateError, setEstimateError] = useState<string | null>(null);
 
     const [showHistory, setShowHistory] = useState(false);
     const [historyItems, setHistoryItems] = useState<EstimateHistoryItem[]>([]);
@@ -50,6 +57,37 @@ export default function DashboardPage() {
 
     // Delayed deletion
     const [pendingDeletes, setPendingDeletes] = useState<Set<string>>(new Set());
+    const { inputs, inventoryMode, normalizedRows, rowsStatus, overrides } = draftState;
+    const hasUsableEstimate = typeof estimate.finalVolume === "number" && estimate.finalVolume > 0;
+    const autosaveDraftState = useMemo(
+        () => ({ inputs, inventoryMode, normalizedRows, rowsStatus }),
+        [inputs, inventoryMode, normalizedRows, rowsStatus]
+    );
+    const estimateRequest = useMemo(() => buildEstimateRequest(draftState), [draftState]);
+    const debouncedDraftState = useDebounce(autosaveDraftState, 900);
+    const debouncedEstimateRequest = useDebounce(estimateRequest, 1000);
+
+    const setInputs: React.Dispatch<React.SetStateAction<EstimateInputs>> = (value) => {
+        const nextInputs = typeof value === "function" ? value(draftState.inputs) : value;
+        dispatchDraft({ type: "replaceInputs", inputs: nextInputs });
+    };
+
+    const setNormalizedRows: React.Dispatch<React.SetStateAction<NormalizedRow[]>> = (value) => {
+        const nextRows = typeof value === "function" ? value(draftState.normalizedRows) : value;
+        dispatchDraft({ type: "setNormalizedRows", normalizedRows: nextRows });
+    };
+
+    const setOverrides: React.Dispatch<React.SetStateAction<Record<string, string>>> = (value) => {
+        const nextOverrides = typeof value === "function" ? value(draftState.overrides) : value;
+        dispatchDraft({ type: "setOverrides", overrides: nextOverrides });
+    };
+
+    const normalizeSavedInventoryMode = (mode?: InventoryMode) => mode === "normalized" ? "normalized" : "raw";
+
+    const handleLogout = () => {
+        clearDraft();
+        void signOutAction();
+    };
 
     // Flush pending deletes when history is closed
     useEffect(() => {
@@ -75,29 +113,27 @@ export default function DashboardPage() {
                         setClientName(data.client_name || "");
 
                         if (state.inputs) {
-                            const restoredInputs = {
-                                ...DEFAULT_INPUTS,
-                                ...state.inputs,
-                                homeSize: normalizeLegacyHomeSize(state.inputs.homeSize) || DEFAULT_INPUTS.homeSize,
-                                inventoryText: state.inputs.inventoryText || ""
-                            };
-                            setInputs(restoredInputs);
-                            // Overwrite local storage so they can continue editing
-                            const { inventoryText, ...restInputs } = restoredInputs;
-                            localStorage.setItem("estimator_fixed_v11_58_config", JSON.stringify(restInputs));
-                            localStorage.setItem("estimator_fixed_v11_58_text", inventoryText);
+                            const restoredInventoryMode = normalizeSavedInventoryMode(state.inventoryMode);
+                            const restoredDraft = hydrateSavedEstimate({
+                                inputs: {
+                                    ...DEFAULT_ESTIMATE_INPUTS,
+                                    ...state.inputs,
+                                    homeSize: normalizeLegacyHomeSize(state.inputs.homeSize) || DEFAULT_ESTIMATE_INPUTS.homeSize,
+                                    moveType: normalizeLegacyMoveType(state.inputs.moveType),
+                                    inventoryText: state.inputs.inventoryText || ""
+                                },
+                                inventoryMode: restoredInventoryMode,
+                                normalizedRows: state.normalizedRows || [],
+                                rowsStatus: restoredInventoryMode === "raw" && (state.normalizedRows || []).length > 0 ? "stale" : undefined,
+                            });
+                            dispatchDraft({ type: "hydrate", state: restoredDraft });
+                            saveDraft(
+                                restoredDraft.inputs,
+                                restoredDraft.inventoryMode,
+                                restoredDraft.normalizedRows,
+                                restoredDraft.rowsStatus
+                            );
                         }
-                        if (state.normalizedRows) setNormalizedRows(state.normalizedRows);
-                        if (state.inventoryMode) setInventoryMode(state.inventoryMode);
-                        if (state.overrides) setOverrides(state.overrides);
-
-                        // Overwrite manager local storage
-                        localStorage.setItem("estimator_fixed_v11_58_manager", JSON.stringify({
-                            adminMode,
-                            inventoryMode: state.inventoryMode || "raw",
-                            normalizedRows: state.normalizedRows || [],
-                            overrides: state.overrides || {}
-                        }));
 
                         router.replace('/dashboard'); // Remove param from URL
                         setHasMounted(true);
@@ -109,79 +145,38 @@ export default function DashboardPage() {
                 }
             }
 
-            // Normal Hydration From Local Storage
-            try {
-                const conf = localStorage.getItem("estimator_fixed_v11_58_config");
-                const text = localStorage.getItem("estimator_fixed_v11_58_text");
-                const mgr = localStorage.getItem("estimator_fixed_v11_58_manager");
+            const draftResult = loadDraft();
+            if (draftResult.state) {
+                dispatchDraft({ type: "hydrate", state: hydrateDraftState(draftResult.state) });
+                setHasMounted(true);
+                return;
+            }
 
-                let initialInputs = { ...DEFAULT_INPUTS };
-
-                if (conf) {
-                    const parsedConf = JSON.parse(conf);
-                    initialInputs = {
-                        ...initialInputs,
-                        ...parsedConf,
-                        homeSize: normalizeLegacyHomeSize(parsedConf.homeSize) || initialInputs.homeSize
-                    };
+            if (draftResult.status === "missing") {
+                const migratedDraft = migrateLegacyDraft();
+                if (migratedDraft) {
+                    dispatchDraft({ type: "hydrate", state: hydrateDraftState(migratedDraft) });
+                    setHasMounted(true);
+                    return;
                 }
-                if (text) initialInputs.inventoryText = text;
-
-                setInputs(initialInputs);
-
-                if (mgr) {
-                    const m = JSON.parse(mgr);
-                    if (m.adminMode) setAdminMode(true);
-                    if (m.inventoryMode) setInventoryMode(m.inventoryMode);
-                    if (m.normalizedRows) setNormalizedRows(m.normalizedRows);
-                    if (m.overrides) setOverrides(m.overrides);
-                }
-            } catch { }
+            }
 
             setHasMounted(true);
         };
 
         loadInitialState();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [router]);
 
     // Autosave
     useEffect(() => {
         if (!hasMounted) return;
-        const { inventoryText, ...restInputs } = inputs;
-        localStorage.setItem("estimator_fixed_v11_58_config", JSON.stringify(restInputs));
-
-        const handler = setTimeout(() => {
-            localStorage.setItem("estimator_fixed_v11_58_text", inventoryText);
-        }, 1000);
-        return () => clearTimeout(handler);
-    }, [inputs, hasMounted]);
-
-    useEffect(() => {
-        if (!hasMounted) return;
-        localStorage.setItem("estimator_fixed_v11_58_manager", JSON.stringify({
-            adminMode, inventoryMode, normalizedRows, overrides
-        }));
-    }, [adminMode, inventoryMode, normalizedRows, overrides, hasMounted]);
-
-    // Debounced execution
-    const debouncedInputs = useDebounce(inputs, 1000);
-    const debouncedNormalized = useDebounce(normalizedRows, 1000);
-
-    // Initial Engine calculation on mount
-    useEffect(() => {
-        if (!hasMounted) return;
-        const runInitial = async () => {
-            try {
-                const result = await getEstimate({ ...inputs, inventoryMode }, inventoryMode === "normalized" ? normalizedRows : undefined, overrides);
-                setEstimate(result);
-            } catch (err) {
-                console.error("Initial load failed", err);
-            }
-        };
-        runInitial();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [hasMounted]);
+        saveDraft(
+            debouncedDraftState.inputs,
+            debouncedDraftState.inventoryMode,
+            debouncedDraftState.normalizedRows,
+            debouncedDraftState.rowsStatus
+        );
+    }, [debouncedDraftState, hasMounted]);
 
     useEffect(() => {
         if (!hasMounted) return;
@@ -189,18 +184,24 @@ export default function DashboardPage() {
         async function runEngine() {
             setIsCalculating(true);
             try {
-                // Pass debouncedNormalized unconditionally so engine.ts can extract and preserve manual flags
-                const result = await getEstimate({ ...debouncedInputs, inventoryMode }, debouncedNormalized, overrides);
+                const result = await getEstimate(
+                    debouncedEstimateRequest.inputs,
+                    debouncedEstimateRequest.normalizedRows,
+                    debouncedEstimateRequest.overrides
+                );
                 setEstimate(result);
+                setEstimateError(null);
             } catch (err: unknown) {
                 console.error("Estimate calculation failed", err);
+                setEstimate({});
+                setEstimateError("Calculation failed. Please review the inputs and retry.");
                 toast.error("Failed to calculate estimate. Please try again.");
             } finally {
                 setIsCalculating(false);
             }
         }
         runEngine();
-    }, [debouncedInputs, debouncedNormalized, overrides, hasMounted, inventoryMode]);
+    }, [debouncedEstimateRequest, hasMounted]);
 
     // Normalize Button action
     const handleNormalize = async () => {
@@ -219,14 +220,38 @@ export default function DashboardPage() {
                 return newRow;
             });
 
-            setNormalizedRows(mergedRows);
-            setInventoryMode("normalized");
+            dispatchDraft({ type: "normalizeSuccess", normalizedRows: mergedRows });
         } catch (e: unknown) {
             console.error(e);
             toast.error("Failed to parse inventory. Please try again.");
         } finally {
             setIsCalculating(false);
         }
+    };
+
+    const handleInventoryModeToggle = async () => {
+        if (inventoryMode === "normalized") {
+            dispatchDraft({
+                type: "switchToRawFromRows",
+                inventoryText: buildRawTextFromRows(normalizedRows),
+            });
+            return;
+        }
+
+        if (canReuseNormalizedRows(draftState)) {
+            dispatchDraft({ type: "setInventoryMode", inventoryMode: "normalized" });
+            return;
+        }
+
+        await handleNormalize();
+    };
+
+    const handleRawInventoryChange = (inventoryText: string) => {
+        dispatchDraft({ type: "setRawText", inventoryText });
+    };
+
+    const clearOverrides = () => {
+        dispatchDraft({ type: "clearOverrides" });
     };
 
     // Add row action
@@ -253,11 +278,11 @@ export default function DashboardPage() {
     // Handle manual row editing safely
     const handleRowQtyChange = (id: string, value: string, blur: boolean = false) => {
         if (!blur) {
-            if (value === "") return setNormalizedRows(prev => prev.map(r => r.id === id ? { ...r, qty: "" } : r));
+            if (value === "") return setNormalizedRows(prev => prev.map(r => r.id === id ? { ...r, qty: "", cfExact: undefined, isSynthetic: false } : r));
             const num = parseInt(value, 10);
-            setNormalizedRows(prev => prev.map(r => r.id === id ? { ...r, qty: Number.isFinite(num) ? Math.max(1, num) : 1 } : r));
+            setNormalizedRows(prev => prev.map(r => r.id === id ? { ...r, qty: Number.isFinite(num) ? Math.max(1, num) : 1, cfExact: undefined, isSynthetic: false } : r));
         } else {
-            setNormalizedRows(prev => prev.map(r => r.id === id ? { ...r, qty: r.qty === "" ? 1 : Math.max(1, parseInt(String(r.qty), 10) || 1) } : r));
+            setNormalizedRows(prev => prev.map(r => r.id === id ? { ...r, qty: r.qty === "" ? 1 : Math.max(1, parseInt(String(r.qty), 10) || 1), cfExact: undefined, isSynthetic: false } : r));
         }
     };
 
@@ -383,15 +408,47 @@ ${est.daMins > 0 ? `-Assembly: ~${est.daMins} min total` : ""}
         if (data?.inputs_state) {
             setClientName(data.client_name || "");
             if (data.inputs_state.inputs) {
-                setInputs({
-                    ...DEFAULT_INPUTS,
-                    ...data.inputs_state.inputs,
-                    homeSize: normalizeLegacyHomeSize(data.inputs_state.inputs.homeSize) || DEFAULT_INPUTS.homeSize
+                const nextInventoryMode = normalizeSavedInventoryMode(data.inputs_state.inventoryMode);
+                const nextDraft = hydrateSavedEstimate({
+                    inputs: {
+                        ...DEFAULT_ESTIMATE_INPUTS,
+                        ...data.inputs_state.inputs,
+                        homeSize: normalizeLegacyHomeSize(data.inputs_state.inputs.homeSize) || DEFAULT_ESTIMATE_INPUTS.homeSize,
+                        moveType: normalizeLegacyMoveType(data.inputs_state.inputs.moveType),
+                        inventoryText: data.inputs_state.inputs.inventoryText || ""
+                    },
+                    inventoryMode: nextInventoryMode,
+                    normalizedRows: data.inputs_state.normalizedRows || [],
+                    rowsStatus: nextInventoryMode === "raw" && (data.inputs_state.normalizedRows || []).length > 0 ? "stale" : undefined,
                 });
+                dispatchDraft({ type: "hydrate", state: nextDraft });
+                saveDraft(
+                    nextDraft.inputs,
+                    nextDraft.inventoryMode,
+                    nextDraft.normalizedRows,
+                    nextDraft.rowsStatus
+                );
+            } else {
+                dispatchDraft({
+                    type: "hydrate",
+                    state: hydrateSavedEstimate({
+                        inputs: {
+                            ...DEFAULT_ESTIMATE_INPUTS,
+                        },
+                        inventoryMode: "raw",
+                        normalizedRows: [],
+                        rowsStatus: "empty",
+                    }),
+                });
+                saveDraft(
+                    {
+                        ...DEFAULT_ESTIMATE_INPUTS,
+                    },
+                    "raw",
+                    [],
+                    "empty"
+                );
             }
-            setNormalizedRows(data.inputs_state.normalizedRows || []);
-            setInventoryMode(data.inputs_state.inventoryMode || "raw");
-            setOverrides(data.inputs_state.overrides || {});
             setShowHistory(false);
         }
     };
@@ -433,14 +490,14 @@ ${est.daMins > 0 ? `-Assembly: ~${est.daMins} min total` : ""}
                             onChange={e => setClientName(e.target.value)}
                             className="bg-gray-50 border-transparent rounded-xl px-4 py-2 text-[14px] text-gray-900 font-medium placeholder:text-gray-400 focus:ring-2 focus:ring-gray-200 focus:bg-white transition-all outline-none w-36"
                         />
-                        <button
-                            onClick={handleSaveEstimate}
-                            disabled={!clientName.trim() || isSaving}
-                            className={`rounded-xl px-4 py-2 text-[14px] font-medium transition-all duration-300 whitespace-nowrap active:scale-95 w-[96px] flex justify-center items-center text-center disabled:opacity-50 disabled:cursor-not-allowed ${saveStatus === 'success' ? 'bg-emerald-500 text-white' :
-                                isSaving ? 'bg-gray-900 text-white' :
-                                    clientName.trim() ? 'bg-gray-900 text-white hover:bg-gray-800 shadow-sm' :
-                                        'bg-gray-400 text-white'
-                                }`}
+                            <button
+                                onClick={handleSaveEstimate}
+                                disabled={!clientName.trim() || isSaving || !hasUsableEstimate}
+                                className={`rounded-xl px-4 py-2 text-[14px] font-medium transition-all duration-300 whitespace-nowrap active:scale-95 w-[96px] flex justify-center items-center text-center disabled:opacity-50 disabled:cursor-not-allowed ${saveStatus === 'success' ? 'bg-emerald-500 text-white' :
+                                    isSaving ? 'bg-gray-900 text-white' :
+                                        clientName.trim() ? 'bg-gray-900 text-white hover:bg-gray-800 shadow-sm' :
+                                            'bg-gray-400 text-white'
+                                    }`}
                         >
                             {saveStatus === 'success' ? '✓ Saved' : isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save'}
                         </button>
@@ -459,7 +516,7 @@ ${est.daMins > 0 ? `-Assembly: ~${est.daMins} min total` : ""}
                     </button>
 
                     {/* Logout Island */}
-                    <button onClick={() => signOutAction()}
+                    <button onClick={handleLogout}
                         className="bg-white rounded-[1.5rem] shadow-[0_4px_24px_rgba(0,0,0,0.03)] px-4 py-2 flex items-center gap-2 text-[12px] font-bold text-gray-400 hover:text-gray-600 transition-all duration-200 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:-translate-y-0.5 border border-transparent active:scale-95">
                         <LogOut className="w-4 h-4" strokeWidth={2} />
                         Logout
@@ -487,7 +544,7 @@ ${est.daMins > 0 ? `-Assembly: ~${est.daMins} min total` : ""}
                         <ClipboardList className="w-4 h-4" strokeWidth={2} />
                     </button>
                     <button
-                        onClick={() => signOutAction()}
+                        onClick={handleLogout}
                         className="shrink-0 rounded-2xl bg-white border border-transparent shadow-[0_4px_24px_rgba(0,0,0,0.03)] p-2.5 text-gray-500 hover:bg-red-50 hover:text-red-600 transition-all duration-200"
                         aria-label="Logout"
                         title="Logout"
@@ -496,6 +553,12 @@ ${est.daMins > 0 ? `-Assembly: ~${est.daMins} min total` : ""}
                     </button>
                 </div>
             </div>
+
+            {estimateError && (
+                <div className="w-full max-w-6xl mb-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-[12px] font-semibold text-red-700">
+                    {estimateError}
+                </div>
+            )}
 
             {showHistory && (
                 <div className="w-full max-w-6xl mb-6 animate-in fade-in slide-in-from-top-4 duration-300">
@@ -583,12 +646,15 @@ ${est.daMins > 0 ? `-Assembly: ~${est.daMins} min total` : ""}
                 <div className={`w-full md:w-[420px] flex-shrink-0 flex flex-col gap-6 ${activeTab === "config" ? "block" : "hidden md:flex"}`}>
                     <ConfigPanel
                         inputs={inputs} setInputs={setInputs}
-                        adminMode={adminMode} inventoryMode={inventoryMode} setInventoryMode={setInventoryMode}
+                        adminMode={adminMode} inventoryMode={inventoryMode}
                         normalizedRows={normalizedRows} setNormalizedRows={setNormalizedRows}
+                        rowsStatus={rowsStatus}
                         inventoryClipped={inventoryClipped} setInventoryClipped={setInventoryClipped}
                         addRowInput={addRowInput} setAddRowInput={setAddRowInput}
                         suggestedItems={suggestedItems}
-                        handleNormalize={handleNormalize} handleAddRow={handleAddRow}
+                        handleInventoryModeToggle={handleInventoryModeToggle}
+                        handleRawInventoryChange={handleRawInventoryChange}
+                        handleAddRow={handleAddRow}
                         handleRowQtyChange={handleRowQtyChange}
                         estimate={estimate}
                     />
@@ -598,7 +664,7 @@ ${est.daMins > 0 ? `-Assembly: ~${est.daMins} min total` : ""}
                 <div className={`flex-1 flex flex-col gap-6 ${activeTab === "report" ? "block" : "hidden md:flex"}`}>
                     <ReportPanel
                         estimate={estimate as EstimateResult}
-                        inputs={debouncedInputs}
+                        inputs={debouncedEstimateRequest.inputs}
                         isCalculating={isCalculating}
                         adminMode={adminMode}
                         showDetails={showDetails}
@@ -612,6 +678,7 @@ ${est.daMins > 0 ? `-Assembly: ~${est.daMins} min total` : ""}
                         saveStatus={saveStatus}
                         overrides={overrides}
                         setOverrides={setOverrides}
+                        clearOverrides={clearOverrides}
                     />
                 </div>
             </div>
