@@ -9,94 +9,19 @@ import {
   SavedEstimateRecord,
   SavedEstimateState,
 } from "../../lib/types/estimator";
+import { getSessionAccess, requireAuthenticatedAccess } from "../../lib/auth/access";
 import { buildEstimate } from "../../lib/engine";
-import { applyAliasesRegex, clampInt, normalizeRowsFromText } from "../../lib/parser";
+import { applyAliasesRegex, normalizeRowsFromText } from "../../lib/parser";
 import { SORTED_KEYS, KEY_REGEX, VOLUME_TABLE, TRUE_HEAVY_ITEMS } from "../../lib/dictionaries";
+import {
+  MAX_INVENTORY_CHARS,
+  normalizeLegacyMoveType,
+  sanitizeEstimateInputs,
+  sanitizeInventoryMode,
+  sanitizeNormalizedRows,
+  sanitizeOverrides,
+} from "../../lib/estimatePolicy";
 import { createClient } from "../../lib/supabase/server";
-
-const HOME_SIZE_OPTIONS = new Set(["1", "2", "3", "4", "5", "Commercial"]);
-const MOVE_TYPE_OPTIONS = new Set(["Local", "LD", "Labor"]);
-const PACKING_LEVEL_OPTIONS = new Set(["None", "Partial", "Full"]);
-const ACCESS_OPTIONS = new Set(["ground", "elevator", "stairs"]);
-const OVERRIDE_KEYS = new Set(["volume", "trucks", "crew", "timeMin", "timeMax", "blankets", "boxes"]);
-const MAX_INVENTORY_CHARS = 12000;
-const MAX_EXTRA_STOPS = 4;
-const MAX_ROWS = 500;
-
-function sanitizeInventoryMode(mode: string | undefined): InventoryMode {
-  return mode === "normalized" ? "normalized" : "raw";
-}
-
-function normalizeLegacyMoveType(moveType: string | undefined): EstimateInputs["moveType"] {
-  return moveType === "LD" || moveType === "Labor" ? moveType : "Local";
-}
-
-function sanitizeEstimateInputs(inputs: EstimateInputs, inventoryMode?: InventoryMode): EstimateInputs {
-  const requestedMoveType = String(inputs.moveType ?? "");
-  const safeMoveType = MOVE_TYPE_OPTIONS.has(requestedMoveType) ? requestedMoveType : normalizeLegacyMoveType(requestedMoveType);
-  const safeInventoryMode = inventoryMode ?? sanitizeInventoryMode(inputs.inventoryMode);
-  const normalizedHomeSize = inputs.homeSize === "0" ? "1" : inputs.homeSize;
-  const safeAccessOrigin = ACCESS_OPTIONS.has(inputs.accessOrigin) ? inputs.accessOrigin : "ground";
-  const safeAccessDest = safeMoveType === "Local" && ACCESS_OPTIONS.has(inputs.accessDest) ? inputs.accessDest : "ground";
-  const extraStops = Array.isArray(inputs.extraStops)
-    ? inputs.extraStops.slice(0, MAX_EXTRA_STOPS).map((stop) => ({
-      label: String(stop?.label ?? "").trim().slice(0, 30),
-      access: ACCESS_OPTIONS.has(stop?.access) ? stop.access : "ground",
-    }))
-    : [];
-
-  return {
-    homeSize: HOME_SIZE_OPTIONS.has(normalizedHomeSize) ? normalizedHomeSize : "3",
-    moveType: safeMoveType as EstimateInputs["moveType"],
-    distance: String(clampInt(inputs.distance, 0, 10000)),
-    packingLevel: PACKING_LEVEL_OPTIONS.has(inputs.packingLevel) ? inputs.packingLevel : "None",
-    accessOrigin: safeAccessOrigin as EstimateInputs["accessOrigin"],
-    accessDest: safeAccessDest as EstimateInputs["accessDest"],
-    inventoryText: String(inputs.inventoryText ?? "").slice(0, MAX_INVENTORY_CHARS),
-    inventoryMode: safeInventoryMode,
-    normalizedRows: undefined,
-    overrides: undefined,
-    extraStops,
-  };
-}
-
-function sanitizeNormalizedRows(rows: NormalizedRow[] | undefined): NormalizedRow[] {
-  if (!Array.isArray(rows)) return [];
-
-  const sanitizeExactVolume = (value: unknown): number | undefined => {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
-  };
-
-  return rows
-    .slice(0, MAX_ROWS)
-    .map((row, index) => ({
-      id: String(row?.id ?? `row_${index}`).slice(0, 120),
-      name: String(row?.name ?? "").trim().slice(0, 120),
-      qty: clampInt(row?.qty ?? 1, 1, 500),
-      cfUnit: clampInt(row?.cfUnit ?? 1, 1, 500),
-      cfExact: sanitizeExactVolume(row?.cfExact),
-      isSynthetic: !!row?.isSynthetic,
-      raw: String(row?.raw ?? "").slice(0, 240),
-      room: String(row?.room ?? "").trim().slice(0, 80),
-      flags: {
-        heavy: !!row?.flags?.heavy,
-        heavyWeight: !!row?.flags?.heavyWeight,
-      },
-    }))
-    .filter((row) => row.name.length > 0);
-}
-
-function sanitizeOverrides(overrides: Record<string, string> | undefined): Record<string, string> {
-  if (!overrides) return {};
-
-  return Object.fromEntries(
-    Object.entries(overrides)
-      .filter(([key]) => OVERRIDE_KEYS.has(key))
-      .map(([key, value]) => [key, String(value ?? "").trim().slice(0, 8)])
-      .filter(([, value]) => value.length > 0)
-  );
-}
 
 function buildTrustedEstimate(
   inputs: EstimateInputs,
@@ -117,15 +42,18 @@ function buildTrustedEstimate(
 }
 
 export async function getEstimate(inputs: EstimateInputs, normalizedRows?: NormalizedRow[], overrides?: Record<string, string>): Promise<EstimateResult> {
+  await requireAuthenticatedAccess();
   return buildTrustedEstimate(inputs, normalizedRows, overrides).estimate;
 }
 
 export async function normalizeInventoryAction(text: string): Promise<NormalizedRow[]> {
+  await requireAuthenticatedAccess();
   const result = normalizeRowsFromText(String(text ?? "").slice(0, MAX_INVENTORY_CHARS));
   return result.rows as NormalizedRow[];
 }
 
 export async function resolveItemAction(name: string): Promise<{ resolvedName: string; cfUnit: number; isHeavy: boolean }> {
+  await requireAuthenticatedAccess();
   const alias = applyAliasesRegex((name || "").trim().toLowerCase());
   const volKey = SORTED_KEYS.find(k => KEY_REGEX[k as keyof typeof KEY_REGEX].test(alias)) || null;
   const resolvedName = volKey || `${name} (est)`;
@@ -135,6 +63,7 @@ export async function resolveItemAction(name: string): Promise<{ resolvedName: s
 }
 
 export async function suggestItemsAction(prefix: string): Promise<string[]> {
+  await requireAuthenticatedAccess();
   const p = (prefix || "").trim().toLowerCase();
   if (p.length < 2) return [];
   return SORTED_KEYS.filter(k => k.includes(p)).slice(0, 20);
@@ -148,12 +77,11 @@ export async function saveEstimateAction(
   overrides: Record<string, string>
 ) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
+    const access = await getSessionAccess();
+    if (!access.isAuthenticated || !access.userId) {
       return { success: false, error: "Unauthorized: You must be logged in to save estimates." };
     }
+    const supabase = await createClient();
 
     if (!clientName || !clientName.trim()) {
       return { success: false, error: "Client Name is required." };
@@ -188,7 +116,7 @@ export async function saveEstimateAction(
     };
 
     const payload = {
-      manager_id: user.id,
+      manager_id: access.userId,
       client_name: safeClientName,
       final_volume: estimate.finalVolume,
       net_volume: estimate.netVolume || null,
@@ -224,14 +152,14 @@ type EstimateHistoryRow = {
 };
 
 export async function fetchHistoryAction(): Promise<EstimateHistoryItem[]> {
+  const access = await getSessionAccess();
+  if (!access.isAuthenticated || !access.userId) return [];
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return [];
 
   const { data, error } = await supabase
     .from('estimates')
     .select('id, client_name, final_volume, net_volume, inputs_state, created_at')
-    .eq('manager_id', user.id)
+    .eq('manager_id', access.userId)
     .order('created_at', { ascending: false })
     .limit(30);
 
@@ -248,15 +176,15 @@ export async function fetchHistoryAction(): Promise<EstimateHistoryItem[]> {
 }
 
 export async function loadEstimateAction(id: string): Promise<SavedEstimateRecord | null> {
+  const access = await getSessionAccess();
+  if (!access.isAuthenticated || !access.userId) return null;
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
 
   const { data, error } = await supabase
     .from('estimates')
     .select('*')
     .eq('id', id)
-    .eq('manager_id', user.id)
+    .eq('manager_id', access.userId)
     .single();
 
   if (error) {
@@ -267,15 +195,15 @@ export async function loadEstimateAction(id: string): Promise<SavedEstimateRecor
 }
 
 export async function deleteEstimateAction(id: string) {
+  const access = await getSessionAccess();
+  if (!access.isAuthenticated || !access.userId) return { success: false, error: "Unauthorized" };
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { success: false, error: "Unauthorized" };
 
   const { error } = await supabase
     .from('estimates')
     .delete()
     .eq('id', id)
-    .eq('manager_id', user.id);
+    .eq('manager_id', access.userId);
 
   if (error) {
     console.error("deleteEstimateAction error:", error);

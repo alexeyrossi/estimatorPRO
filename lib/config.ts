@@ -77,5 +77,3 @@ export const HV_TABLE = [
   { label: "4BDR", min: 1000, add: 500 },
   { label: "5BDR+", min: 1300, add: 600 },
 ];
-
-export const CLIENT_CONFIG = { MAX_EXTRA_STOPS: 4 };

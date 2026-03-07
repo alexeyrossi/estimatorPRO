@@ -3,11 +3,9 @@ import { EstimateInputs, EstimateResult } from '@/lib/types/estimator';
 import {
     Truck, Box, List, Weight, Terminal, ChevronRight, Lock, Scale, PackageOpen, Clock, CalendarDays, Info, Users, AlertTriangle, ArrowUpFromLine, Check, Clipboard, Loader2
 } from 'lucide-react';
-import { toast } from 'sonner';
 import { GlassPanel } from './GlassPanel';
 import { MetricCard } from './MetricCard';
 import { ConfidenceDonut } from './ConfidenceDonut';
-import jsPDF from 'jspdf';
 
 
 
@@ -77,6 +75,8 @@ interface ReportPanelProps {
     overrides: Record<string, string>;
     setOverrides: React.Dispatch<React.SetStateAction<Record<string, string>>>;
     clearOverrides: () => void;
+    handleDownloadPdf: () => void;
+    isGeneratingPdf: boolean;
 }
 
 export const ReportPanel = ({
@@ -95,10 +95,10 @@ export const ReportPanel = ({
     saveStatus,
     overrides,
     setOverrides,
-    clearOverrides
+    clearOverrides,
+    handleDownloadPdf,
+    isGeneratingPdf,
 }: ReportPanelProps) => {
-
-    const [isGeneratingPDF, setIsGeneratingPDF] = React.useState(false);
 
     const isLabor = inputs.moveType === "Labor";
     const hasUsableEstimate = typeof estimate.finalVolume === "number" && estimate.finalVolume > 0;
@@ -119,249 +119,6 @@ export const ReportPanel = ({
     const primaryVolume = inputs.moveType === "LD" && estimate.billableCF ? estimate.billableCF : estimate.finalVolume;
     const primaryVolumeLabel = "Volume";
     const primaryVolumeSub = inputs.moveType === "LD" && estimate.billableCF ? "Adjusted Estimate" : "Based on Inventory";
-
-    const handleDownloadPDF = async () => {
-        setIsGeneratingPDF(true);
-        try {
-            const pdf = new jsPDF('p', 'mm', 'a4');
-            const W = pdf.internal.pageSize.getWidth();
-            const H = pdf.internal.pageSize.getHeight();
-            const M = 16;
-            let y = M;
-
-            const addText = (text: string, x: number, size: number, color: [number, number, number], weight: string = 'normal') => {
-                pdf.setFontSize(size);
-                pdf.setTextColor(...color);
-                pdf.setFont('helvetica', weight);
-                pdf.text(text, x, y);
-            };
-
-            const drawLine = (y1: number) => {
-                pdf.setDrawColor(230);
-                pdf.setLineWidth(0.3);
-                pdf.line(M, y1, W - M, y1);
-            };
-
-            const checkPage = (needed: number) => {
-                if (y + needed > H - 40) {
-                    pdf.addPage();
-                    y = M;
-                }
-            };
-
-            // ========== HEADER ==========
-            addText('MOVING ESTIMATE', M, 22, [30, 30, 30], 'bold');
-            y += 7;
-            const today = new Date().toLocaleDateString('en-US', {
-                year: 'numeric', month: 'long', day: 'numeric'
-            });
-            addText(today, M, 9, [160, 160, 160]);
-
-            if (clientName) {
-                pdf.setFontSize(14);
-                pdf.setFont('helvetica', 'bold');
-                pdf.setTextColor(30, 30, 30);
-                pdf.text(clientName, W - M, y - 7, { align: 'right' });
-            }
-            const homeSizeLabel = inputs.homeSize === 'Commercial' ? 'Commercial' : inputs.homeSize === '1' ? '1 BDR / Less' : `${inputs.homeSize} BDR`;
-            const paramLine = [homeSizeLabel, `${inputs.distance} mi`, inputs.moveType]
-                .filter(Boolean).join(' · ');
-            pdf.setFontSize(9);
-            pdf.setFont('helvetica', 'normal');
-            pdf.setTextColor(160, 160, 160);
-            pdf.text(paramLine, W - M, y, { align: 'right' });
-
-            y += 4;
-            pdf.setDrawColor(30);
-            pdf.setLineWidth(0.6);
-            pdf.line(M, y, W - M, y);
-            y += 10;
-
-            // ========== METRICS ROW ==========
-            const metrics = [
-                { label: inputs.moveType === 'LD' ? 'SHIPMENT SIZE' : 'VOLUME', value: `${(inputs.moveType === 'LD' && estimate.billableCF ? estimate.billableCF : estimate.finalVolume || 0).toLocaleString()} cf` },
-                { label: 'TIME EST.', value: `${estimate.timeMin || 0}\u2013${estimate.timeMax || 0}h` },
-                { label: 'TRUCKS', value: `${estimate.trucksFinal || 0}` },
-                { label: 'CREW', value: `${estimate.crew || 0} movers` },
-            ];
-            const colW = (W - M * 2) / 4;
-            metrics.forEach((m, i) => {
-                const x = M + i * colW;
-                pdf.setFontSize(8); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(160, 160, 160);
-                pdf.text(m.label, x, y);
-                pdf.setFontSize(18); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(30, 30, 30);
-                pdf.text(m.value, x, y + 8);
-            });
-            y += 16;
-            drawLine(y); y += 8;
-
-            // ========== CONFIDENCE + HEAVY ==========
-            pdf.setFontSize(14); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(16, 185, 129);
-            pdf.text(`${estimate.confidence?.score || 0}%`, M, y);
-            pdf.setFontSize(10); pdf.setTextColor(160, 160, 160);
-            pdf.text('Confidence', M + 18, y);
-
-            if (estimate.heavyItemNames?.length && estimate.heavyItemNames.length > 0) {
-                const heavyText = `HEAVY: ${estimate.heavyItemNames.join(', ')}`;
-                const textWidth = pdf.getTextWidth(heavyText);
-                const badgeW = textWidth + 10;
-                const badgeX = W - M - badgeW;
-                const badgeY = y - 4;
-                // Draw rounded red badge background
-                pdf.setFillColor(254, 242, 242); // red-50
-                pdf.roundedRect(badgeX, badgeY, badgeW, 6, 3, 3, 'F');
-                pdf.setFontSize(8); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(220, 50, 50);
-                pdf.text(heavyText, badgeX + 5, y);
-            }
-            y += 6;
-
-            // ========== AUDIT NOTES ==========
-            if (estimate.auditSummary?.length && estimate.auditSummary.length > 0) {
-                y += 2;
-                pdf.setFontSize(9); pdf.setFont('helvetica', 'normal'); pdf.setTextColor(140, 140, 140);
-                estimate.auditSummary.forEach((tip: string) => {
-                    checkPage(6);
-                    pdf.text(tip, M, y);
-                    y += 5;
-                });
-            }
-            y += 2; drawLine(y); y += 8;
-
-            // ========== LD BREAKDOWN / LOCAL LINE ==========
-            if (inputs.moveType === 'LD' && estimate.billableCF != null && estimate.billableCF > 0) {
-                checkPage(30);
-                pdf.setFontSize(8); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(59, 130, 246);
-                pdf.text('LONG DISTANCE BREAKDOWN', M, y);
-                y += 7;
-                const ldData = [
-                    { label: 'Inventory Volume', value: `${rawInventoryVolume.toLocaleString()} cf` },
-                    { label: 'Truck Load', value: `~${(estimate.truckSpaceCF || 0).toLocaleString()} cf` },
-                    { label: 'Est. Weight', value: `${(estimate.weight || 0).toLocaleString()} lbs` },
-                ];
-                const ldColW = (W - M * 2) / 3;
-                ldData.forEach((d, i) => {
-                    const x = M + i * ldColW;
-                    pdf.setFontSize(8); pdf.setFont('helvetica', 'normal'); pdf.setTextColor(160, 160, 160);
-                    pdf.text(d.label, x, y);
-                    pdf.setFontSize(13); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(30, 30, 30);
-                    pdf.text(d.value, x, y + 6);
-                });
-                y += 14; drawLine(y); y += 8;
-            } else if (inputs.moveType === 'Local') {
-                checkPage(10);
-                pdf.setFontSize(9); pdf.setFont('helvetica', 'normal'); pdf.setTextColor(160, 160, 160);
-                const accessInfo = inputs.accessOrigin || 'ground';
-                pdf.text(`Local Service \u00b7 ${inputs.distance} miles \u00b7 ${accessInfo} access`, M, y);
-                y += 4; drawLine(y); y += 8;
-            }
-
-            // ========== MATERIALS ==========
-            checkPage(20);
-            const matData = [
-                { label: 'Blankets', value: `${estimate.materials?.blankets || 0}` },
-                { label: 'Boxes', value: `~${estimate.materials?.boxes || 0}` },
-                { label: 'Wardrobes', value: `${estimate.materials?.wardrobes || 0}` },
-            ];
-            const matColW = (W - M * 2) / 3;
-            matData.forEach((d, i) => {
-                const x = M + i * matColW;
-                pdf.setFontSize(8); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(160, 160, 160);
-                pdf.text(d.label.toUpperCase(), x, y);
-                pdf.setFontSize(16); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(30, 30, 30);
-                pdf.text(d.value, x, y + 7);
-            });
-            y += 14; drawLine(y); y += 8;
-
-            // ========== INVENTORY TABLE ==========
-            if (estimate.parsedItems?.length && estimate.parsedItems.length > 0) {
-                checkPage(15);
-                pdf.setFontSize(8); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(160, 160, 160);
-                pdf.text(`DETECTED ITEMS (${estimate.detectedQtyTotal || estimate.parsedItems.length})`, M, y);
-                y += 6;
-
-                const half = Math.ceil(estimate.parsedItems.length / 2);
-                const col1 = estimate.parsedItems.slice(0, half);
-                const col2 = estimate.parsedItems.slice(half);
-                const tableW = (W - M * 2 - 8) / 2;
-                const xLeft = M;
-                const xRight = M + tableW + 8;
-                const rowCount = Math.max(col1.length, col2.length);
-
-                const drawItem = (item: { qty?: number; name?: string; cf?: number }, xBase: number) => {
-                    pdf.setFontSize(9); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(30, 30, 30);
-                    pdf.text(`x${item.qty}`, xBase, y);
-                    pdf.setFont('helvetica', 'normal'); pdf.setTextColor(80, 80, 80);
-                    pdf.text(item.name || '', xBase + 14, y);
-                    const cfTotal = item.cf || 0;
-                    pdf.setFont('helvetica', 'normal'); pdf.setTextColor(140, 140, 140);
-                    pdf.text(`${cfTotal} cf`, xBase + tableW - 2, y, { align: 'right' });
-                };
-
-                for (let r = 0; r < rowCount; r++) {
-                    checkPage(5);
-                    if (col1[r]) drawItem(col1[r], xLeft);
-                    if (col2[r]) drawItem(col2[r], xRight);
-                    y += 5;
-                }
-
-                y += 2; drawLine(y); y += 8;
-            }
-
-            // ========== RISKS & TIPS ==========
-            const tips = [...(estimate.advice || [])];
-            const risks = (estimate.risks || [])
-                .filter((r: { text?: string; level?: string }) => r.text)
-                .map((r: { text?: string; level?: string }) => r.text);
-            const allNotes = [...tips, ...risks];
-
-            if (allNotes.length > 0) {
-                checkPage(10);
-                pdf.setFontSize(8); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(160, 160, 160);
-                pdf.text('NOTES & RECOMMENDATIONS', M, y);
-                y += 6;
-
-                allNotes.forEach((note: string | undefined) => {
-                    if (!note) return;
-                    checkPage(6);
-                    pdf.setFontSize(9); pdf.setFont('helvetica', 'normal'); pdf.setTextColor(120, 120, 120);
-                    const lines = pdf.splitTextToSize(note, W - M * 2);
-                    lines.forEach((l: string) => { pdf.text(l, M, y); y += 4.5; });
-                });
-            }
-
-            // ========== FOOTER ==========
-            const pageCount = pdf.getNumberOfPages();
-            for (let i = 1; i <= pageCount; i++) {
-                pdf.setPage(i);
-                pdf.setFontSize(8);
-                pdf.setTextColor(150);
-
-                // Page number on every page
-                const pageLabel = `Page ${i} of ${pageCount}`;
-                const pageLabelW = pdf.getTextWidth(pageLabel);
-                pdf.text(pageLabel, (W / 2) - (pageLabelW / 2), H - 10);
-
-                // "Generated" stamp only on the last page
-                if (i === pageCount) {
-                    const stamp = `Generated ${today} | Estimator V11.59 PRO`;
-                    const stampW = pdf.getTextWidth(stamp);
-                    pdf.text(stamp, (W / 2) - (stampW / 2), H - 15);
-                }
-            }
-
-            // ========== SAVE ==========
-            const fn = clientName
-                ? `Estimate_${clientName.replace(/\s+/g, '_')}.pdf`
-                : 'Moving_Estimate.pdf';
-            pdf.save(fn);
-
-        } catch (e) {
-            console.error('PDF error:', e);
-            toast.error("Failed to generate PDF. Please try again.");
-        } finally {
-            setIsGeneratingPDF(false);
-        }
-    };
 
     const heavyBadgeText = useMemo(() => {
         const arr = estimate.heavyItemNames || []; if (!arr.length) return null;
@@ -557,11 +314,11 @@ export const ReportPanel = ({
                                 {copyStatus === 'success' ? <><Check className="w-4 h-4 shrink-0" /><span className="truncate">✓ Copied!</span></> : <><Clipboard className="w-4 h-4 shrink-0" /><span className="truncate">COPY REPORT</span></>}
                             </button>
                             <button
-                                onClick={handleDownloadPDF}
-                                disabled={isGeneratingPDF || !hasUsableEstimate}
+                                onClick={handleDownloadPdf}
+                                disabled={isGeneratingPdf || !hasUsableEstimate}
                                 className={`flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-[14px] font-bold transition-all duration-200 text-gray-500 hover:text-gray-900 hover:bg-gray-100 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed`}
                             >
-                                {isGeneratingPDF ? (
+                                {isGeneratingPdf ? (
                                     <><Loader2 className="w-4 h-4 animate-spin" /> Generating...</>
                                 ) : (
                                     <>

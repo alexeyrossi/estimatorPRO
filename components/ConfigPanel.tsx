@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { EstimateInputs, NormalizedRow, EstimateResult, RowsStatus } from '@/lib/types/estimator';
 import { Settings, MapPin, Trash2, Shield, User, Plus, Weight, Undo2 } from 'lucide-react';
+import { MAX_EXTRA_STOPS } from '@/lib/estimatePolicy';
 import { GlassPanel } from './GlassPanel';
 import { Select } from './Select';
 import { InputLabel } from './InputLabel';
@@ -167,7 +168,7 @@ export const ConfigPanel = ({
                             </div>
                         </div>
                     ))}
-                    {(inputs.extraStops || []).length < 4 && (
+                    {(inputs.extraStops || []).length < MAX_EXTRA_STOPS && (
                         <button onClick={() => {
                             const newStops = [...(inputs.extraStops || []), { label: "", access: "ground" as "ground" | "elevator" | "stairs" }];
                             setInputs({ ...inputs, extraStops: newStops });

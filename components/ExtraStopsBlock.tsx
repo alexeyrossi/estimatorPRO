@@ -1,9 +1,9 @@
 import React from 'react';
 import { Trash2, Plus } from 'lucide-react';
+import { MAX_EXTRA_STOPS } from '@/lib/estimatePolicy';
 import { EstimateInputs, ExtraStop } from '@/lib/types/estimator';
 import { AccessSegmented } from './AccessSegmented';
 import { InputLabel } from './InputLabel';
-import { CLIENT_CONFIG } from '@/lib/config';
 
 interface ExtraStopsBlockProps {
     inputs: EstimateInputs;
@@ -16,7 +16,7 @@ export const ExtraStopsBlock = ({ inputs, setInputs }: ExtraStopsBlockProps) => 
     const extraStops = inputs.extraStops || [];
 
     const handleAdd = () => {
-        if (extraStops.length < CLIENT_CONFIG.MAX_EXTRA_STOPS) {
+        if (extraStops.length < MAX_EXTRA_STOPS) {
             setInputs((prev) => ({
                 ...prev,
                 extraStops: [...(prev.extraStops || []), { access: "ground", label: "" }]
@@ -81,7 +81,7 @@ export const ExtraStopsBlock = ({ inputs, setInputs }: ExtraStopsBlockProps) => 
                 </div>
             ))}
 
-            {extraStops.length < CLIENT_CONFIG.MAX_EXTRA_STOPS && (
+            {extraStops.length < MAX_EXTRA_STOPS && (
                 <button
                     onClick={handleAdd}
                     className="w-full py-3 flex items-center justify-center gap-2 border-2 border-dashed border-gray-200 rounded-2xl text-[11px] font-bold text-gray-400 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50/50 transition-all"

@@ -1,12 +1,18 @@
 import {
-  DraftState,
   EstimateDraftState,
   EstimateInputs,
   InventoryMode,
   NormalizedRow,
-  RowsStatus,
 } from "./types/estimator";
-import { DEFAULT_ESTIMATE_INPUTS } from "./draftStorage";
+import {
+  buildRawTextFromRows,
+  DEFAULT_ESTIMATE_INPUTS,
+  deriveRowsStatus,
+  DraftHydrationState,
+  hydrateEstimateDraftState,
+} from "./estimatePolicy";
+
+export { buildRawTextFromRows, deriveRowsStatus } from "./estimatePolicy";
 
 export type EstimateDraftAction =
   | { type: "hydrate"; state: EstimateDraftState }
@@ -25,8 +31,6 @@ type EstimateDraftRequest = {
   overrides: Record<string, string>;
 };
 
-type DraftHydrationState = Omit<DraftState, "rowsStatus"> & { rowsStatus?: RowsStatus };
-
 export function createInitialEstimateDraftState(): EstimateDraftState {
   return {
     inputs: { ...DEFAULT_ESTIMATE_INPUTS },
@@ -35,29 +39,6 @@ export function createInitialEstimateDraftState(): EstimateDraftState {
     rowsStatus: "empty",
     overrides: {},
   };
-}
-
-export function buildRawTextFromRows(rows: NormalizedRow[]): string {
-  const grouped = rows.reduce((acc, row) => {
-    const room = row.room || "General";
-    if (!acc.has(room)) acc.set(room, []);
-    acc.get(room)!.push(`${row.qty === "" ? 1 : row.qty} ${row.name}`);
-    return acc;
-  }, new Map<string, string[]>());
-
-  return Array.from(grouped.entries())
-    .map(([room, items]) => (room === "General" ? items.join(", ") : `${room}: ${items.join(", ")}`))
-    .join("\n");
-}
-
-export function deriveRowsStatus(
-  inventoryMode: InventoryMode,
-  inventoryText: string,
-  normalizedRows: NormalizedRow[]
-): RowsStatus {
-  if (!normalizedRows.length) return "empty";
-  if (inventoryMode === "normalized") return "fresh";
-  return buildRawTextFromRows(normalizedRows).trim() === inventoryText.trim() ? "fresh" : "stale";
 }
 
 export function buildEstimateRequest(state: EstimateDraftState): EstimateDraftRequest {
@@ -77,23 +58,11 @@ export function canReuseNormalizedRows(state: Pick<EstimateDraftState, "inputs" 
 }
 
 export function hydrateDraftState(state: DraftHydrationState): EstimateDraftState {
-  return {
-    inputs: state.inputs,
-    inventoryMode: state.inventoryMode,
-    normalizedRows: state.normalizedRows,
-    rowsStatus: state.rowsStatus ?? deriveRowsStatus(state.inventoryMode, state.inputs.inventoryText, state.normalizedRows),
-    overrides: {},
-  };
+  return hydrateEstimateDraftState(state);
 }
 
 export function hydrateSavedEstimate(state: DraftHydrationState): EstimateDraftState {
-  return {
-    inputs: state.inputs,
-    inventoryMode: state.inventoryMode,
-    normalizedRows: state.normalizedRows,
-    rowsStatus: state.rowsStatus ?? deriveRowsStatus(state.inventoryMode, state.inputs.inventoryText, state.normalizedRows),
-    overrides: {},
-  };
+  return hydrateEstimateDraftState(state);
 }
 
 export function estimateDraftReducer(state: EstimateDraftState, action: EstimateDraftAction): EstimateDraftState {

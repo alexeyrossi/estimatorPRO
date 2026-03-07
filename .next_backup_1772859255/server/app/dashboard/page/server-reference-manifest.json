@@ -1,0 +1,140 @@
+{
+  "node": {
+    "40118bee6aa01054caa79cea77c7070b4d57b8a232": {
+      "workers": {
+        "app/dashboard/page": {
+          "moduleId": 69821,
+          "async": false,
+          "exportedName": "normalizeInventoryAction",
+          "filename": "app/actions/estimate.ts"
+        }
+      },
+      "layer": {
+        "app/dashboard/page": "action-browser"
+      },
+      "exportedName": "normalizeInventoryAction",
+      "filename": "app/actions/estimate.ts"
+    },
+    "405e102ad4eca745678bbac9475a49580993184d1c": {
+      "workers": {
+        "app/dashboard/page": {
+          "moduleId": 69821,
+          "async": false,
+          "exportedName": "resolveItemAction",
+          "filename": "app/actions/estimate.ts"
+        }
+      },
+      "layer": {
+        "app/dashboard/page": "action-browser"
+      },
+      "exportedName": "resolveItemAction",
+      "filename": "app/actions/estimate.ts"
+    },
+    "7cedd53cda95766c5dffdbc886a144506eb3c9d8ce": {
+      "workers": {
+        "app/dashboard/page": {
+          "moduleId": 69821,
+          "async": false,
+          "exportedName": "saveEstimateAction",
+          "filename": "app/actions/estimate.ts"
+        }
+      },
+      "layer": {
+        "app/dashboard/page": "action-browser"
+      },
+      "exportedName": "saveEstimateAction",
+      "filename": "app/actions/estimate.ts"
+    },
+    "0055448b3c0f122ead84313cd7bf08884c8dbb2e38": {
+      "workers": {
+        "app/dashboard/page": {
+          "moduleId": 69821,
+          "async": false,
+          "exportedName": "signOutAction",
+          "filename": "app/actions/auth.ts"
+        }
+      },
+      "layer": {
+        "app/dashboard/page": "action-browser"
+      },
+      "exportedName": "signOutAction",
+      "filename": "app/actions/auth.ts"
+    },
+    "40dcf5715b6f004a486423b85de002ff612894862e": {
+      "workers": {
+        "app/dashboard/page": {
+          "moduleId": 69821,
+          "async": false,
+          "exportedName": "deleteEstimateAction",
+          "filename": "app/actions/estimate.ts"
+        }
+      },
+      "layer": {
+        "app/dashboard/page": "action-browser"
+      },
+      "exportedName": "deleteEstimateAction",
+      "filename": "app/actions/estimate.ts"
+    },
+    "00d777cbcd5856b477ee3fdeadd463d86f6b2e04dd": {
+      "workers": {
+        "app/dashboard/page": {
+          "moduleId": 69821,
+          "async": false,
+          "exportedName": "fetchHistoryAction",
+          "filename": "app/actions/estimate.ts"
+        }
+      },
+      "layer": {
+        "app/dashboard/page": "action-browser"
+      },
+      "exportedName": "fetchHistoryAction",
+      "filename": "app/actions/estimate.ts"
+    },
+    "4017a41c647a10f8151a8f9b6f0b3e32ca1b4e6c54": {
+      "workers": {
+        "app/dashboard/page": {
+          "moduleId": 69821,
+          "async": false,
+          "exportedName": "loadEstimateAction",
+          "filename": "app/actions/estimate.ts"
+        }
+      },
+      "layer": {
+        "app/dashboard/page": "action-browser"
+      },
+      "exportedName": "loadEstimateAction",
+      "filename": "app/actions/estimate.ts"
+    },
+    "70f94c25012a76009f618b382bef056f41cbf1f12b": {
+      "workers": {
+        "app/dashboard/page": {
+          "moduleId": 69821,
+          "async": false,
+          "exportedName": "getEstimate",
+          "filename": "app/actions/estimate.ts"
+        }
+      },
+      "layer": {
+        "app/dashboard/page": "action-browser"
+      },
+      "exportedName": "getEstimate",
+      "filename": "app/actions/estimate.ts"
+    },
+    "405f3ce2e4e003ea1931db8b1778396e157bf08e5c": {
+      "workers": {
+        "app/dashboard/page": {
+          "moduleId": 69821,
+          "async": false,
+          "exportedName": "suggestItemsAction",
+          "filename": "app/actions/estimate.ts"
+        }
+      },
+      "layer": {
+        "app/dashboard/page": "action-browser"
+      },
+      "exportedName": "suggestItemsAction",
+      "filename": "app/actions/estimate.ts"
+    }
+  },
+  "edge": {}
+}

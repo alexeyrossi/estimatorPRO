@@ -1,0 +1,123 @@
+[00:00:01.452] Server  LOG     ✓ Ready in 1220ms
+[00:18:22.012] Server  LOG     ✓ Compiled in 184ms
+[00:19:32.690] Server  LOG     ✓ Compiled in 142ms
+[00:19:45.267] Server  LOG     ✓ Compiled in 50ms
+[00:19:51.668] Server  LOG     ✓ Compiled in 32ms
+[00:20:06.521] Server  LOG     ✓ Compiled in 47ms
+[00:20:13.156] Server  LOG     ✓ Compiled in 43ms
+[00:20:21.022] Server  LOG     ✓ Compiled in 42ms
+[00:20:35.165] Server  LOG     ✓ Compiled in 53ms
+[00:20:41.717] Server  LOG     ✓ Compiled in 38ms
+[00:21:14.191] Server  LOG     ✓ Compiled in 41ms
+[00:29:04.888] Server  LOG     ✓ Compiled in 290ms
+[00:29:15.268] Server  LOG     ✓ Compiled in 97ms
+[00:29:23.356] Server  LOG     ✓ Compiled in 44ms
+[00:43:56.399] Server  LOG     ✓ Compiled in 85ms
+[00:44:09.492] Server  LOG     ✓ Compiled in 53ms
+[00:44:27.486] Server  LOG     ✓ Compiled in 29ms
+[00:44:27.595] Browser ERROR   ./components/ReportPanel.tsx:572:31
+Parsing ecmascript source code failed
+  570 |                                 )}
+  571 |                             </button>
+> 572 |                         </div>
+      |                               ^
+> 573 |
+      | ^
+> 574 |                         <button onClick={() => setShowDetails(!showDetails)}
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^
+  575 |                             className="flex items-center justify-center gap-2 w-[120px] py-3 rounded-xl text-[14px] font-bold transition-all duration-200 text-gray-500 hover:text-gray-900 hover:bg-gray-100 active:scale-[0.98] ml-auto">
+  576 |                             <span>{showDetails ? 'Hide' : 'Details'}</span>
+  577 |                             <ChevronRight className={`w-4 h-4 transition-transform duration-300 ${showDetails ? '-rotate-90' : ''}`} />
+
+Expected '</', got 'jsx text'
+
+Import traces:
+  Client Component Browser:
+    ./components/ReportPanel.tsx [Client Component Browser]
+    ./app/dashboard/page.tsx [Client Component Browser]
+    ./app/dashboard/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/ReportPanel.tsx [Client Component SSR]
+    ./app/dashboard/page.tsx [Client Component SSR]
+    ./app/dashboard/page.tsx [Server Component]
+[00:44:51.016] Server  LOG     ✓ Compiled in 34ms
+[01:49:08.465] Server  ERROR   ⨯ ./app/actions/estimate.ts:12:1
+Module not found: Can't resolve '../../lib/engine'
+  10 |   SavedEstimateState,
+  11 | } from "../../lib/types/estimator";
+> 12 | import { buildEstimate } from "../../lib/engine";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  13 | import { applyAliasesRegex, clampInt, normalizeRowsFromText } from "../../lib/parser";
+  14 | import { SORTED_KEYS, KEY_REGEX, VOLUME_TABLE, TRUE_HEAVY_ITEMS } from "../../lib/dictionaries";
+  15 | import { createClient } from "../../lib/supabase/server";
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[01:49:08.471] Server  ERROR   ⨯ ./app/actions/estimate.ts:12:1
+Module not found: Can't resolve '../../lib/engine'
+  10 |   SavedEstimateState,
+  11 | } from "../../lib/types/estimator";
+> 12 | import { buildEstimate } from "../../lib/engine";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  13 | import { applyAliasesRegex, clampInt, normalizeRowsFromText } from "../../lib/parser";
+  14 | import { SORTED_KEYS, KEY_REGEX, VOLUME_TABLE, TRUE_HEAVY_ITEMS } from "../../lib/dictionaries";
+  15 | import { createClient } from "../../lib/supabase/server";
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[01:49:18.611] Server  LOG     ✓ Compiled in 47ms
+[01:49:46.479] Server  LOG     ✓ Compiled in 74ms
+[02:20:25.053] Server  LOG     ✓ Compiled in 57ms
+[02:23:39.606] Server  LOG     ✓ Compiled in 21ms
+[02:23:51.964] Server  LOG     ✓ Compiled in 19ms
+[02:41:17.917] Server  LOG     ✓ Compiled in 151ms
+[02:41:56.003] Server  LOG     ✓ Compiled in 73ms
+[02:42:06.796] Server  LOG     ✓ Compiled in 24ms
+[02:42:32.503] Server  LOG     ✓ Compiled in 21ms
+[02:42:41.104] Server  LOG     ✓ Compiled in 45ms
+[02:42:49.098] Server  LOG     ✓ Compiled in 45ms
+[03:02:53.179] Server  LOG     ✓ Compiled in 142ms
+[03:16:52.600] Server  LOG     ✓ Compiled in 138ms
+[03:30:55.202] Server  LOG     ✓ Compiled in 170ms
+[03:31:06.742] Server  LOG     ✓ Compiled in 39ms
+[03:31:15.574] Server  LOG     ✓ Compiled in 31ms
+[03:31:35.532] Server  LOG     ✓ Compiled in 41ms
+[03:31:53.713] Server  LOG     ✓ Compiled in 65ms
+[03:32:47.717] Server  LOG     ✓ Compiled in 27ms
+[03:32:59.941] Server  LOG     ✓ Compiled in 21ms
+[03:39:02.608] Server  LOG     ✓ Compiled in 110ms
+[03:39:13.867] Server  LOG     ✓ Compiled in 59ms
+[03:39:23.049] Server  LOG     ✓ Compiled in 23ms
+[03:39:29.974] Server  LOG     ✓ Compiled in 85ms
+[03:39:37.008] Server  LOG     ✓ Compiled in 52ms
+[03:40:19.443] Server  LOG     ✓ Compiled in 56ms
+[03:51:37.468] Server  LOG     ✓ Compiled in 154ms
+[03:52:07.303] Server  LOG     ✓ Compiled in 153ms
+[04:03:36.581] Server  LOG     ✓ Compiled in 149ms
+[04:03:49.837] Server  LOG     ✓ Compiled in 37ms
+[04:04:01.055] Server  LOG     ✓ Compiled in 53ms
+[04:04:05.705] Server  LOG     ✓ Compiled in 223ms
+[04:04:29.815] Server  LOG     ✓ Compiled in 67ms
+[04:04:37.424] Server  LOG     ✓ Compiled in 26ms
+[04:23:56.114] Server  LOG     ✓ Compiled in 259ms
+[04:25:33.898] Server  LOG     ✓ Compiled in 67ms
+[04:25:42.778] Server  LOG     ✓ Compiled in 22ms
+[04:26:08.491] Server  LOG     ✓ Compiled in 50ms
+[04:26:17.173] Server  LOG     ✓ Compiled in 22ms
+[04:27:55.250] Server  LOG     ✓ Compiled in 50ms
+[04:29:24.957] Server  LOG     ✓ Compiled in 209ms
+[04:29:37.787] Server  LOG     ✓ Compiled in 19ms
+[04:51:35.805] Server  LOG     ✓ Compiled in 202ms
+[08:52:02.161] Server  LOG     ✓ Compiled in 980ms
+[08:52:02.322] Server  LOG     ✓ Compiled in 83ms
+[08:54:15.922] Server  LOG     ✓ Compiled in 41ms
+[09:01:17.439] Server  LOG     ✓ Compiled in 202ms
+[09:02:29.921] Server  LOG     ✓ Compiled in 81ms
+[09:05:19.668] Server  LOG     ✓ Compiled in 68ms
