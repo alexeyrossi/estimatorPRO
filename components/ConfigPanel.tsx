@@ -261,7 +261,7 @@ export const ConfigPanel = ({
                                             newStops[idx].label = e.target.value;
                                             setInputs({ ...inputs, extraStops: newStops });
                                         }}
-                                        className="flex-1 rounded-lg px-2.5 py-1.5 text-[11px] font-medium outline-none bg-gray-50 border-transparent hover:bg-gray-100 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                                        className="flex-1 rounded-lg px-2.5 py-2 text-base md:py-1.5 md:text-[11px] font-medium outline-none bg-gray-50 border-transparent hover:bg-gray-100 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
                                         aria-label={`Extra stop ${idx + 1} label`} />
                                     <button onClick={() => {
                                         const newStops = (inputs.extraStops || []).filter((_, i) => i !== idx);
@@ -344,7 +344,7 @@ export const ConfigPanel = ({
                                     handleRawInventoryChange(limited);
                                 }}
                                 onFocus={handleRawInventoryFocus}
-                                className="block w-full min-h-[96px] md:min-h-[224px] bg-white border border-gray-200 rounded-2xl p-4 sm:p-5 text-[14px] leading-relaxed text-gray-800 outline-none resize-none shadow-sm font-mono transition-colors"
+                                className="block w-full min-h-[96px] md:min-h-[224px] bg-white border border-gray-200 rounded-2xl px-4 py-3.5 sm:p-5 text-base md:text-[14px] leading-relaxed text-gray-800 outline-none resize-none shadow-sm font-mono transition-colors"
                                 placeholder="Paste inventory..."
                                 style={{
                                     maxHeight: inventoryViewport.rawMaxHeight,
