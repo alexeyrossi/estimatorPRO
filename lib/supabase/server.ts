@@ -20,9 +20,9 @@ export async function createClient() {
                             cookieStore.set(name, value, options)
                         )
                     } catch {
-                        // The `setAll` method was called from a Server Component.
-                        // This can be ignored if you have middleware refreshing
-                        // user sessions.
+                        // Server Components can hit this path because request
+                        // cookies are read-only there. That is expected here
+                        // because proxy.ts refreshes auth cookies per request.
                     }
                 },
             },

@@ -263,7 +263,7 @@ export async function generateEstimatePdf({
     pdf.text(pageLabel, (W / 2) - (pageLabelW / 2), H - 10);
 
     if (index === pageCount) {
-      const stamp = `Generated ${today} | Estimator V11.59 PRO`;
+      const stamp = `Generated ${today}`;
       const stampW = pdf.getTextWidth(stamp);
       pdf.text(stamp, (W / 2) - (stampW / 2), H - 15);
     }

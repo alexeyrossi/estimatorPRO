@@ -57,6 +57,58 @@ async function withProxyMocks(createServerClient, fn) {
   });
 }
 
+test("proxy redirects anonymous non-public routes to login by default", async () => {
+  await withProxyMocks(() => ({
+    auth: {
+      getUser: async () => ({
+        data: { user: null },
+      }),
+    },
+  }), async () => {
+    const { proxy } = loadFreshProxyModule();
+
+    const rootResponse = await proxy(new NextRequest("http://localhost:3000/"));
+    const settingsResponse = await proxy(new NextRequest("http://localhost:3000/settings"));
+
+    assert.equal(rootResponse.status, 307);
+    assert.equal(rootResponse.headers.get("location"), "http://localhost:3000/login");
+    assert.equal(settingsResponse.status, 307);
+    assert.equal(settingsResponse.headers.get("location"), "http://localhost:3000/login");
+  });
+});
+
+test("proxy keeps login public for anonymous users", async () => {
+  await withProxyMocks(() => ({
+    auth: {
+      getUser: async () => ({
+        data: { user: null },
+      }),
+    },
+  }), async () => {
+    const { proxy } = loadFreshProxyModule();
+    const response = await proxy(new NextRequest("http://localhost:3000/login"));
+
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get("location"), null);
+  });
+});
+
+test("proxy redirects authenticated users away from login", async () => {
+  await withProxyMocks(() => ({
+    auth: {
+      getUser: async () => ({
+        data: { user: { id: "user_123" } },
+      }),
+    },
+  }), async () => {
+    const { proxy } = loadFreshProxyModule();
+    const response = await proxy(new NextRequest("http://localhost:3000/login"));
+
+    assert.equal(response.status, 307);
+    assert.equal(response.headers.get("location"), "http://localhost:3000/dashboard");
+  });
+});
+
 test("proxy clears stale auth cookies and redirects protected routes to login", async () => {
   await withProxyMocks(() => ({
     auth: {

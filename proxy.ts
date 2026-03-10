@@ -3,6 +3,12 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { getSupabaseAuthCookieNames, isRecoverableSupabaseRefreshError } from './lib/auth/supabaseAuthRecovery'
 import { getSupabaseEnv } from './lib/env'
 
+const PUBLIC_PATHS = new Set(['/login'])
+
+function isPublicPath(pathname: string) {
+    return PUBLIC_PATHS.has(pathname)
+}
+
 function clearSupabaseAuthCookies(
     request: NextRequest,
     response: NextResponse,
@@ -63,11 +69,10 @@ export async function proxy(request: NextRequest) {
         )
     }
 
-    const isProtectedRoute = request.nextUrl.pathname.startsWith('/dashboard') ||
-        request.nextUrl.pathname.startsWith('/history')
+    const isPublicRoute = isPublicPath(request.nextUrl.pathname)
     const isLoginRoute = request.nextUrl.pathname === '/login'
 
-    if (isProtectedRoute && !user) {
+    if (!isPublicRoute && !user) {
         const url = request.nextUrl.clone()
         url.pathname = '/login'
         return clearSupabaseAuthCookies(request, NextResponse.redirect(url), cookiesToClear)
