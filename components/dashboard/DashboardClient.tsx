@@ -1,114 +1,55 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useReducer, useState } from "react";
-import { useRouter } from "next/navigation";
+import React, { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
-import {
-  normalizeInventoryAction,
-  resolveItemAction,
-  saveEstimateAction,
-} from "@/app/actions/estimate";
-import { signOutAction } from "@/app/actions/auth";
+import { normalizeInventoryAction, resolveItemAction } from "@/app/actions/estimate";
 import { ConfigPanel } from "@/components/ConfigPanel";
+import { ReportPanel } from "@/components/ReportPanel";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { HistoryPanel } from "@/components/dashboard/HistoryPanel";
-import { ReportPanel } from "@/components/ReportPanel";
+import { useDashboardBootstrap } from "@/hooks/useDashboardBootstrap";
+import { useDashboardDraft } from "@/hooks/useDashboardDraft";
+import { useDashboardSaveAndExport } from "@/hooks/useDashboardSaveAndExport";
 import { useEstimateHistory } from "@/hooks/useEstimateHistory";
 import { useEstimateRunner } from "@/hooks/useEstimateRunner";
 import { useInventorySuggestions } from "@/hooks/useInventorySuggestions";
-import { useDebounce } from "@/hooks/useDebounce";
+import { clearDraft } from "@/lib/draftStorage";
+import { canReuseNormalizedRows } from "@/lib/estimateDraftReducer";
 import { buildRawTextFromRows } from "@/lib/estimatePolicy";
-import { generateEstimatePdf } from "@/lib/estimatePdf";
-import { copyEstimateReportText, formatEstimateReportText } from "@/lib/estimateReport";
 import { createDraftStateFromSavedEstimate } from "@/lib/estimateSavedState";
-import {
-  clearDraft,
-  loadDraft,
-  migrateLegacyDraft,
-  saveDraft,
-} from "@/lib/draftStorage";
-import {
-  buildEstimateRequest,
-  canReuseNormalizedRows,
-  createInitialEstimateDraftState,
-  estimateDraftReducer,
-  hydrateDraftState,
-} from "@/lib/estimateDraftReducer";
-import type { SessionAccess } from "@/lib/types/auth";
+import { createClient } from "@/lib/supabase/client";
 import type {
-  EstimateHistoryItem,
-  EstimateInputs,
   EstimateResult,
   NormalizedRow,
   SavedEstimateRecord,
 } from "@/lib/types/estimator";
 
-type DashboardClientProps = {
-  access: SessionAccess;
-};
-
-export function DashboardClient({ access }: DashboardClientProps) {
-  const router = useRouter();
-
+export function DashboardClient() {
   const [hasMounted, setHasMounted] = useState(false);
   const [activeTab, setActiveTab] = useState<"config" | "report">("config");
   const [showDetails, setShowDetails] = useState(false);
-  const [copyStatus, setCopyStatus] = useState<"idle" | "success">("idle");
   const [clientName, setClientName] = useState("");
-  const [isSaving, setIsSaving] = useState(false);
   const [isNormalizing, setIsNormalizing] = useState(false);
-  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
-  const [saveStatus, setSaveStatus] = useState<"idle" | "success" | "error">("idle");
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const [addRowInput, setAddRowInput] = useState("");
   const [inventoryClipped, setInventoryClipped] = useState(false);
 
-  const [draftState, dispatchDraft] = useReducer(estimateDraftReducer, undefined, createInitialEstimateDraftState);
-  const { inputs, inventoryMode, normalizedRows, rowsStatus, overrides } = draftState;
-
-  const setInputs: React.Dispatch<React.SetStateAction<EstimateInputs>> = (value) => {
-    const nextInputs = typeof value === "function" ? value(draftState.inputs) : value;
-    dispatchDraft({ type: "replaceInputs", inputs: nextInputs });
-  };
-
-  const setNormalizedRows: React.Dispatch<React.SetStateAction<NormalizedRow[]>> = (value) => {
-    const nextRows = typeof value === "function" ? value(draftState.normalizedRows) : value;
-    dispatchDraft({ type: "setNormalizedRows", normalizedRows: nextRows });
-  };
-
-  const setOverrides: React.Dispatch<React.SetStateAction<Record<string, string>>> = (value) => {
-    const nextOverrides = typeof value === "function" ? value(draftState.overrides) : value;
-    dispatchDraft({ type: "setOverrides", overrides: nextOverrides });
-  };
-
-  const autosaveDraftState = useMemo(
-    () => ({ inputs, inventoryMode, normalizedRows, rowsStatus }),
-    [inputs, inventoryMode, normalizedRows, rowsStatus]
-  );
-  const debouncedDraftState = useDebounce(autosaveDraftState, 900);
-  const estimateRequest = useMemo(() => buildEstimateRequest(draftState), [draftState]);
-  const suggestedItems = useInventorySuggestions(addRowInput);
   const {
-    debouncedEstimateRequest,
-    estimate,
-    estimateError,
-    isEstimateRunning,
-  } = useEstimateRunner(estimateRequest, hasMounted);
-  const hasUsableEstimate = typeof estimate.finalVolume === "number" && estimate.finalVolume > 0;
-  const rawInventoryVolume = useMemo(() => {
-    const raw = (estimate.parsedItems || []).reduce((sum, item) => sum + (item.cf || 0), 0);
-    return raw > 0 ? Math.round(raw / 25) * 25 : 0;
-  }, [estimate.parsedItems]);
-  const isCalculating = isEstimateRunning || isNormalizing;
-
-  const persistDraftState = useCallback((nextDraft: ReturnType<typeof hydrateDraftState>) => {
-    dispatchDraft({ type: "hydrate", state: nextDraft });
-    saveDraft(
-      nextDraft.inputs,
-      nextDraft.inventoryMode,
-      nextDraft.normalizedRows,
-      nextDraft.rowsStatus
-    );
-  }, []);
+    clearOverrides,
+    dispatchDraft,
+    draftState,
+    estimateRequest,
+    hydrateDraft,
+    inputs,
+    inventoryMode,
+    normalizedRows,
+    overrides,
+    persistDraftState,
+    rowsStatus,
+    setInputs,
+    setNormalizedRows,
+    setOverrides,
+  } = useDashboardDraft({ autosaveEnabled: hasMounted });
 
   const applySavedRecord = useCallback((record: SavedEstimateRecord) => {
     setClientName(record.client_name || "");
@@ -129,65 +70,75 @@ export function DashboardClient({ access }: DashboardClientProps) {
     onLoadRecord: applySavedRecord,
   });
 
-  useEffect(() => {
-    if (!hasMounted) return;
-    saveDraft(
-      debouncedDraftState.inputs,
-      debouncedDraftState.inventoryMode,
-      debouncedDraftState.normalizedRows,
-      debouncedDraftState.rowsStatus
-    );
-  }, [debouncedDraftState, hasMounted]);
+  const markMounted = useCallback(() => {
+    setHasMounted(true);
+  }, []);
 
-  useEffect(() => {
-    let active = true;
+  useDashboardBootstrap({
+    hydrateDraft,
+    onLoadEstimate: handleLoadEstimate,
+    onReady: markMounted,
+  });
 
-    async function loadInitialState() {
-      const params = new URLSearchParams(window.location.search);
-      const estimateId = params.get("estimate_id");
+  const suggestedItems = useInventorySuggestions(addRowInput);
+  const {
+    debouncedEstimateRequest,
+    estimate,
+    estimateError,
+    isEstimateRunning,
+  } = useEstimateRunner(estimateRequest, hasMounted);
 
-      if (estimateId) {
-        try {
-          const data = await handleLoadEstimate(estimateId);
-          if (active && data) {
-            router.replace("/dashboard");
-            setHasMounted(true);
-            return;
-          }
-        } catch (error: unknown) {
-          console.error("Failed to load estimate from DB:", error);
-        }
+  const hasUsableEstimate = typeof estimate.finalVolume === "number" && estimate.finalVolume > 0;
+  const rawInventoryVolume = useMemo(() => {
+    const raw = (estimate.parsedItems || []).reduce((sum, item) => sum + (item.cf || 0), 0);
+    return raw > 0 ? Math.round(raw / 25) * 25 : 0;
+  }, [estimate.parsedItems]);
+  const isCalculating = isEstimateRunning || isNormalizing;
+
+  const {
+    copyStatus,
+    handleCopy,
+    handleDownloadPdf,
+    handleSaveEstimate: handleSaveEstimateBase,
+    isGeneratingPdf,
+    isSaving,
+    saveErrorMessage,
+    saveStatus,
+  } = useDashboardSaveAndExport({
+    clientName,
+    debouncedEstimateRequest,
+    estimate,
+    hasUsableEstimate,
+    inputs,
+    inventoryMode,
+    normalizedRows,
+    overrides,
+    rawInventoryVolume,
+    setHistoryItems,
+    setShowHistory,
+    showHistory,
+  });
+
+  const handleLogout = async () => {
+    if (isSigningOut) return;
+
+    setIsSigningOut(true);
+
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.signOut();
+
+      if (error) {
+        throw error;
       }
 
-      const draftResult = loadDraft();
-      if (draftResult.state) {
-        dispatchDraft({ type: "hydrate", state: hydrateDraftState(draftResult.state) });
-        if (active) setHasMounted(true);
-        return;
-      }
-
-      if (draftResult.status === "missing") {
-        const migratedDraft = migrateLegacyDraft();
-        if (migratedDraft) {
-          dispatchDraft({ type: "hydrate", state: hydrateDraftState(migratedDraft) });
-          if (active) setHasMounted(true);
-          return;
-        }
-      }
-
-      if (active) setHasMounted(true);
+      clearDraft();
+      window.location.assign("/login");
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to sign out. Please try again.");
+      setIsSigningOut(false);
     }
-
-    void loadInitialState();
-
-    return () => {
-      active = false;
-    };
-  }, [handleLoadEstimate, router]);
-
-  const handleLogout = () => {
-    clearDraft();
-    void signOutAction();
   };
 
   const handleNormalize = async () => {
@@ -234,10 +185,6 @@ export function DashboardClient({ access }: DashboardClientProps) {
     dispatchDraft({ type: "setRawText", inventoryText });
   };
 
-  const clearOverrides = () => {
-    dispatchDraft({ type: "clearOverrides" });
-  };
-
   const handleAddRow = async () => {
     if (!addRowInput.trim()) return;
     try {
@@ -273,83 +220,12 @@ export function DashboardClient({ access }: DashboardClientProps) {
     setNormalizedRows((prev) => prev.map((row) => row.id === id ? { ...row, qty: row.qty === "" ? 1 : Math.max(1, parseInt(String(row.qty), 10) || 1), cfExact: undefined, isSynthetic: false } : row));
   };
 
-  const handleCopy = async () => {
-    if (!hasUsableEstimate) return;
-    try {
-      await copyEstimateReportText(
-        formatEstimateReportText(
-          debouncedEstimateRequest.inputs,
-          estimate as EstimateResult
-        )
-      );
-      setCopyStatus("success");
-      window.setTimeout(() => setCopyStatus("idle"), 2000);
-    } catch (error) {
-      console.error("Copy failed", error);
-      toast.error("Failed to copy report. Please try again.");
+  const handleSaveEstimate = useCallback(async () => {
+    const didSave = await handleSaveEstimateBase();
+    if (didSave) {
+      setClientName("");
     }
-  };
-
-  const handleDownloadPdf = async () => {
-    if (!hasUsableEstimate) return;
-    setIsGeneratingPdf(true);
-    try {
-      await generateEstimatePdf({
-        clientName,
-        estimate: estimate as EstimateResult,
-        inputs: debouncedEstimateRequest.inputs,
-        rawInventoryVolume,
-      });
-    } catch (error) {
-      console.error("PDF error:", error);
-      toast.error("Failed to generate PDF. Please try again.");
-    } finally {
-      setIsGeneratingPdf(false);
-    }
-  };
-
-  const handleSaveEstimate = async () => {
-    if (!clientName.trim() || !estimate || !estimate.finalVolume) return;
-    setIsSaving(true);
-    setSaveStatus("idle");
-
-    try {
-      const result = await saveEstimateAction(
-        clientName,
-        inputs,
-        normalizedRows,
-        inventoryMode,
-        overrides
-      );
-
-      if (result.success) {
-        const newItem: EstimateHistoryItem = {
-          id: String(result.id),
-          client_name: clientName.trim(),
-          final_volume: estimate.finalVolume ?? null,
-          net_volume: estimate.netVolume ?? null,
-          home_size: inputs.homeSize,
-          move_type: inputs.moveType,
-          created_at: new Date().toISOString(),
-        };
-        setHistoryItems((prev) => [newItem, ...prev]);
-        if (!showHistory) setShowHistory(true);
-        setClientName("");
-        setSaveStatus("success");
-        window.setTimeout(() => setSaveStatus("idle"), 2000);
-      } else {
-        console.error(result.error);
-        setSaveStatus("error");
-        window.setTimeout(() => setSaveStatus("idle"), 3000);
-      }
-    } catch (error: unknown) {
-      console.error(error);
-      setSaveStatus("error");
-      window.setTimeout(() => setSaveStatus("idle"), 3000);
-    } finally {
-      setIsSaving(false);
-    }
-  };
+  }, [handleSaveEstimateBase]);
 
   if (!hasMounted) return <div className="min-h-[100dvh] bg-[#F5F7FA]" />;
 
@@ -360,11 +236,13 @@ export function DashboardClient({ access }: DashboardClientProps) {
         clientName={clientName}
         hasUsableEstimate={hasUsableEstimate}
         isSaving={isSaving}
+        isSigningOut={isSigningOut}
         onClientNameChange={setClientName}
-        onLogout={handleLogout}
-        onSaveEstimate={handleSaveEstimate}
+        onLogout={() => void handleLogout()}
+        onSaveEstimate={() => void handleSaveEstimate()}
         onTabChange={setActiveTab}
         onToggleHistory={() => void toggleHistory()}
+        saveErrorMessage={saveErrorMessage}
         saveStatus={saveStatus}
       />
 
@@ -394,12 +272,11 @@ export function DashboardClient({ access }: DashboardClientProps) {
         />
       )}
 
-      <div className="w-full max-w-6xl flex flex-col md:flex-row gap-8 pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-8">
+      <div className="dashboard-safe-pb w-full max-w-6xl flex flex-col gap-8 md:flex-row md:pb-8">
         <div className={`w-full md:w-[420px] flex-shrink-0 flex flex-col gap-6 ${activeTab === "config" ? "block" : "hidden md:flex"}`}>
           <ConfigPanel
             inputs={inputs}
             setInputs={setInputs}
-            adminMode={access.canUseAdminMode}
             inventoryMode={inventoryMode}
             normalizedRows={normalizedRows}
             setNormalizedRows={setNormalizedRows}
@@ -422,15 +299,15 @@ export function DashboardClient({ access }: DashboardClientProps) {
             estimate={estimate as EstimateResult}
             inputs={debouncedEstimateRequest.inputs}
             isCalculating={isCalculating}
-            adminMode={access.canUseAdminMode}
             showDetails={showDetails}
             setShowDetails={setShowDetails}
             handleCopy={handleCopy}
             copyStatus={copyStatus}
             clientName={clientName}
             setClientName={setClientName}
-            handleSaveEstimate={handleSaveEstimate}
+            handleSaveEstimate={() => void handleSaveEstimate()}
             isSaving={isSaving}
+            saveErrorMessage={saveErrorMessage}
             saveStatus={saveStatus}
             overrides={overrides}
             setOverrides={setOverrides}

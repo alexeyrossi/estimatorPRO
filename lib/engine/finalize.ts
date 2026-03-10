@@ -156,7 +156,7 @@ export function buildEstimateResult(
   if (hasVague) boxesBring += 5;
 
   boxesBring = roundUpTo(Math.ceil(Math.min(boxesBring, inputs.packingLevel === "Full" ? Math.ceil(finalVolume / 12 + 40) : Math.ceil(finalVolume / 20 + 20))), 10);
-  const wardrobes = roundUpTo(!isCommercial ? (bedroomCount * 4) : 0, 5);
+  let wardrobes = roundUpTo(!isCommercial ? (bedroomCount * 4) : 0, 5);
 
   if (context.overrides.blankets !== undefined && context.overrides.blankets !== null) {
     const overriddenBlankets = parseOverrideValue(context.overrides.blankets, 0, 500);
@@ -172,6 +172,14 @@ export function buildEstimateResult(
       boxesBring = overriddenBoxes;
       notes.overridesApplied.push("boxes");
       notes.auditSummary.push(`Manager Override: Boxes = ${boxesBring}`);
+    }
+  }
+  if (context.overrides.wardrobes !== undefined && context.overrides.wardrobes !== null) {
+    const overriddenWardrobes = parseOverrideValue(context.overrides.wardrobes, 0, 200);
+    if (overriddenWardrobes !== null) {
+      wardrobes = overriddenWardrobes;
+      notes.overridesApplied.push("wardrobes");
+      notes.auditSummary.push(`Manager Override: Wardrobes = ${wardrobes}`);
     }
   }
 

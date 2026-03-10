@@ -279,9 +279,12 @@ export function computeLaborPlan(context: EngineContext, volumePlan: VolumePlan,
   let timeMin = Math.max(3, Math.floor(calcDuration));
   let timeMax = Math.max(timeMin + 1, Math.ceil(calcDuration * 1.1));
   let splitRecommended = false;
+  const deriveSplitRecommendation = (nextTimeMax: number, nextCrew: number) => (
+    (isSmallHome && nextTimeMax > 12.0 && nextCrew === spaceCap)
+    || (nextTimeMax >= PROTOCOL.SPLIT_RISK_THRESHOLD && nextCrew === PROTOCOL.MAX_CREW_SIZE)
+  );
 
-  if (isSmallHome && timeMax > 12.0 && crew === spaceCap) splitRecommended = true;
-  else if (timeMax >= PROTOCOL.SPLIT_RISK_THRESHOLD && crew === PROTOCOL.MAX_CREW_SIZE) splitRecommended = true;
+  splitRecommended = deriveSplitRecommendation(timeMax, crew);
 
   if (overrides.crew !== undefined && overrides.crew !== null) {
     const overriddenCrew = parseOverrideValue(overrides.crew, 2, 20);
@@ -293,24 +296,12 @@ export function computeLaborPlan(context: EngineContext, volumePlan: VolumePlan,
       notes.overridesApplied.push("crew");
     }
   }
-  if (!((overrides.timeMin !== undefined && overrides.timeMin !== null) || (overrides.timeMax !== undefined && overrides.timeMax !== null)) && notes.overridesApplied.includes("crew")) {
+  if (notes.overridesApplied.includes("crew")) {
     const duration = computeDuration(crew);
+    calcDuration = duration;
     timeMin = Math.max(3, Math.floor(duration));
     timeMax = Math.max(timeMin + 1, Math.ceil(duration * 1.1));
-  }
-  if (overrides.timeMin !== undefined && overrides.timeMin !== null) {
-    const overriddenTimeMin = parseOverrideValue(overrides.timeMin, 1, 99);
-    if (overriddenTimeMin !== null) {
-      timeMin = overriddenTimeMin;
-      notes.overridesApplied.push("timeMin");
-    }
-  }
-  if (overrides.timeMax !== undefined && overrides.timeMax !== null) {
-    const overriddenTimeMax = parseOverrideValue(overrides.timeMax, 1, 99);
-    if (overriddenTimeMax !== null) {
-      timeMax = overriddenTimeMax;
-      notes.overridesApplied.push("timeMax");
-    }
+    splitRecommended = deriveSplitRecommendation(timeMax, crew);
   }
   if (timeMax >= 13) splitRecommended = true;
 

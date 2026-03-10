@@ -3,8 +3,8 @@ import {
   hydrateEstimateDraftState,
   normalizeLegacyHomeSize,
   normalizeLegacyMoveType,
-} from "@/lib/estimatePolicy";
-import type { EstimateDraftState, SavedEstimateState } from "@/lib/types/estimator";
+} from "./estimatePolicy";
+import type { EstimateDraftState, SavedEstimateState } from "./types/estimator";
 
 export function createDraftStateFromSavedEstimate(savedState?: SavedEstimateState | null): EstimateDraftState {
   if (!savedState?.inputs) {

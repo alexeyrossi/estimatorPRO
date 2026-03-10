@@ -1,27 +1,46 @@
 import "server-only";
 
-import { createClient } from "@/lib/supabase/server";
-import type { SessionAccess } from "@/lib/types/auth";
+import { redirect } from "next/navigation";
+import { createClient } from "../supabase/server";
+import { isRecoverableSupabaseRefreshError } from "./supabaseAuthRecovery";
+import type { SessionAccess } from "../types/auth";
 
 export async function getSessionAccess(): Promise<SessionAccess> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-  if (!user) {
+    if (!user) {
+      return {
+        isAuthenticated: false,
+        userId: null,
+      };
+    }
+
     return {
-      isAuthenticated: false,
-      canUseAdminMode: false,
-      userId: null,
+      isAuthenticated: true,
+      userId: user.id,
     };
-  }
+  } catch (error) {
+    if (isRecoverableSupabaseRefreshError(error)) {
+      return {
+        isAuthenticated: false,
+        userId: null,
+      };
+    }
 
-  return {
-    isAuthenticated: true,
-    canUseAdminMode: true,
-    userId: user.id,
-  };
+    throw error;
+  }
+}
+
+export async function requireAuthenticatedPageAccess() {
+  const access = await getSessionAccess();
+  if (!access.isAuthenticated || !access.userId) {
+    redirect("/login");
+  }
+  return access;
 }
 
 export async function requireAuthenticatedAccess() {

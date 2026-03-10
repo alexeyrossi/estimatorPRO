@@ -38,7 +38,7 @@ test("parseInventory final summaries match final items and keep outdoor pots", (
   assert.ok(!parsed.detectedItems.some((item) => /back house|music studio/i.test(item.name)));
 });
 
-test("admin mode normalization keeps estimate identical before edits", () => {
+test("rows editor normalization keeps estimate identical before edits", () => {
   const rows = normalizeRowsFromText(reproInventoryText).rows;
   const parsed = parseInventory(reproInventoryText);
   const summarized = summarizeNormalizedRows(rows, reproInventoryText);

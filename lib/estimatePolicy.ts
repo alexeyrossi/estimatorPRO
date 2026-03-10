@@ -11,7 +11,7 @@ export const HOME_SIZE_OPTIONS = ["1", "2", "3", "4", "5", "Commercial"] as cons
 export const MOVE_TYPE_OPTIONS = ["Local", "LD", "Labor"] as const;
 export const PACKING_LEVEL_OPTIONS = ["None", "Partial", "Full"] as const;
 export const ACCESS_OPTIONS = ["ground", "elevator", "stairs"] as const;
-export const OVERRIDE_KEYS = ["volume", "trucks", "crew", "timeMin", "timeMax", "blankets", "boxes"] as const;
+export const OVERRIDE_KEYS = ["volume", "trucks", "crew", "blankets", "boxes", "wardrobes"] as const;
 
 export const MAX_INVENTORY_CHARS = 12000;
 export const MAX_EXTRA_STOPS = 4;

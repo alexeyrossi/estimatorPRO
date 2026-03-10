@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Repo-local artifacts that should not pollute the signal.
     ".tmp-regression/**",
+    ".next_backup*/**",
+    ".next_backup_*/**",
     "coverage/**",
     "temp_compare*.ts",
     "*.bak",

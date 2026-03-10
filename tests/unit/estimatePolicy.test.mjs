@@ -7,9 +7,11 @@ const require = createRequire(import.meta.url);
 const {
   MAX_EXTRA_STOPS,
   MAX_INVENTORY_CHARS,
+  OVERRIDE_KEYS,
   buildDraftState,
   buildRawTextFromRows,
   sanitizeEstimateInputs,
+  sanitizeOverrides,
 } = require("../../lib/estimatePolicy.ts");
 
 test("sanitizeEstimateInputs normalizes unsafe boundary values", () => {
@@ -73,4 +75,19 @@ test("buildDraftState preserves editable blank numeric fields and stale state", 
   assert.equal(state.normalizedRows[0].qty, "");
   assert.equal(state.normalizedRows[0].cfUnit, "");
   assert.equal(buildRawTextFromRows(state.normalizedRows), "Living Room: 1 sofa");
+});
+
+test("override contract keeps product-approved keys only", () => {
+  assert.deepEqual(OVERRIDE_KEYS, ["volume", "trucks", "crew", "blankets", "boxes", "wardrobes"]);
+  assert.deepEqual(sanitizeOverrides({
+    volume: "1200",
+    crew: "4",
+    timeMin: "5",
+    timeMax: "7",
+    wardrobes: "15",
+  }), {
+    volume: "1200",
+    crew: "4",
+    wardrobes: "15",
+  });
 });

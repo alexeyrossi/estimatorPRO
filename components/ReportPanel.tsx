@@ -1,5 +1,7 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { EstimateInputs, EstimateResult } from '@/lib/types/estimator';
+import { OVERRIDE_KEYS } from '@/lib/estimatePolicy';
+import { buildReportSummaryNotes } from '@/lib/reportNotes';
 import {
     Truck, Box, List, Weight, Terminal, ChevronRight, Lock, Scale, PackageOpen, Clock, CalendarDays, Info, Users, AlertTriangle, ArrowUpFromLine, Check, Clipboard, Loader2
 } from 'lucide-react';
@@ -62,7 +64,6 @@ interface ReportPanelProps {
     estimate: EstimateResult;
     inputs: EstimateInputs;
     isCalculating: boolean;
-    adminMode: boolean;
     showDetails: boolean;
     setShowDetails: (v: boolean) => void;
     handleCopy: () => void;
@@ -71,6 +72,7 @@ interface ReportPanelProps {
     setClientName: (v: string) => void;
     handleSaveEstimate: () => void;
     isSaving: boolean;
+    saveErrorMessage: string | null;
     saveStatus: "idle" | "success" | "error";
     overrides: Record<string, string>;
     setOverrides: React.Dispatch<React.SetStateAction<Record<string, string>>>;
@@ -83,7 +85,6 @@ export const ReportPanel = ({
     estimate,
     inputs,
     isCalculating,
-    adminMode,
     showDetails,
     setShowDetails,
     handleCopy,
@@ -92,6 +93,7 @@ export const ReportPanel = ({
     setClientName,
     handleSaveEstimate,
     isSaving,
+    saveErrorMessage,
     saveStatus,
     overrides,
     setOverrides,
@@ -119,6 +121,18 @@ export const ReportPanel = ({
     const primaryVolume = inputs.moveType === "LD" && estimate.billableCF ? estimate.billableCF : estimate.finalVolume;
     const primaryVolumeLabel = "Volume";
     const primaryVolumeSub = inputs.moveType === "LD" && estimate.billableCF ? "Adjusted Estimate" : "Based on Inventory";
+    const overrideAutoValues = {
+        volume: estimate.finalVolume,
+        trucks: estimate.trucksFinal,
+        crew: estimate.crew,
+        blankets: estimate.materials?.blankets,
+        boxes: estimate.materials?.boxes,
+        wardrobes: estimate.materials?.wardrobes,
+    };
+    const { compactAuditSummary, actionableAdvice } = useMemo(
+        () => buildReportSummaryNotes(estimate.auditSummary, estimate.advice),
+        [estimate.auditSummary, estimate.advice]
+    );
 
     const heavyBadgeText = useMemo(() => {
         const arr = estimate.heavyItemNames || []; if (!arr.length) return null;
@@ -187,11 +201,11 @@ export const ReportPanel = ({
                     )}
 
                     {/* AUDIT SUMMARY */}
-                    {estimate.auditSummary?.length > 0 && (
+                    {compactAuditSummary.length > 0 && (
                         <>
                             <div className="border-t border-gray-100" />
                             <div className="py-3 space-y-1.5">
-                                {estimate.auditSummary.map((x, i) => (
+                                {compactAuditSummary.map((x, i) => (
                                     <div key={i} className="text-[12px] text-gray-400 font-medium leading-relaxed">
                                         {x}
                                     </div>
@@ -248,15 +262,15 @@ export const ReportPanel = ({
                     </div>
 
                     {/* SMART TIPS */}
-                    {estimate.advice?.length > 0 && (
+                    {actionableAdvice.length > 0 && (
                         <>
                             <div className="border-t border-gray-100" />
                             <div className="py-3">
                                 <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
-                                    <span>💡</span> Move Logic & Tips
+                                    <span>💡</span> Smart Tips
                                 </div>
                                 <div className="space-y-1.5">
-                                    {estimate.advice.map((x, i) => (
+                                    {actionableAdvice.map((x, i) => (
                                         <div key={i} className="text-[12px] text-gray-400 font-medium leading-relaxed">
                                             {x}
                                         </div>
@@ -301,7 +315,7 @@ export const ReportPanel = ({
                 </div>
                 {saveStatus === 'error' && (
                     <div className="md:hidden text-red-500 text-[11px] font-bold mt-2 text-right">
-                        Save failed. Please try again.
+                        {saveErrorMessage || 'Save failed. Please try again.'}
                     </div>
                 )}
 
@@ -341,38 +355,34 @@ export const ReportPanel = ({
                     <div className="overflow-hidden">
                         <div className="pt-8 mt-4 border-t border-gray-100">
 
-                            {adminMode && (
-                                <div className="mb-6 bg-gray-900 rounded-[2rem] p-6 shadow-lg">
-                                    <div className="text-[10px] font-bold text-gray-400 mb-4 uppercase tracking-widest flex items-center gap-2">
-                                        <Lock className="w-4 h-4 text-white" /> Manager Overrides
-                                        <button
-                                            onClick={clearOverrides}
-                                            disabled={Object.keys(overrides).length === 0}
-                                            className="ml-auto rounded-lg border border-gray-700 px-2 py-1 text-[9px] font-bold text-gray-300 transition-colors hover:border-gray-500 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed"
-                                        >
-                                            Clear
-                                        </button>
-                                    </div>
-                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                                        {["volume", "trucks", "crew", "timeMin", "timeMax", "blankets"].map(k => {
-                                            const autoValue = k === 'blankets' || k === 'boxes'
-                                                ? estimate.materials?.[k as "blankets" | "boxes" | "wardrobes"]
-                                                : estimate[k as keyof EstimateResult];
-                                            const label = k.charAt(0).toUpperCase() + k.slice(1);
-                                            const placeholder = autoValue ? `${label} (Auto: ${autoValue})` : `${label} (Auto)`;
-                                            return (
-                                                <input
-                                                    key={k}
-                                                    placeholder={placeholder}
-                                                    value={overrides[k as keyof typeof overrides] || ""}
-                                                    onChange={e => setOverrides({ ...overrides, [k]: e.target.value })}
-                                                    className="text-[11px] font-bold p-3.5 rounded-xl bg-gray-800 text-white border border-transparent outline-none focus:bg-gray-700 placeholder:text-gray-500 transition-colors"
-                                                />
-                                            );
-                                        })}
-                                    </div>
+                            <div className="mb-6 bg-gray-900 rounded-[2rem] p-6 shadow-lg">
+                                <div className="text-[10px] font-bold text-gray-400 mb-4 uppercase tracking-widest flex items-center gap-2">
+                                    <Lock className="w-4 h-4 text-white" /> Manual Overrides
+                                    <button
+                                        onClick={clearOverrides}
+                                        disabled={Object.keys(overrides).length === 0}
+                                        className="ml-auto rounded-lg border border-gray-700 px-2 py-1 text-[9px] font-bold text-gray-300 transition-colors hover:border-gray-500 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed"
+                                    >
+                                        Clear
+                                    </button>
                                 </div>
-                            )}
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                    {OVERRIDE_KEYS.map((key) => {
+                                        const autoValue = overrideAutoValues[key];
+                                        const label = key.charAt(0).toUpperCase() + key.slice(1);
+                                        const placeholder = autoValue != null ? `${label} (Auto: ${autoValue})` : `${label} (Auto)`;
+                                        return (
+                                            <input
+                                                key={key}
+                                                placeholder={placeholder}
+                                                value={overrides[key as keyof typeof overrides] || ""}
+                                                onChange={e => setOverrides({ ...overrides, [key]: e.target.value })}
+                                                className="text-[11px] font-bold p-3.5 rounded-xl bg-gray-800 text-white border border-transparent outline-none focus:bg-gray-700 placeholder:text-gray-500 transition-colors"
+                                            />
+                                        );
+                                    })}
+                                </div>
+                            </div>
 
                             <div className="space-y-8">
                                 <div className="space-y-3">

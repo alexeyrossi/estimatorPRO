@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { EstimateInputs, NormalizedRow, EstimateResult, RowsStatus } from '@/lib/types/estimator';
-import { Settings, MapPin, Trash2, Shield, User, Plus, Weight, Undo2 } from 'lucide-react';
+import { Settings, MapPin, Trash2, Plus, Weight, Undo2 } from 'lucide-react';
 import { MAX_EXTRA_STOPS } from '@/lib/estimatePolicy';
 import { GlassPanel } from './GlassPanel';
 import { Select } from './Select';
@@ -10,7 +10,6 @@ import { AccessSegmented } from './AccessSegmented';
 interface ConfigPanelProps {
     inputs: EstimateInputs;
     setInputs: React.Dispatch<React.SetStateAction<EstimateInputs>>;
-    adminMode: boolean;
     inventoryMode: "raw" | "normalized";
     normalizedRows: NormalizedRow[];
     setNormalizedRows: React.Dispatch<React.SetStateAction<NormalizedRow[]>>;
@@ -28,7 +27,7 @@ interface ConfigPanelProps {
 }
 
 export const ConfigPanel = ({
-    inputs, setInputs, adminMode, inventoryMode, normalizedRows, setNormalizedRows, rowsStatus,
+    inputs, setInputs, inventoryMode, normalizedRows, setNormalizedRows, rowsStatus,
     inventoryClipped, setInventoryClipped, addRowInput, setAddRowInput, suggestedItems,
     handleInventoryModeToggle, handleRawInventoryChange, handleAddRow, handleRowQtyChange, estimate
 }: ConfigPanelProps) => {
@@ -208,16 +207,14 @@ export const ConfigPanel = ({
                         </div>
                     )}
 
-                    {adminMode && (
-                        <button onClick={handleInventoryModeToggle}
-                            className="flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[11px] font-bold transition-colors w-[110px] bg-gray-50 text-gray-500 hover:bg-gray-100 hover:text-gray-700">
-                            {inventoryMode === "normalized"
-                                ? <><User className="w-4 h-4" strokeWidth={2} /> Client View</>
-                                : rowsStatus === "stale"
-                                    ? <><Shield className="w-4 h-4" strokeWidth={2} /> Re-normalize</>
-                                    : <><Shield className="w-4 h-4" strokeWidth={2} /> Admin Mode</>}
-                        </button>
-                    )}
+                    <button onClick={handleInventoryModeToggle}
+                        className="flex items-center justify-center py-1.5 rounded-lg text-[11px] font-bold transition-colors w-[118px] bg-gray-50 text-gray-500 hover:bg-gray-100 hover:text-gray-700">
+                        {inventoryMode === "normalized"
+                            ? "Text View"
+                            : rowsStatus === "stale"
+                                ? "Re-sync Items"
+                                : "Item Editor"}
+                    </button>
                 </div>
 
                 <div className="w-full">
@@ -244,7 +241,7 @@ export const ConfigPanel = ({
                         </>
                     ) : (
                         <div className="bg-white border border-gray-200 rounded-2xl p-3 shadow-sm">
-                            <div className="text-[10px] font-bold text-gray-400 mb-2 uppercase tracking-widest px-1">Inventory Editor</div>
+                            <div className="text-[10px] font-bold text-gray-400 mb-2 uppercase tracking-widest px-1">Item Editor</div>
                             <div className="max-h-72 overflow-y-auto overflow-x-auto pr-1">
                                 <div className="min-w-[260px] w-full">
                                     <div className="grid grid-cols-[1fr_2.5rem_2.5rem_2.5rem_1.5rem] gap-1.5 mb-1 px-1 text-[9px] text-gray-400 font-bold sticky top-0 bg-white z-10 pb-1 border-b border-gray-50">

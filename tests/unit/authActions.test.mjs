@@ -45,7 +45,7 @@ test("read-only estimate actions reject unauthenticated access", async () => {
     requireAuthenticatedAccess: async () => {
       throw new Error("Unauthorized");
     },
-    getSessionAccess: async () => ({ isAuthenticated: false, canUseAdminMode: false, userId: null }),
+    getSessionAccess: async () => ({ isAuthenticated: false, userId: null }),
   }, async () => {
     const { getEstimate, normalizeInventoryAction, resolveItemAction, suggestItemsAction } = loadFreshEstimateActions();
 
@@ -61,7 +61,7 @@ test("mutating estimate actions keep unauthorized return semantics", async () =>
     requireAuthenticatedAccess: async () => {
       throw new Error("Unauthorized");
     },
-    getSessionAccess: async () => ({ isAuthenticated: false, canUseAdminMode: false, userId: null }),
+    getSessionAccess: async () => ({ isAuthenticated: false, userId: null }),
   }, async () => {
     await withMockedModule("../../lib/supabase/server.ts", {
       createClient: async () => {
@@ -85,6 +85,46 @@ test("mutating estimate actions keep unauthorized return semantics", async () =>
       assert.deepEqual(await deleteEstimateAction("123"), {
         success: false,
         error: "Unauthorized",
+      });
+    });
+  });
+});
+
+test("saveEstimateAction preserves fractional net volume payloads", async () => {
+  let insertedPayload = null;
+
+  await withMockedModule("../../lib/auth/access.ts", {
+    requireAuthenticatedAccess: async () => ({ isAuthenticated: true, userId: "user_123" }),
+    getSessionAccess: async () => ({ isAuthenticated: true, userId: "user_123" }),
+  }, async () => {
+    await withMockedModule("../../lib/engine.ts", {
+      buildEstimate: () => ({
+        finalVolume: 2650,
+        netVolume: 2622.5,
+        truckSpaceCF: 2825,
+      }),
+    }, async () => {
+      await withMockedModule("../../lib/supabase/server.ts", {
+        createClient: async () => ({
+          from: () => ({
+            insert: ([payload]) => {
+              insertedPayload = payload;
+              return {
+                select: () => ({
+                  single: async () => ({ data: { id: "abc123" }, error: null }),
+                }),
+              };
+            },
+          }),
+        }),
+      }, async () => {
+        const { saveEstimateAction } = loadFreshEstimateActions();
+        const result = await saveEstimateAction("Client", sampleInputs, [], "raw", {});
+
+        assert.deepEqual(result, { success: true, id: "abc123" });
+        assert.equal(insertedPayload.final_volume, 2650);
+        assert.equal(insertedPayload.net_volume, 2622.5);
+        assert.equal(insertedPayload.truck_space_cf, 2825);
       });
     });
   });

@@ -34,4 +34,14 @@ body {
   button {
     touch-action: manipulation;
   }
+
+  .dashboard-safe-pb {
+    padding-bottom: calc(6rem + env(safe-area-inset-bottom));
+  }
+}
+
+@media (min-width: 768px) {
+  .dashboard-safe-pb {
+    padding-bottom: 2rem;
+  }
 }

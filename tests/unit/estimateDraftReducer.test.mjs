@@ -11,8 +11,8 @@ const {
   createInitialEstimateDraftState,
   estimateDraftReducer,
   hydrateDraftState,
-  hydrateSavedEstimate,
 } = require("../../lib/estimateDraftReducer.ts");
+const { createDraftStateFromSavedEstimate } = require("../../lib/estimateSavedState.ts");
 
 const sampleRows = [
   {
@@ -134,8 +134,8 @@ test("stale raw state never qualifies for normalized row reuse", () => {
   assert.equal(canReuseNormalizedRows(state), false);
 });
 
-test("saved estimate hydration clears overrides", () => {
-  const hydrated = hydrateSavedEstimate({
+test("saved estimate load resets persisted overrides", () => {
+  const hydrated = createDraftStateFromSavedEstimate({
     inputs: {
       homeSize: "2",
       moveType: "Local",
@@ -148,7 +148,7 @@ test("saved estimate hydration clears overrides", () => {
     },
     inventoryMode: "normalized",
     normalizedRows: sampleRows,
-    rowsStatus: "fresh",
+    overrides: { volume: "900", wardrobes: "25" },
   });
 
   assert.deepEqual(hydrated.overrides, {});

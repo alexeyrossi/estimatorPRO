@@ -1,6 +1,20 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { getSupabaseAuthCookieNames, isRecoverableSupabaseRefreshError } from './lib/auth/supabaseAuthRecovery'
 import { getSupabaseEnv } from './lib/env'
+
+function clearSupabaseAuthCookies(
+    request: NextRequest,
+    response: NextResponse,
+    cookieNames: string[]
+) {
+    if (cookieNames.length === 0) return response
+
+    request.cookies.delete(cookieNames)
+    cookieNames.forEach((name) => response.cookies.delete(name))
+
+    return response
+}
 
 export async function proxy(request: NextRequest) {
     const { url, anonKey } = getSupabaseEnv()
@@ -29,21 +43,43 @@ export async function proxy(request: NextRequest) {
         }
     )
 
-    // Refresh session if expired - required for Server Components
-    const {
-        data: { user },
-    } = await supabase.auth.getUser()
+    let user = null
+    let cookiesToClear: string[] = []
+
+    try {
+        const {
+            data: { user: resolvedUser },
+        } = await supabase.auth.getUser()
+
+        user = resolvedUser
+    } catch (error) {
+        if (!isRecoverableSupabaseRefreshError(error)) {
+            throw error
+        }
+
+        cookiesToClear = getSupabaseAuthCookieNames(
+            request.cookies.getAll(),
+            supabaseResponse.cookies.getAll()
+        )
+    }
 
     const isProtectedRoute = request.nextUrl.pathname.startsWith('/dashboard') ||
         request.nextUrl.pathname.startsWith('/history')
+    const isLoginRoute = request.nextUrl.pathname === '/login'
 
     if (isProtectedRoute && !user) {
         const url = request.nextUrl.clone()
         url.pathname = '/login'
+        return clearSupabaseAuthCookies(request, NextResponse.redirect(url), cookiesToClear)
+    }
+
+    if (isLoginRoute && user) {
+        const url = request.nextUrl.clone()
+        url.pathname = '/dashboard'
         return NextResponse.redirect(url)
     }
 
-    return supabaseResponse
+    return clearSupabaseAuthCookies(request, supabaseResponse, cookiesToClear)
 }
 
 export const config = {

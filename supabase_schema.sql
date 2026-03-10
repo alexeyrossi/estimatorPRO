@@ -3,9 +3,9 @@ CREATE TABLE estimates (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   manager_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   client_name text NOT NULL,
-  final_volume integer,
-  net_volume integer,
-  truck_space_cf integer,
+  final_volume numeric,
+  net_volume numeric,
+  truck_space_cf numeric,
   inputs_state jsonb NOT NULL,
   created_at timestamptz DEFAULT now()
 );

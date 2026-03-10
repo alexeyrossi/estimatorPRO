@@ -118,9 +118,9 @@ export async function saveEstimateAction(
     const payload = {
       manager_id: access.userId,
       client_name: safeClientName,
-      final_volume: estimate.finalVolume,
-      net_volume: estimate.netVolume || null,
-      truck_space_cf: estimate.truckSpaceCF || null,
+      final_volume: estimate.finalVolume ?? null,
+      net_volume: estimate.netVolume ?? null,
+      truck_space_cf: estimate.truckSpaceCF ?? null,
       inputs_state: inputsState,
     };
 

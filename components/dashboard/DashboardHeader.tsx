@@ -5,11 +5,13 @@ type DashboardHeaderProps = {
   clientName: string;
   hasUsableEstimate: boolean;
   isSaving: boolean;
+  isSigningOut: boolean;
   onClientNameChange: (value: string) => void;
   onLogout: () => void;
   onSaveEstimate: () => void;
   onTabChange: (tab: "config" | "report") => void;
   onToggleHistory: () => void;
+  saveErrorMessage: string | null;
   saveStatus: "idle" | "success" | "error";
 };
 
@@ -18,11 +20,13 @@ export function DashboardHeader({
   clientName,
   hasUsableEstimate,
   isSaving,
+  isSigningOut,
   onClientNameChange,
   onLogout,
   onSaveEstimate,
   onTabChange,
   onToggleHistory,
+  saveErrorMessage,
   saveStatus,
 }: DashboardHeaderProps) {
   return (
@@ -61,7 +65,7 @@ export function DashboardHeader({
           </button>
         </div>
         {saveStatus === "error" && (
-          <div className="absolute top-[105%] left-4 text-red-500 text-[11px] font-bold">Save failed. Please try again.</div>
+          <div className="absolute top-[105%] left-4 max-w-[340px] text-red-500 text-[11px] font-bold">{saveErrorMessage || "Save failed. Please try again."}</div>
         )}
 
         <button
@@ -74,10 +78,11 @@ export function DashboardHeader({
 
         <button
           onClick={onLogout}
-          className="bg-white rounded-[1.5rem] shadow-[0_4px_24px_rgba(0,0,0,0.03)] px-4 py-2 flex items-center gap-2 text-[12px] font-bold text-gray-400 hover:text-gray-600 transition-all duration-200 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:-translate-y-0.5 border border-transparent active:scale-95"
+          disabled={isSigningOut}
+          className="bg-white rounded-[1.5rem] shadow-[0_4px_24px_rgba(0,0,0,0.03)] px-4 py-2 flex items-center gap-2 text-[12px] font-bold text-gray-400 hover:text-gray-600 transition-all duration-200 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:-translate-y-0.5 border border-transparent active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-[0_4px_24px_rgba(0,0,0,0.03)]"
         >
-          <LogOut className="w-4 h-4" strokeWidth={2} />
-          Logout
+          {isSigningOut ? <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} /> : <LogOut className="w-4 h-4" strokeWidth={2} />}
+          {isSigningOut ? "Signing out..." : "Logout"}
         </button>
       </div>
 
@@ -103,11 +108,12 @@ export function DashboardHeader({
         </button>
         <button
           onClick={onLogout}
-          className="shrink-0 rounded-2xl bg-white border border-transparent shadow-[0_4px_24px_rgba(0,0,0,0.03)] p-2.5 text-gray-500 hover:bg-red-50 hover:text-red-600 transition-all duration-200"
+          disabled={isSigningOut}
+          className="shrink-0 rounded-2xl bg-white border border-transparent shadow-[0_4px_24px_rgba(0,0,0,0.03)] p-2.5 text-gray-500 hover:bg-red-50 hover:text-red-600 transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-white disabled:hover:text-gray-500"
           aria-label="Logout"
           title="Logout"
         >
-          <LogOut className="w-4 h-4" strokeWidth={2} />
+          {isSigningOut ? <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} /> : <LogOut className="w-4 h-4" strokeWidth={2} />}
         </button>
       </div>
     </div>
