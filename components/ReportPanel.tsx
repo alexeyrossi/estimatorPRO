@@ -330,31 +330,6 @@ export const ReportPanel = ({
                             <ChevronRight className={`w-4 h-4 transition-transform duration-300 ${showDetails ? '-rotate-90' : ''}`} />
                         </button>
                     </div>
-                    <div className="md:hidden pt-4">
-                        <div className="flex flex-col gap-2 rounded-[1.5rem] border border-gray-100 bg-[#F7F8FB] p-3 shadow-[0_6px_18px_rgba(15,23,42,0.04)]">
-                            <div className="flex items-center gap-2">
-                            <input
-                                type="text"
-                                placeholder="Client name"
-                                value={clientName}
-                                onChange={e => setClientName(e.target.value)}
-                                className="flex-1 bg-white border border-gray-100 rounded-xl px-3 py-2.5 text-[12px] font-semibold outline-none"
-                            />
-                            <button
-                                onClick={handleSaveEstimate}
-                                disabled={!clientName.trim() || isSaving || !hasUsableEstimate}
-                                className={`px-4 py-2.5 rounded-xl text-[11px] font-bold whitespace-nowrap transition-all duration-300 active:scale-95 min-w-[88px] disabled:opacity-50 disabled:cursor-not-allowed ${saveStatus === 'success' ? 'bg-emerald-500 text-white' : isSaving ? 'bg-gray-900 text-white' : clientName.trim() ? 'bg-gray-900 text-white hover:bg-gray-800' : 'bg-gray-400 text-white'}`}
-                            >
-                                {saveStatus === 'success' ? '✓ Saved' : isSaving ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Save'}
-                            </button>
-                            </div>
-                            {saveStatus === 'error' && (
-                                <div className="px-1 text-red-500 text-[11px] font-bold">
-                                    {saveErrorMessage || 'Save failed. Please try again.'}
-                                </div>
-                            )}
-                        </div>
-                    </div>
                 </div>
 
                 <div className={`grid transition-all duration-500 ease-in-out ${showDetails ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
@@ -495,6 +470,32 @@ export const ReportPanel = ({
                     </div>
                 </div>
             </div></GlassPanel>
+
+            <GlassPanel className="md:hidden">
+                <div className="p-4 flex flex-col gap-2">
+                    <div className="flex items-center gap-2">
+                        <input
+                            type="text"
+                            placeholder="Client name"
+                            value={clientName}
+                            onChange={e => setClientName(e.target.value)}
+                            className="flex-1 bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5 text-[12px] font-semibold outline-none"
+                        />
+                        <button
+                            onClick={handleSaveEstimate}
+                            disabled={!clientName.trim() || isSaving || !hasUsableEstimate}
+                            className={`px-4 py-2.5 rounded-xl text-[11px] font-bold whitespace-nowrap transition-all duration-300 active:scale-95 min-w-[88px] disabled:opacity-50 disabled:cursor-not-allowed ${saveStatus === 'success' ? 'bg-emerald-500 text-white' : isSaving ? 'bg-gray-900 text-white' : clientName.trim() ? 'bg-gray-900 text-white hover:bg-gray-800' : 'bg-gray-400 text-white'}`}
+                        >
+                            {saveStatus === 'success' ? '✓ Saved' : isSaving ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Save'}
+                        </button>
+                    </div>
+                    {saveStatus === 'error' && (
+                        <div className="px-1 text-red-500 text-[11px] font-bold">
+                            {saveErrorMessage || 'Save failed. Please try again.'}
+                        </div>
+                    )}
+                </div>
+            </GlassPanel>
 
         </div>
     );
