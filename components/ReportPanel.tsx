@@ -68,6 +68,12 @@ interface ReportPanelProps {
     setShowDetails: (v: boolean) => void;
     handleCopy: () => void;
     copyStatus: "idle" | "success";
+    clientName: string;
+    setClientName: (v: string) => void;
+    handleSaveEstimate: () => void;
+    isSaving: boolean;
+    saveErrorMessage: string | null;
+    saveStatus: "idle" | "success" | "error";
     overrides: Record<string, string>;
     setOverrides: React.Dispatch<React.SetStateAction<Record<string, string>>>;
     clearOverrides: () => void;
@@ -83,6 +89,12 @@ export const ReportPanel = ({
     setShowDetails,
     handleCopy,
     copyStatus,
+    clientName,
+    setClientName,
+    handleSaveEstimate,
+    isSaving,
+    saveErrorMessage,
+    saveStatus,
     overrides,
     setOverrides,
     clearOverrides,
@@ -291,8 +303,10 @@ export const ReportPanel = ({
                     <div className="border-t border-gray-100" />
                     <div className="flex items-center justify-between w-full pt-4">
                         <div className="flex items-center gap-3">
-                            <button onClick={handleCopy} disabled={!hasUsableEstimate} className={`flex-1 md:flex-none md:w-[220px] flex items-center justify-center gap-2 px-6 py-4 rounded-xl text-[12px] font-bold transition-all duration-300 active:scale-[0.98] shadow-[0_8px_20px_rgba(0,0,0,0.15)] whitespace-nowrap overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed ${copyStatus === 'success' ? 'bg-emerald-500 text-white' : 'bg-gray-900 text-white hover:bg-black'}`}>
-                                {copyStatus === 'success' ? <><Check className="w-4 h-4 shrink-0" /><span className="truncate">✓ Copied!</span></> : <><Clipboard className="w-4 h-4 shrink-0" /><span className="truncate">COPY REPORT</span></>}
+                            <button onClick={handleCopy} disabled={!hasUsableEstimate} className={`flex-1 md:flex-none min-w-[148px] md:w-[220px] flex items-center justify-center gap-2 px-6 py-4 rounded-xl text-[12px] font-bold transition-colors duration-300 active:scale-[0.98] shadow-[0_8px_20px_rgba(0,0,0,0.15)] whitespace-nowrap overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed ${copyStatus === 'success' ? 'bg-emerald-500 text-white' : 'bg-gray-900 text-white hover:bg-black'}`}>
+                                {copyStatus === 'success'
+                                    ? <><Check className="w-4 h-4 shrink-0" /><span className="inline-block min-w-[74px] text-left">Copied!</span></>
+                                    : <><Clipboard className="w-4 h-4 shrink-0" /><span className="inline-block min-w-[74px] text-left">COPY REPORT</span></>}
                             </button>
                             <button
                                 onClick={handleDownloadPdf}
@@ -315,6 +329,29 @@ export const ReportPanel = ({
                             <span>{showDetails ? 'Hide' : 'Details'}</span>
                             <ChevronRight className={`w-4 h-4 transition-transform duration-300 ${showDetails ? '-rotate-90' : ''}`} />
                         </button>
+                    </div>
+                    <div className="md:hidden flex flex-col gap-2 pt-4">
+                        <div className="flex items-center gap-2">
+                            <input
+                                type="text"
+                                placeholder="Client name"
+                                value={clientName}
+                                onChange={e => setClientName(e.target.value)}
+                                className="flex-1 bg-gray-50 border-transparent rounded-xl px-3 py-2.5 text-[12px] font-semibold outline-none"
+                            />
+                            <button
+                                onClick={handleSaveEstimate}
+                                disabled={!clientName.trim() || isSaving || !hasUsableEstimate}
+                                className={`px-4 py-2.5 rounded-xl text-[11px] font-bold whitespace-nowrap transition-all duration-300 active:scale-95 min-w-[88px] disabled:opacity-50 disabled:cursor-not-allowed ${saveStatus === 'success' ? 'bg-emerald-500 text-white' : isSaving ? 'bg-gray-900 text-white' : clientName.trim() ? 'bg-gray-900 text-white hover:bg-gray-800' : 'bg-gray-400 text-white'}`}
+                            >
+                                {saveStatus === 'success' ? '✓ Saved' : isSaving ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Save'}
+                            </button>
+                        </div>
+                        {saveStatus === 'error' && (
+                            <div className="text-red-500 text-[11px] font-bold">
+                                {saveErrorMessage || 'Save failed. Please try again.'}
+                            </div>
+                        )}
                     </div>
                 </div>
 

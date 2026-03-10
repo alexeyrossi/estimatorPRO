@@ -118,30 +118,6 @@ export function DashboardHeader({
           {isSigningOut ? <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} /> : <LogOut className="w-4 h-4" strokeWidth={2} />}
         </button>
       </div>
-
-      <div className="md:hidden flex flex-col gap-2">
-        <div className="flex items-center gap-2 rounded-[1.5rem] bg-white border border-transparent shadow-[0_4px_24px_rgba(0,0,0,0.03)] p-1.5">
-          <input
-            type="text"
-            placeholder="Client name"
-            value={clientName}
-            onChange={(event) => onClientNameChange(event.target.value)}
-            className="min-w-0 flex-1 bg-gray-50 border-transparent rounded-xl px-4 py-2.5 text-[13px] text-gray-900 font-medium placeholder:text-gray-400 outline-none"
-          />
-          <button
-            onClick={onSaveEstimate}
-            disabled={!clientName.trim() || isSaving || !hasUsableEstimate}
-            className={`shrink-0 rounded-xl px-4 py-2.5 text-[12px] font-bold transition-all duration-300 whitespace-nowrap active:scale-95 min-w-[88px] flex justify-center items-center text-center disabled:opacity-50 disabled:cursor-not-allowed ${saveStatus === "success" ? "bg-emerald-500 text-white" : isSaving ? "bg-gray-900 text-white" : clientName.trim() ? "bg-gray-900 text-white" : "bg-gray-400 text-white"}`}
-          >
-            {saveStatus === "success" ? "✓ Saved" : isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save"}
-          </button>
-        </div>
-        {saveStatus === "error" && (
-          <div className="px-1 text-red-500 text-[11px] font-bold">
-            {saveErrorMessage || "Save failed. Please try again."}
-          </div>
-        )}
-      </div>
     </div>
   );
 }

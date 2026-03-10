@@ -303,6 +303,12 @@ export function DashboardClient() {
             setShowDetails={setShowDetails}
             handleCopy={handleCopy}
             copyStatus={copyStatus}
+            clientName={clientName}
+            setClientName={setClientName}
+            handleSaveEstimate={() => void handleSaveEstimate()}
+            isSaving={isSaving}
+            saveErrorMessage={saveErrorMessage}
+            saveStatus={saveStatus}
             overrides={overrides}
             setOverrides={setOverrides}
             clearOverrides={clearOverrides}
