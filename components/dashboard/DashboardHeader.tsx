@@ -1,4 +1,4 @@
-import { Calculator, ClipboardList, Loader2, LogOut, Truck } from "lucide-react";
+import { Calculator, ClipboardList, Loader2, LogOut, Settings, Truck } from "lucide-react";
 
 type DashboardHeaderProps = {
   activeTab: "config" | "report";
@@ -94,9 +94,11 @@ export function DashboardHeader({
             <button
               key={tab}
               onClick={() => onTabChange(tab)}
-              className={`flex-1 px-3 py-2 text-xs font-medium rounded-lg transition-all duration-200 whitespace-nowrap ${activeTab === tab ? "bg-gray-50 text-gray-900" : "text-gray-500 bg-transparent hover:bg-gray-50 hover:text-gray-900"}`}
+              className={`flex-1 px-3 py-2 text-xs font-medium rounded-lg transition-all duration-200 whitespace-nowrap inline-flex items-center justify-center gap-1.5 ${activeTab === tab ? "bg-gray-50 text-gray-900" : "text-gray-500 bg-transparent hover:bg-gray-50 hover:text-gray-900"}`}
             >
-              {tab === "config" ? "Parameters" : "Estimate"}
+              {tab === "config"
+                ? <><Settings className="w-3.5 h-3.5" aria-hidden="true" /><span>Parameters</span></>
+                : <><Calculator className="w-3.5 h-3.5" aria-hidden="true" /><span>Estimate</span></>}
             </button>
           ))}
         </div>
