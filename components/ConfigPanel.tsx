@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { EstimateInputs, NormalizedRow, EstimateResult, RowsStatus } from '@/lib/types/estimator';
 import { Settings, MapPin, Trash2, Plus, Weight, Undo2 } from 'lucide-react';
 import { MAX_EXTRA_STOPS } from '@/lib/estimatePolicy';
@@ -6,6 +6,89 @@ import { GlassPanel } from './GlassPanel';
 import { Select } from './Select';
 import { InputLabel } from './InputLabel';
 import { AccessSegmented } from './AccessSegmented';
+
+type InventoryViewportMetrics = {
+    isMobile: boolean;
+    rawMinHeight: number;
+    rawMaxHeight: number;
+    normalizedMaxHeight: number;
+};
+
+const DESKTOP_VIEWPORT_METRICS: InventoryViewportMetrics = {
+    isMobile: false,
+    rawMinHeight: 224,
+    rawMaxHeight: 320,
+    normalizedMaxHeight: 288,
+};
+
+const INVENTORY_SCROLL_MARGIN_BOTTOM = 'calc(8rem + env(safe-area-inset-bottom))';
+
+const getInventoryViewportMetrics = (): InventoryViewportMetrics => {
+    if (typeof window === 'undefined') return DESKTOP_VIEWPORT_METRICS;
+
+    const isMobile = window.innerWidth < 768;
+    const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
+    const rawMinHeight = isMobile ? 96 : 224;
+    const rawMaxHeight = isMobile
+        ? Math.max(rawMinHeight, Math.min(260, Math.round(viewportHeight * 0.32)))
+        : 320;
+    const normalizedMaxHeight = isMobile
+        ? Math.max(220, Math.min(360, Math.round(viewportHeight * 0.4)))
+        : 288;
+
+    return {
+        isMobile,
+        rawMinHeight,
+        rawMaxHeight,
+        normalizedMaxHeight,
+    };
+};
+
+const hasSameViewportMetrics = (a: InventoryViewportMetrics, b: InventoryViewportMetrics) =>
+    a.isMobile === b.isMobile
+    && a.rawMinHeight === b.rawMinHeight
+    && a.rawMaxHeight === b.rawMaxHeight
+    && a.normalizedMaxHeight === b.normalizedMaxHeight;
+
+let inventoryViewportSnapshot = DESKTOP_VIEWPORT_METRICS;
+
+const measureRawComposer = (
+    textarea: HTMLTextAreaElement | null,
+    viewport: InventoryViewportMetrics
+): { height: number; overflowY: 'hidden' | 'auto' } | null => {
+    if (!textarea) return null;
+
+    textarea.style.height = 'auto';
+    const scrollHeight = textarea.scrollHeight;
+
+    return {
+        height: Math.max(viewport.rawMinHeight, Math.min(scrollHeight, viewport.rawMaxHeight)),
+        overflowY: scrollHeight > viewport.rawMaxHeight ? 'auto' : 'hidden',
+    };
+};
+
+const subscribeToInventoryViewport = (callback: () => void) => {
+    if (typeof window === 'undefined') return () => {};
+
+    window.addEventListener('resize', callback);
+    const visualViewport = window.visualViewport;
+    visualViewport?.addEventListener('resize', callback);
+
+    return () => {
+        window.removeEventListener('resize', callback);
+        visualViewport?.removeEventListener('resize', callback);
+    };
+};
+
+const getInventoryViewportSnapshot = () => {
+    const nextViewport = getInventoryViewportMetrics();
+    if (!hasSameViewportMetrics(inventoryViewportSnapshot, nextViewport)) {
+        inventoryViewportSnapshot = nextViewport;
+    }
+    return inventoryViewportSnapshot;
+};
+
+const getInventoryViewportServerSnapshot = () => DESKTOP_VIEWPORT_METRICS;
 
 interface ConfigPanelProps {
     inputs: EstimateInputs;
@@ -36,6 +119,12 @@ export const ConfigPanel = ({
 
     const [undoCache, setUndoCache] = useState<{ text: string; rows: NormalizedRow[] } | null>(null);
     const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const rawTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+    const inventoryViewport = useSyncExternalStore(
+        subscribeToInventoryViewport,
+        getInventoryViewportSnapshot,
+        getInventoryViewportServerSnapshot
+    );
 
     const handleClearInventory = () => {
         // Save current state for undo
@@ -66,6 +155,31 @@ export const ConfigPanel = ({
     }
 
     const detectedQtyTotal = (estimate as EstimateResult)?.detectedQtyTotal ?? 0;
+
+    useEffect(() => {
+        return () => {
+            if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+        };
+    }, []);
+
+    useEffect(() => {
+        if (inventoryMode !== "raw") return;
+
+        const nextStyle = measureRawComposer(rawTextareaRef.current, inventoryViewport);
+        if (!nextStyle) return;
+        const textarea = rawTextareaRef.current;
+        if (!textarea) return;
+
+        textarea.style.height = `${nextStyle.height}px`;
+        textarea.style.overflowY = nextStyle.overflowY;
+    }, [inputs.inventoryText, inventoryMode, inventoryViewport]);
+
+    const handleRawInventoryFocus = (event: React.FocusEvent<HTMLTextAreaElement>) => {
+        const target = event.currentTarget;
+        requestAnimationFrame(() => {
+            target.scrollIntoView({ block: 'nearest' });
+        });
+    };
 
     return (
         <GlassPanel><div className="p-4 md:p-6 flex-1 flex flex-col space-y-5 md:space-y-6">
@@ -221,6 +335,7 @@ export const ConfigPanel = ({
                     {inventoryMode === "raw" ? (
                         <>
                             <textarea
+                                ref={rawTextareaRef}
                                 value={inputs.inventoryText}
                                 onChange={e => {
                                     const raw = e.target.value;
@@ -228,9 +343,14 @@ export const ConfigPanel = ({
                                     setInventoryClipped(limited.length !== raw.length);
                                     handleRawInventoryChange(limited);
                                 }}
-                                className="block w-full h-56 bg-white border border-gray-200 rounded-2xl p-4 sm:p-5 text-[14px] leading-relaxed text-gray-800 outline-none resize-none shadow-sm font-mono"
-                                placeholder="Paste inventory here (e.g. Living Room: Sofa, TV...)"
-                                style={{ WebkitOverflowScrolling: 'touch' }}
+                                onFocus={handleRawInventoryFocus}
+                                className="block w-full min-h-[96px] md:min-h-[224px] bg-white border border-gray-200 rounded-2xl p-4 sm:p-5 text-[14px] leading-relaxed text-gray-800 outline-none resize-none shadow-sm font-mono transition-colors"
+                                placeholder="Paste inventory..."
+                                style={{
+                                    maxHeight: inventoryViewport.rawMaxHeight,
+                                    WebkitOverflowScrolling: 'touch',
+                                    scrollMarginBottom: INVENTORY_SCROLL_MARGIN_BOTTOM,
+                                }}
                                 aria-label="Raw inventory text input"
                             />
                             {rowsStatus === "stale" && (
@@ -240,9 +360,18 @@ export const ConfigPanel = ({
                             )}
                         </>
                     ) : (
-                        <div className="bg-white border border-gray-200 rounded-2xl p-3 shadow-sm">
+                        <div
+                            className="bg-white border border-gray-200 rounded-2xl p-3 shadow-sm"
+                            style={{ scrollMarginBottom: INVENTORY_SCROLL_MARGIN_BOTTOM }}
+                        >
                             <div className="text-[10px] font-bold text-gray-400 mb-2 uppercase tracking-widest px-1">Item Editor</div>
-                            <div className="max-h-72 overflow-y-auto overflow-x-auto pr-1">
+                            <div
+                                className="overflow-y-auto overflow-x-auto pr-1"
+                                style={{
+                                    maxHeight: inventoryViewport.normalizedMaxHeight,
+                                    WebkitOverflowScrolling: 'touch',
+                                }}
+                            >
                                 <div className="min-w-[260px] w-full">
                                     <div className="grid grid-cols-[1fr_2.5rem_2.5rem_2.5rem_1.5rem] gap-1.5 mb-1 px-1 text-[9px] text-gray-400 font-bold sticky top-0 bg-white z-10 pb-1 border-b border-gray-50">
                                         <div>Item</div><div className="text-center">Qty</div><div className="text-center">CF/ea</div><div className="text-center">Heavy</div><div></div>
