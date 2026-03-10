@@ -27,7 +27,7 @@ import type {
 export function DashboardClient() {
   const [hasMounted, setHasMounted] = useState(false);
   const [activeTab, setActiveTab] = useState<"config" | "report">("config");
-  const [showDetails, setShowDetails] = useState(false);
+  const [openReportSection, setOpenReportSection] = useState<"inventory" | "details" | null>(null);
   const [clientName, setClientName] = useState("");
   const [isNormalizing, setIsNormalizing] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
@@ -93,6 +93,7 @@ export function DashboardClient() {
     const raw = (estimate.parsedItems || []).reduce((sum, item) => sum + (item.cf || 0), 0);
     return raw > 0 ? Math.round(raw / 25) * 25 : 0;
   }, [estimate.parsedItems]);
+  const detectedItemCount = estimate.parsedItems?.length || 0;
   const isCalculating = isEstimateRunning || isNormalizing;
 
   const {
@@ -299,8 +300,8 @@ export function DashboardClient() {
             estimate={estimate as EstimateResult}
             inputs={debouncedEstimateRequest.inputs}
             isCalculating={isCalculating}
-            showDetails={showDetails}
-            setShowDetails={setShowDetails}
+            openReportSection={openReportSection}
+            setOpenReportSection={setOpenReportSection}
             handleCopy={handleCopy}
             copyStatus={copyStatus}
             clientName={clientName}
@@ -314,6 +315,8 @@ export function DashboardClient() {
             clearOverrides={clearOverrides}
             handleDownloadPdf={handleDownloadPdf}
             isGeneratingPdf={isGeneratingPdf}
+            detectedItemCount={detectedItemCount}
+            rawInventoryVolume={rawInventoryVolume}
           />
         </div>
       </div>
