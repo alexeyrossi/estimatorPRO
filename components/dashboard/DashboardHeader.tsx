@@ -96,7 +96,7 @@ export function DashboardHeader({
               onClick={() => onTabChange(tab)}
               className={`flex-1 px-3 py-2 text-xs font-medium rounded-lg transition-all duration-200 whitespace-nowrap ${activeTab === tab ? "bg-gray-50 text-gray-900" : "text-gray-500 bg-transparent hover:bg-gray-50 hover:text-gray-900"}`}
             >
-              {tab === "config" ? "Config" : "Report"}
+              {tab === "config" ? "Parameters" : "Estimate"}
             </button>
           ))}
         </div>

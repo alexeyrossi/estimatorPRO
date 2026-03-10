@@ -150,7 +150,7 @@ export const ReportPanel = ({
                 <MetricCard icon={Users} label="Crew" value={<AnimatedNumber value={estimate.crew} />} sub="Movers" variant="emerald" advice={estimate.nextMoverSavingsLabel} />
             </div>
 
-            <GlassPanel><div className="p-7 flex flex-col pb-32 md:pb-7">
+            <GlassPanel><div className="p-7 flex flex-col">
 
                 <div className={`flex flex-col transition-opacity duration-300 ${isCalculating ? 'opacity-60' : 'opacity-100'}`}>
                     {/* CONFIDENCE + HEAVY */}
