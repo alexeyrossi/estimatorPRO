@@ -3,6 +3,7 @@ import { createRequire } from "node:module";
 import ts from "typescript";
 
 const require = createRequire(import.meta.url);
+const serverOnlyPath = require.resolve("server-only");
 
 const compilerOptions = {
   module: ts.ModuleKind.CommonJS,
@@ -10,6 +11,15 @@ const compilerOptions = {
   moduleResolution: ts.ModuleResolutionKind.NodeJs,
   esModuleInterop: true,
   jsx: ts.JsxEmit.ReactJSX,
+};
+
+// Node test runs do not have Next's server-module handling, so `server-only`
+// must be a no-op in tests while remaining intact in app/runtime code.
+require.cache[serverOnlyPath] = {
+  id: serverOnlyPath,
+  filename: serverOnlyPath,
+  loaded: true,
+  exports: {},
 };
 
 require.extensions[".ts"] = function registerTs(module, filename) {
