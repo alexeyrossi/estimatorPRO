@@ -27,7 +27,7 @@ import type {
 export function DashboardClient() {
   const [hasMounted, setHasMounted] = useState(false);
   const [activeTab, setActiveTab] = useState<"config" | "report">("config");
-  const [openReportSection, setOpenReportSection] = useState<"inventory" | "details" | null>(null);
+  const [reportView, setReportView] = useState<"summary" | "inventory" | "details">("summary");
   const [clientName, setClientName] = useState("");
   const [isNormalizing, setIsNormalizing] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
@@ -300,8 +300,8 @@ export function DashboardClient() {
             estimate={estimate as EstimateResult}
             inputs={debouncedEstimateRequest.inputs}
             isCalculating={isCalculating}
-            openReportSection={openReportSection}
-            setOpenReportSection={setOpenReportSection}
+            reportView={reportView}
+            setReportView={setReportView}
             handleCopy={handleCopy}
             copyStatus={copyStatus}
             clientName={clientName}

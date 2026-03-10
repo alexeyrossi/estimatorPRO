@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { EstimateInputs, NormalizedRow, EstimateResult, RowsStatus } from '@/lib/types/estimator';
-import { Settings, MapPin, Trash2, Plus, Weight, Undo2 } from 'lucide-react';
+import { Settings, MapPin, Trash2, Plus, Weight, Undo2, ListChecks, RefreshCcw, AlignLeft } from 'lucide-react';
 import { MAX_EXTRA_STOPS } from '@/lib/estimatePolicy';
 import { GlassPanel } from './GlassPanel';
 import { Select } from './Select';
@@ -90,6 +90,21 @@ const getInventoryViewportSnapshot = () => {
 
 const getInventoryViewportServerSnapshot = () => DESKTOP_VIEWPORT_METRICS;
 
+const getInventoryModeToggleMeta = (
+    inventoryMode: "raw" | "normalized",
+    rowsStatus: RowsStatus
+) => {
+    if (inventoryMode === "normalized") {
+        return { label: "Text View", title: "Switch to text view", Icon: AlignLeft };
+    }
+
+    if (rowsStatus === "stale") {
+        return { label: "Re-sync Items", title: "Re-sync detected items", Icon: RefreshCcw };
+    }
+
+    return { label: "Item Editor", title: "Open item editor", Icon: ListChecks };
+};
+
 interface ConfigPanelProps {
     inputs: EstimateInputs;
     setInputs: React.Dispatch<React.SetStateAction<EstimateInputs>>;
@@ -116,6 +131,7 @@ export const ConfigPanel = ({
 }: ConfigPanelProps) => {
 
     const isLabor = inputs.moveType === "Labor";
+    const inventoryModeToggle = getInventoryModeToggleMeta(inventoryMode, rowsStatus);
 
     const [undoCache, setUndoCache] = useState<{ text: string; rows: NormalizedRow[] } | null>(null);
     const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -322,12 +338,21 @@ export const ConfigPanel = ({
                     )}
 
                     <button onClick={handleInventoryModeToggle}
-                        className="flex items-center justify-center py-1.5 rounded-lg text-[11px] font-bold transition-colors w-[118px] bg-gray-50 text-gray-500 hover:bg-gray-100 hover:text-gray-700">
-                        {inventoryMode === "normalized"
-                            ? "Text View"
-                            : rowsStatus === "stale"
-                                ? "Re-sync Items"
-                                : "Item Editor"}
+                        title={inventoryModeToggle.title}
+                        aria-label={inventoryModeToggle.title}
+                        className="relative inline-flex flex-none shrink-0 overflow-hidden rounded-lg bg-gray-50 text-[10px] font-bold text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700">
+                        <span aria-hidden="true" className="invisible flex items-center justify-center gap-1.5 whitespace-nowrap px-2.5 py-1.5">
+                            <span className="flex h-3.5 w-3.5 shrink-0 items-center justify-center">
+                                <RefreshCcw className="w-3.5 h-3.5" />
+                            </span>
+                            <span className="whitespace-nowrap">Re-sync Items</span>
+                        </span>
+                        <span className="absolute inset-0 flex items-center justify-center gap-1.5 px-2.5 py-1.5">
+                            <span className="flex h-3.5 w-3.5 shrink-0 items-center justify-center">
+                                <inventoryModeToggle.Icon className="w-3.5 h-3.5" />
+                            </span>
+                            <span className="whitespace-nowrap">{inventoryModeToggle.label}</span>
+                        </span>
                     </button>
                 </div>
 

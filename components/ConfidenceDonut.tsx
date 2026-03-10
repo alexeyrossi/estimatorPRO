@@ -13,10 +13,10 @@ export const ConfidenceDonut = ({ score, label }: { score: number; label: string
     const rafRef = useRef<number>(0);
 
     const colors = label === "High"
-        ? { ring: "#34D399", glow: "rgba(52,211,153,0.3)", text: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-200" }
+        ? { ring: "#34D399", text: "text-emerald-700", bg: "bg-emerald-50" }
         : label === "Medium"
-            ? { ring: "#FBBF24", glow: "rgba(251,191,36,0.3)", text: "text-amber-700", bg: "bg-amber-50", border: "border-amber-200" }
-            : { ring: "#F87171", glow: "rgba(248,113,113,0.3)", text: "text-red-700", bg: "bg-red-50", border: "border-red-200" };
+            ? { ring: "#FBBF24", text: "text-amber-700", bg: "bg-amber-50" }
+            : { ring: "#F87171", text: "text-red-700", bg: "bg-red-50" };
 
     useEffect(() => {
         const from = prevScore.current;
@@ -58,7 +58,6 @@ export const ConfidenceDonut = ({ score, label }: { score: number; label: string
                     width={size}
                     height={size}
                     className="relative transform -rotate-90 overflow-visible"
-                    style={{ filter: `drop-shadow(0 0 8px ${colors.glow})` }}
                 >
                     {/* Background track */}
                     <circle
