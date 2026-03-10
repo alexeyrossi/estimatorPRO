@@ -479,7 +479,7 @@ export const ReportPanel = ({
                             placeholder="Client name"
                             value={clientName}
                             onChange={e => setClientName(e.target.value)}
-                            className="flex-1 bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5 text-[12px] font-semibold outline-none"
+                            className="flex-1 bg-gray-50 border border-gray-100 rounded-xl px-2.5 py-2.5 text-base font-semibold outline-none"
                         />
                         <button
                             onClick={handleSaveEstimate}
