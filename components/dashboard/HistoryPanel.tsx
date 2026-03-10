@@ -79,7 +79,7 @@ export function HistoryPanel({
                       event.stopPropagation();
                       onMarkDelete(item.id);
                     }}
-                    className="absolute top-2 right-2 w-5 h-5 flex items-center justify-center rounded-md text-gray-300 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all"
+                    className="absolute top-2 right-2 w-5 h-5 flex items-center justify-center rounded-md text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all md:text-gray-300 md:opacity-0 md:group-hover:opacity-100"
                     aria-label="Delete estimate"
                   >
                     <X className="w-3 h-3" />

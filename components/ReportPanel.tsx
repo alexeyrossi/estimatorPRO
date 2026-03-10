@@ -68,12 +68,6 @@ interface ReportPanelProps {
     setShowDetails: (v: boolean) => void;
     handleCopy: () => void;
     copyStatus: "idle" | "success";
-    clientName: string;
-    setClientName: (v: string) => void;
-    handleSaveEstimate: () => void;
-    isSaving: boolean;
-    saveErrorMessage: string | null;
-    saveStatus: "idle" | "success" | "error";
     overrides: Record<string, string>;
     setOverrides: React.Dispatch<React.SetStateAction<Record<string, string>>>;
     clearOverrides: () => void;
@@ -89,12 +83,6 @@ export const ReportPanel = ({
     setShowDetails,
     handleCopy,
     copyStatus,
-    clientName,
-    setClientName,
-    handleSaveEstimate,
-    isSaving,
-    saveErrorMessage,
-    saveStatus,
     overrides,
     setOverrides,
     clearOverrides,
@@ -298,27 +286,6 @@ export const ReportPanel = ({
                     )}
 
                 </div>
-
-                {/* MOBILE COMPACT SAVE BAR */}
-                <div className="md:hidden flex items-center gap-2 pt-3">
-                    <input type="text" placeholder="Client name" value={clientName}
-                        onChange={e => setClientName(e.target.value)}
-                        className="flex-1 bg-gray-50 border-transparent rounded-xl px-3 py-2.5 text-[12px] font-semibold outline-none" />
-                    <button onClick={handleSaveEstimate} disabled={!clientName.trim() || isSaving || !hasUsableEstimate}
-                        className={`px-4 py-2.5 rounded-xl text-[11px] font-bold whitespace-nowrap transition-all duration-300 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${saveStatus === 'success' ? 'bg-emerald-500 text-white' :
-                            isSaving ? 'bg-gray-900 text-white' :
-                                clientName.trim() ? 'bg-gray-900 text-white hover:bg-gray-800' :
-                                    'bg-gray-400 text-white'
-                            }`}>
-                        {saveStatus === 'success' ? '✓ Saved' : isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save'}
-                    </button>
-                </div>
-                {saveStatus === 'error' && (
-                    <div className="md:hidden text-red-500 text-[11px] font-bold mt-2 text-right">
-                        {saveErrorMessage || 'Save failed. Please try again.'}
-                    </div>
-                )}
-
                 {/* ACTION BAR */}
                 <div data-no-pdf className="flex flex-col mt-2">
                     <div className="border-t border-gray-100" />
