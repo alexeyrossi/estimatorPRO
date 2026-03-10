@@ -330,14 +330,15 @@ export const ReportPanel = ({
                             <ChevronRight className={`w-4 h-4 transition-transform duration-300 ${showDetails ? '-rotate-90' : ''}`} />
                         </button>
                     </div>
-                    <div className="md:hidden flex flex-col gap-2 pt-4">
-                        <div className="flex items-center gap-2">
+                    <div className="md:hidden pt-4">
+                        <div className="flex flex-col gap-2 rounded-[1.5rem] border border-gray-100 bg-[#F7F8FB] p-3 shadow-[0_6px_18px_rgba(15,23,42,0.04)]">
+                            <div className="flex items-center gap-2">
                             <input
                                 type="text"
                                 placeholder="Client name"
                                 value={clientName}
                                 onChange={e => setClientName(e.target.value)}
-                                className="flex-1 bg-gray-50 border-transparent rounded-xl px-3 py-2.5 text-[12px] font-semibold outline-none"
+                                className="flex-1 bg-white border border-gray-100 rounded-xl px-3 py-2.5 text-[12px] font-semibold outline-none"
                             />
                             <button
                                 onClick={handleSaveEstimate}
@@ -346,12 +347,13 @@ export const ReportPanel = ({
                             >
                                 {saveStatus === 'success' ? '✓ Saved' : isSaving ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Save'}
                             </button>
-                        </div>
-                        {saveStatus === 'error' && (
-                            <div className="text-red-500 text-[11px] font-bold">
-                                {saveErrorMessage || 'Save failed. Please try again.'}
                             </div>
-                        )}
+                            {saveStatus === 'error' && (
+                                <div className="px-1 text-red-500 text-[11px] font-bold">
+                                    {saveErrorMessage || 'Save failed. Please try again.'}
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
 
