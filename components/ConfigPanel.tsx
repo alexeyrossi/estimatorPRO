@@ -68,8 +68,8 @@ export const ConfigPanel = ({
     const detectedQtyTotal = (estimate as EstimateResult)?.detectedQtyTotal ?? 0;
 
     return (
-        <GlassPanel><div className="p-6 flex-1 flex flex-col space-y-6">
-            <div className="flex items-center gap-2 mb-2 pb-5 border-b border-gray-100">
+        <GlassPanel><div className="p-4 md:p-6 flex-1 flex flex-col space-y-5 md:space-y-6">
+            <div className="hidden md:flex items-center gap-2 mb-2 pb-5 border-b border-gray-100">
                 <Settings className="w-4 h-4 text-gray-400" />
                 <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Parameters</span>
             </div>
@@ -119,7 +119,7 @@ export const ConfigPanel = ({
                 </div>
             </div>
 
-            <div className="space-y-4 pt-2">
+            <div className="space-y-4 pt-1 md:pt-2">
                 <div>
                     <InputLabel label={inputs.moveType === "Local" ? "Origin Access" : "Location Access"} />
                     <AccessSegmented value={inputs.accessOrigin} onChange={(v) => setInputs({ ...inputs, accessOrigin: v })} />
@@ -133,7 +133,7 @@ export const ConfigPanel = ({
             </div>
 
             {inputs.moveType !== "Labor" && (
-                <div className="pt-2">
+                <div className="pt-1 md:pt-2">
                     <InputLabel label="Extra Stops" />
                     {(inputs.extraStops || []).map((stop, idx) => (
                         <div key={idx} className="flex items-center gap-2 mb-3 animate-in fade-in slide-in-from-top-2 duration-300">
@@ -179,7 +179,7 @@ export const ConfigPanel = ({
                 </div>
             )}
 
-            <div className="flex-1 flex flex-col relative pt-3 border-t border-gray-100">
+            <div className="flex-1 flex flex-col relative pt-2 md:pt-3 border-t border-gray-100">
                 <div className="flex flex-wrap items-center gap-1.5 mb-3 ml-1">
                     <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
                         Inventory
