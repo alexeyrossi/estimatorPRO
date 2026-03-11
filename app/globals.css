@@ -45,3 +45,21 @@ body {
     padding-bottom: 2rem;
   }
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .report-view-viewport,
+  .report-view-motion,
+  .history-presence-shell,
+  .history-panel-motion,
+  .history-content-motion,
+  .history-item-motion {
+    transition: none !important;
+  }
+
+  .report-view-motion,
+  .history-panel-motion,
+  .history-content-motion,
+  .history-item-motion {
+    transform: none !important;
+  }
+}

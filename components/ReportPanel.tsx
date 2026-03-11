@@ -60,6 +60,11 @@ const AnimatedNumber = ({ value: rawValue, prefix = "", suffix = "" }: { value: 
     return <>{prefix}{(display ?? 0).toLocaleString()}{suffix}</>;
 };
 
+const measureElementHeight = (node: HTMLDivElement | null) => {
+    if (!node) return null;
+    return Math.ceil(node.getBoundingClientRect().height);
+};
+
 interface ReportPanelProps {
     estimate: EstimateResult;
     inputs: EstimateInputs;
@@ -110,6 +115,12 @@ export const ReportPanel = ({
     const hasUsableEstimate = typeof estimate.finalVolume === "number" && estimate.finalVolume > 0;
     const [displayedReportView, setDisplayedReportView] = useState(reportView);
     const [reportViewPhase, setReportViewPhase] = useState<"idle" | "leaving" | "entering">("idle");
+    const [contentViewportHeight, setContentViewportHeight] = useState<number | null>(null);
+    const [activeContentNode, setActiveContentNode] = useState<HTMLDivElement | null>(null);
+    const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+    const swapTimerRef = useRef<number | null>(null);
+    const enterFrameRef = useRef<number | null>(null);
+    const resizeFrameRef = useRef<number | null>(null);
     const softActionButtonTransition = {
         transitionProperty: "transform, background-color, color",
         transitionDuration: "150ms, 200ms, 200ms",
@@ -150,63 +161,216 @@ export const ReportPanel = ({
     );
 
     useEffect(() => {
-        if (reportView === displayedReportView) return;
+        if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
 
-        const leaveTimer = window.setTimeout(() => {
-            setReportViewPhase("leaving");
-        }, 0);
-        const swapTimer = window.setTimeout(() => {
-            setDisplayedReportView(reportView);
-            setReportViewPhase("entering");
-        }, 140);
+        const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+        const syncPreference = () => setPrefersReducedMotion(mediaQuery.matches);
 
-        return () => {
-            window.clearTimeout(leaveTimer);
-            window.clearTimeout(swapTimer);
-        };
-    }, [displayedReportView, reportView]);
+        syncPreference();
+
+        if (typeof mediaQuery.addEventListener === "function") {
+            mediaQuery.addEventListener("change", syncPreference);
+            return () => mediaQuery.removeEventListener("change", syncPreference);
+        }
+
+        mediaQuery.addListener(syncPreference);
+        return () => mediaQuery.removeListener(syncPreference);
+    }, []);
 
     useEffect(() => {
-        if (reportViewPhase !== "entering") return;
+        if (reportView === displayedReportView) return;
 
-        const frame = window.requestAnimationFrame(() => {
-            setReportViewPhase("idle");
+        if (swapTimerRef.current !== null) {
+            window.clearTimeout(swapTimerRef.current);
+            swapTimerRef.current = null;
+        }
+        if (enterFrameRef.current !== null) {
+            window.cancelAnimationFrame(enterFrameRef.current);
+            enterFrameRef.current = null;
+        }
+
+        if (prefersReducedMotion) {
+            enterFrameRef.current = window.requestAnimationFrame(() => {
+                setDisplayedReportView(reportView);
+                setReportViewPhase("idle");
+                enterFrameRef.current = null;
+            });
+            return;
+        }
+
+        enterFrameRef.current = window.requestAnimationFrame(() => {
+            setReportViewPhase("leaving");
+            enterFrameRef.current = null;
+            swapTimerRef.current = window.setTimeout(() => {
+                setDisplayedReportView(reportView);
+                setReportViewPhase("entering");
+                swapTimerRef.current = null;
+            }, 120);
         });
 
-        return () => window.cancelAnimationFrame(frame);
-    }, [reportViewPhase]);
+        return () => {
+            if (swapTimerRef.current !== null) {
+                window.clearTimeout(swapTimerRef.current);
+                swapTimerRef.current = null;
+            }
+            if (enterFrameRef.current !== null) {
+                window.cancelAnimationFrame(enterFrameRef.current);
+                enterFrameRef.current = null;
+            }
+        };
+    }, [displayedReportView, prefersReducedMotion, reportView]);
 
-    const summaryShellClass = "h-auto";
-    const framedReportShellClass = "h-[57dvh] min-h-[390px] max-h-[520px] md:h-[635px] md:min-h-[635px] md:max-h-[635px]";
-    const reportViewMotionClass = reportViewPhase === "leaving"
-        ? "opacity-0 [transform:rotateY(82deg)_scale(0.985)]"
-        : reportViewPhase === "entering"
-            ? "opacity-0 [transform:rotateY(-82deg)_scale(0.985)]"
-            : "opacity-100 [transform:rotateY(0deg)_scale(1)]";
+    useEffect(() => {
+        if (reportViewPhase !== "entering" || prefersReducedMotion) return;
+
+        enterFrameRef.current = window.requestAnimationFrame(() => {
+            const nextHeight = measureElementHeight(activeContentNode);
+            if (nextHeight != null) {
+                setContentViewportHeight((prev) => prev === nextHeight ? prev : nextHeight);
+            }
+            setReportViewPhase("idle");
+            enterFrameRef.current = null;
+        });
+
+        return () => {
+            if (enterFrameRef.current !== null) {
+                window.cancelAnimationFrame(enterFrameRef.current);
+                enterFrameRef.current = null;
+            }
+        };
+    }, [activeContentNode, prefersReducedMotion, reportViewPhase]);
+
+    useEffect(() => {
+        if (!activeContentNode) return;
+
+        const syncHeight = () => {
+            const nextHeight = measureElementHeight(activeContentNode);
+            if (nextHeight != null) {
+                setContentViewportHeight((prev) => prev === nextHeight ? prev : nextHeight);
+            }
+        };
+
+        syncHeight();
+
+        if (typeof ResizeObserver === "undefined") return;
+
+        const observer = new ResizeObserver(() => {
+            if (resizeFrameRef.current !== null) {
+                window.cancelAnimationFrame(resizeFrameRef.current);
+            }
+
+            resizeFrameRef.current = window.requestAnimationFrame(() => {
+                syncHeight();
+                resizeFrameRef.current = null;
+            });
+        });
+
+        observer.observe(activeContentNode);
+
+        return () => {
+            observer.disconnect();
+            if (resizeFrameRef.current !== null) {
+                window.cancelAnimationFrame(resizeFrameRef.current);
+                resizeFrameRef.current = null;
+            }
+        };
+    }, [activeContentNode]);
+
+    const framedReportBodyClass = "h-[calc(57dvh-3.25rem)] min-h-[338px] max-h-[468px] md:h-[516px] md:min-h-[516px] md:max-h-[516px]";
     const isDisplayedInventory = displayedReportView === "inventory";
     const isDisplayedDetails = displayedReportView === "details";
+    const activeReportBodyClass = displayedReportView === "summary"
+        ? "h-auto"
+        : `${framedReportBodyClass} overflow-hidden`;
+    const reportMotionStyle: React.CSSProperties = reportViewPhase === "leaving"
+        ? {
+            opacity: 0,
+            transform: "translateY(-4px)",
+        }
+        : reportViewPhase === "entering"
+            ? {
+                opacity: 0,
+                transform: "translateY(6px)",
+            }
+            : {
+                opacity: isCalculating ? 0.6 : 1,
+                transform: "translateY(0px)",
+            };
+    const reportViewportStyle: React.CSSProperties = {
+        height: contentViewportHeight != null ? `${contentViewportHeight}px` : undefined,
+        transition: "height 220ms ease-out",
+    };
 
     const detailsTopControl = (
         <button
             onClick={() => toggleReportView("details")}
             aria-label={isDisplayedDetails ? "Back" : "Details"}
             title={isDisplayedDetails ? "Back" : "Details"}
-            className={`group flex h-10 w-10 shrink-0 items-center justify-center rounded-xl active:scale-[1.02] ${isDisplayedDetails ? "bg-gray-100 text-gray-900" : "text-gray-500 hover:text-gray-900 hover:bg-gray-100"}`}
+            aria-pressed={isDisplayedDetails}
+            className={`group relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-gray-500 hover:bg-gray-100 hover:text-gray-900 active:scale-[0.98] ${isDisplayedDetails ? "text-gray-900" : ""}`}
             style={softActionButtonTransition}
         >
-            {isDisplayedDetails ? (
-                <ArrowLeft className="w-4 h-4 transition-transform duration-200 group-active:scale-95" />
-            ) : (
-                <SlidersHorizontal className="w-4 h-4 transition-transform duration-200 group-active:scale-95" />
-            )}
+            <span className="relative h-4 w-4 overflow-hidden">
+                <span
+                    className={`absolute inset-0 transition-[opacity,transform] duration-200 ease-out ${isDisplayedDetails ? "opacity-100 translate-x-0 scale-100" : "pointer-events-none -translate-x-1 opacity-0 scale-95"}`}
+                >
+                    <ArrowLeft className="h-4 w-4" />
+                </span>
+                <span
+                    className={`absolute inset-0 transition-[opacity,transform] duration-200 ease-out ${isDisplayedDetails ? "pointer-events-none translate-x-1 opacity-0 scale-95" : "opacity-100 translate-x-0 scale-100"}`}
+                >
+                    <SlidersHorizontal className="h-4 w-4" />
+                </span>
+            </span>
         </button>
+    );
+    const panelLayerLabelClass = "flex items-center gap-2";
+    const panelLayerTitleClass = "text-[10px] font-bold text-gray-400 uppercase tracking-widest";
+    const clearOverridesButton = (
+        <button
+            onClick={clearOverrides}
+            disabled={Object.keys(overrides).length === 0}
+            className="rounded-xl border border-gray-200 px-3 py-2 text-[10px] font-bold text-gray-500 transition-colors hover:border-gray-300 hover:text-gray-900 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+            Clear
+        </button>
+    );
+    const shellHeaderMeta = displayedReportView === "inventory"
+        ? { Icon: List, title: "Detected Items" }
+        : displayedReportView === "details"
+            ? { Icon: Lock, title: "Manual Overrides" }
+            : { Icon: Clipboard, title: "Summary" };
+    const shellHeaderActions = isDisplayedDetails
+        ? (
+            <div className="flex items-center gap-2">
+                {clearOverridesButton}
+                {detailsTopControl}
+            </div>
+        )
+        : detailsTopControl;
+    const reportShellHeaderLabel = (
+        <div className={panelLayerLabelClass}>
+            <shellHeaderMeta.Icon className="w-4 h-4 text-gray-400" />
+            <span className={panelLayerTitleClass}>{shellHeaderMeta.title}</span>
+        </div>
+    );
+    const reportShellHeader = (
+        <>
+            <div className="flex items-center justify-between gap-3 pb-2 md:hidden">
+                {reportShellHeaderLabel}
+                {shellHeaderActions}
+            </div>
+            <div className="hidden md:flex items-center justify-between gap-3 pb-2">
+                {reportShellHeaderLabel}
+                {shellHeaderActions}
+            </div>
+        </>
     );
 
     const summaryContent = (
         <div className="flex min-h-0 flex-col">
-            <div className="flex items-start justify-between gap-4 py-3">
+            <div className="flex items-start gap-4 pb-3">
                 <ConfidenceDonut score={estimate.confidence?.score || 0} label={estimate.confidence?.label || ""} />
-                {detailsTopControl}
             </div>
             <div className="min-h-0 flex-1 pr-1 md:pr-2">
                 <div className="flex flex-col">
@@ -343,77 +507,53 @@ export const ReportPanel = ({
     );
 
     const inventoryContent = (
-        <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden">
-            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-                <div className="flex items-center justify-between gap-3 px-1">
-                    <div className="flex items-center gap-2">
-                        <List className="w-4 h-4 text-gray-400" />
-                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Detected Items</span>
+        <div className="flex h-full min-h-0 flex-col overflow-hidden">
+            <div className="h-full min-h-0 flex-1 overflow-hidden rounded-[1.75rem] border border-gray-100 bg-gray-50/60 p-3 md:p-4">
+                {detectedItemCount > 0 ? (
+                    <div className="h-full min-h-0 overflow-y-auto pr-1 md:pr-2">
+                        <div className="grid grid-cols-1 gap-3 pb-1 md:grid-cols-2">
+                            {estimate.parsedItems?.map((item, i) => (
+                                <div key={i} className="flex justify-between items-center bg-white border border-gray-100 px-4 py-3 rounded-[1rem] shadow-[0_2px_8px_rgba(0,0,0,0.02)] hover:border-gray-200 transition-colors">
+                                    <span className="font-bold text-gray-700 text-[11px] truncate mr-2">
+                                        {item.name}
+                                        {item.room && <span className="text-gray-400 ml-1 font-semibold text-[9px]">[{item.room}]</span>}
+                                        {item.sourceCount && item.sourceCount > 1 && (
+                                            <span className="text-gray-400 ml-1 font-semibold text-[9px]">({item.sourceCount} lines)</span>
+                                        )}
+                                        {item.isSynthetic && (
+                                            <span className="text-amber-600 ml-1 font-semibold text-[9px]">(bundle)</span>
+                                        )}
+                                        {item.flags?.heavy && (
+                                            <Weight className="w-3 h-3 text-red-500 ml-1 inline-block" strokeWidth={2.5} />
+                                        )}
+                                    </span>
+                                    <span className="text-gray-500 whitespace-nowrap text-[11px] font-medium flex items-center gap-2" style={{ fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, monospace' }}>
+                                        <span>x{item.qty}</span>
+                                        <span className="text-gray-200">|</span>
+                                        <span className="font-bold text-gray-600">{item.cf}cf</span>
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
                     </div>
-                    {detailsTopControl}
-                </div>
-
-                <div className="mt-3 h-0 min-h-0 flex-1 overflow-hidden rounded-[1.75rem] border border-gray-100 bg-gray-50/60 p-3 md:p-4">
-                    {detectedItemCount > 0 ? (
-                        <div className="h-full min-h-0 overflow-y-auto pr-1 md:pr-2">
-                            <div className="grid grid-cols-1 gap-3 pb-1 md:grid-cols-2">
-                                {estimate.parsedItems?.map((item, i) => (
-                                    <div key={i} className="flex justify-between items-center bg-white border border-gray-100 px-4 py-3 rounded-[1rem] shadow-[0_2px_8px_rgba(0,0,0,0.02)] hover:border-gray-200 transition-colors">
-                                        <span className="font-bold text-gray-700 text-[11px] truncate mr-2">
-                                            {item.name}
-                                            {item.room && <span className="text-gray-400 ml-1 font-semibold text-[9px]">[{item.room}]</span>}
-                                            {item.sourceCount && item.sourceCount > 1 && (
-                                                <span className="text-gray-400 ml-1 font-semibold text-[9px]">({item.sourceCount} lines)</span>
-                                            )}
-                                            {item.isSynthetic && (
-                                                <span className="text-amber-600 ml-1 font-semibold text-[9px]">(bundle)</span>
-                                            )}
-                                            {item.flags?.heavy && (
-                                                <Weight className="w-3 h-3 text-red-500 ml-1 inline-block" strokeWidth={2.5} />
-                                            )}
-                                        </span>
-                                        <span className="text-gray-500 whitespace-nowrap text-[11px] font-medium flex items-center gap-2" style={{ fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, monospace' }}>
-                                            <span>x{item.qty}</span>
-                                            <span className="text-gray-200">|</span>
-                                            <span className="font-bold text-gray-600">{item.cf}cf</span>
-                                        </span>
-                                    </div>
-                                ))}
-                            </div>
+                ) : (
+                    <div className="flex h-full flex-col items-center justify-center px-6 text-center">
+                        <List className="mb-3 h-6 w-6 text-gray-300" />
+                        <div className="text-sm font-bold text-gray-700">No detected items yet</div>
+                        <div className="mt-1 max-w-xs text-[12px] font-medium leading-relaxed text-gray-400">
+                            Add or parse inventory in Parameters. Detected items will show here.
                         </div>
-                    ) : (
-                        <div className="flex h-full flex-col items-center justify-center px-6 text-center">
-                            <List className="mb-3 h-6 w-6 text-gray-300" />
-                            <div className="text-sm font-bold text-gray-700">No detected items yet</div>
-                            <div className="mt-1 max-w-xs text-[12px] font-medium leading-relaxed text-gray-400">
-                                Add or parse inventory in Parameters. Detected items will show here.
-                            </div>
-                        </div>
-                    )}
-                </div>
+                    </div>
+                )}
             </div>
         </div>
     );
 
     const detailsContent = (
-        <div className="flex h-full min-h-0 flex-col overflow-hidden p-1">
-            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-                <div className="flex items-center justify-end">
-                    {detailsTopControl}
-                </div>
-                <div className="mt-6 h-0 min-h-0 flex-1 overflow-y-auto pr-1 md:pr-2">
-                    <div className="flex min-h-full flex-col gap-6">
-                        <div className="bg-gray-900 rounded-[2rem] p-6 shadow-lg">
-                        <div className="text-[10px] font-bold text-gray-400 mb-4 uppercase tracking-widest flex items-center gap-2">
-                            <Lock className="w-4 h-4 text-white" /> Manual Overrides
-                            <button
-                                onClick={clearOverrides}
-                                disabled={Object.keys(overrides).length === 0}
-                                className="ml-auto rounded-lg border border-gray-700 px-2 py-1 text-[9px] font-bold text-gray-300 transition-colors hover:border-gray-500 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed"
-                            >
-                                Clear
-                            </button>
-                        </div>
+        <div className="flex h-full min-h-0 flex-col overflow-hidden">
+            <div className="h-0 min-h-0 flex-1 overflow-y-auto pr-1 md:pr-2">
+                <div className="flex min-h-full flex-col gap-5">
+                    <div className="bg-gray-900 rounded-[2rem] p-6 shadow-lg">
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                             {OVERRIDE_KEYS.map((key) => {
                                 const autoValue = overrideAutoValues[key];
@@ -430,75 +570,85 @@ export const ReportPanel = ({
                                 );
                             })}
                         </div>
+                    </div>
+
+                    <div className="space-y-3">
+                        <div className={panelLayerLabelClass}>
+                            <Terminal className="w-4 h-4 text-gray-400" />
+                            <span className={panelLayerTitleClass}>Volume Calculation Path</span>
                         </div>
+                        <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
+                            <div className="grid grid-cols-2 gap-x-5 gap-y-4 min-[390px]:grid-cols-3 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)] md:items-center md:gap-x-6 md:gap-y-0">
+                                <div className="min-w-0 flex flex-col">
+                                    <span className="mb-1 text-[9px] font-bold uppercase leading-tight tracking-[0.2em] text-gray-500 min-[390px]:text-[10px] md:text-[11px] md:tracking-widest">Inventory Volume</span>
+                                    <span className="inline-flex max-w-full flex-wrap items-baseline gap-x-1 text-[16px] font-black text-gray-300 min-[390px]:text-xl">
+                                        <span>{rawInventoryVolume.toLocaleString()}</span>
+                                        <span className="text-[12px] font-medium text-gray-500">cu ft</span>
+                                    </span>
+                                </div>
 
-                        <div className="space-y-3">
-                            <div className="flex items-center gap-2 mb-2"><Terminal className="w-4 h-4 text-gray-400" /><span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Volume Calculation Path</span></div>
-                            <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-                                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-0">
+                                <ChevronRight className="hidden h-5 w-5 text-gray-700 md:block" />
+
+                                <div className="min-w-0 flex flex-col">
+                                    <span className="mb-1 text-[9px] font-bold uppercase leading-tight tracking-[0.2em] text-gray-500 min-[390px]:text-[10px] md:text-[11px] md:tracking-widest">Adjusted Volume</span>
+                                    <span className="inline-flex max-w-full flex-wrap items-baseline gap-x-1 text-[16px] font-black text-gray-300 min-[390px]:text-xl">
+                                        <span>{(estimate.billableCF || estimate.finalVolume || 0).toLocaleString()}</span>
+                                        <span className="text-[12px] font-medium text-gray-500">cu ft</span>
+                                    </span>
+                                </div>
+
+                                <ChevronRight className="hidden h-5 w-5 text-gray-700 md:block" />
+
+                                <div className="col-span-2 min-[390px]:col-span-1 md:col-span-1 min-w-0 flex flex-col">
+                                    <span className="mb-1 text-[9px] font-bold uppercase leading-tight tracking-[0.2em] text-emerald-500/80 min-[390px]:text-[10px] md:text-[11px] md:tracking-widest">Truck Space</span>
+                                    <span className="inline-flex max-w-full flex-wrap items-baseline gap-x-1 text-[18px] font-black text-emerald-400 min-[390px]:text-2xl">
+                                        <span>{(estimate.truckSpaceCF || Math.round((estimate.finalVolume || 0) * 1.083)).toLocaleString()}</span>
+                                        <span className="text-[12px] font-medium text-emerald-500/50">cu ft</span>
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="mt-6 pt-5 border-t border-gray-800/80 grid grid-cols-2 gap-y-6 gap-x-8">
+                                <div className="flex gap-3 items-start">
+                                    <Scale className="w-4 h-4 text-gray-600 mt-0.5" />
                                     <div className="flex flex-col">
-                                        <span className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-1">Inventory Volume</span>
-                                        <span className="text-xl font-black text-gray-300">{rawInventoryVolume} <span className="text-sm font-medium text-gray-500">cu ft</span></span>
-                                    </div>
-
-                                    <ChevronRight className="w-5 h-5 text-gray-700 hidden md:block" />
-
-                                    <div className="flex flex-col">
-                                        <span className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-1">Adjusted Volume</span>
-                                        <span className="text-xl font-black text-gray-300">{estimate.billableCF || estimate.finalVolume || 0} <span className="text-sm font-medium text-gray-500">cu ft</span></span>
-                                    </div>
-
-                                    <ChevronRight className="w-5 h-5 text-gray-700 hidden md:block" />
-
-                                    <div className="flex flex-col">
-                                        <span className="text-[11px] font-bold text-emerald-500/80 uppercase tracking-widest mb-1">Truck Space</span>
-                                        <span className="text-2xl font-black text-emerald-400">{estimate.truckSpaceCF || Math.round((estimate.finalVolume || 0) * 1.083)} <span className="text-sm font-medium text-emerald-500/50">cu ft</span></span>
+                                        <span className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Weight Baseline</span>
+                                        <span className="text-[13px] font-bold text-gray-300">7 lbs / cu ft</span>
+                                        <span className="text-[11px] text-gray-600 mt-0.5">DOT Tariff Standard</span>
                                     </div>
                                 </div>
 
-                                <div className="mt-6 pt-5 border-t border-gray-800/80 grid grid-cols-2 gap-y-6 gap-x-8">
-                                    <div className="flex gap-3 items-start">
-                                        <Scale className="w-4 h-4 text-gray-600 mt-0.5" />
-                                        <div className="flex flex-col">
-                                            <span className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Weight Baseline</span>
-                                            <span className="text-[13px] font-bold text-gray-300">7 lbs / cu ft</span>
-                                            <span className="text-[11px] text-gray-600 mt-0.5">DOT Tariff Standard</span>
-                                        </div>
+                                <div className="flex gap-3 items-start">
+                                    <PackageOpen className="w-4 h-4 text-gray-600 mt-0.5" />
+                                    <div className="flex flex-col">
+                                        <span className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Stacking Factor</span>
+                                        <span className="text-[13px] font-bold text-gray-300">~10% Volume Allowance</span>
+                                        <span className="text-[11px] text-gray-600 mt-0.5">Furniture is not perfectly square</span>
                                     </div>
+                                </div>
 
-                                    <div className="flex gap-3 items-start">
-                                        <PackageOpen className="w-4 h-4 text-gray-600 mt-0.5" />
-                                        <div className="flex flex-col">
-                                            <span className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Stacking Factor</span>
-                                            <span className="text-[13px] font-bold text-gray-300">~10% Volume Allowance</span>
-                                            <span className="text-[11px] text-gray-600 mt-0.5">Furniture is not perfectly square</span>
-                                        </div>
+                                <div className="flex gap-3 items-start">
+                                    <Box className="w-4 h-4 text-gray-600 mt-0.5" />
+                                    <div className="flex flex-col">
+                                        <span className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Box Algorithm</span>
+                                        <span className="text-[13px] font-bold text-gray-300">Auto-Generated</span>
+                                        <span className="text-[11px] text-gray-600 mt-0.5">Min. requirement for safe transport</span>
                                     </div>
+                                </div>
 
-                                    <div className="flex gap-3 items-start">
-                                        <Box className="w-4 h-4 text-gray-600 mt-0.5" />
-                                        <div className="flex flex-col">
-                                            <span className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Box Algorithm</span>
-                                            <span className="text-[13px] font-bold text-gray-300">Auto-Generated</span>
-                                            <span className="text-[11px] text-gray-600 mt-0.5">Min. requirement for safe transport</span>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex gap-3 items-start">
-                                        <Clock className="w-4 h-4 text-gray-600 mt-0.5" />
-                                        <div className="flex flex-col">
-                                            <span className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Labor Algorithm</span>
-                                            <span className="text-[13px] font-bold text-gray-300">Volume + Access Factors</span>
-                                            <span className="text-[11px] text-gray-600 mt-0.5">Accounts for stairs & elevators</span>
-                                        </div>
+                                <div className="flex gap-3 items-start">
+                                    <Clock className="w-4 h-4 text-gray-600 mt-0.5" />
+                                    <div className="flex flex-col">
+                                        <span className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Labor Algorithm</span>
+                                        <span className="text-[13px] font-bold text-gray-300">Volume + Access Factors</span>
+                                        <span className="text-[11px] text-gray-600 mt-0.5">Accounts for stairs & elevators</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
-
-                        {estimate.overridesApplied?.length > 0 && <div className="text-[11px] text-gray-500 font-bold">Overrides Applied: {estimate.overridesApplied.join(", ")}</div>}
-                        <div className="flex-1" />
                     </div>
+
+                    {estimate.overridesApplied?.length > 0 && <div className="text-[11px] text-gray-500 font-bold">Overrides Applied: {estimate.overridesApplied.join(", ")}</div>}
                 </div>
             </div>
         </div>
@@ -519,27 +669,22 @@ export const ReportPanel = ({
                 <MetricCard icon={Users} label="Crew" value={<AnimatedNumber value={estimate.crew} />} sub="Movers" variant="emerald" advice={estimate.nextMoverSavingsLabel} />
             </div>
 
-            <div className="relative rounded-[2rem] bg-white" style={{ perspective: '1400px' }}>
-                <div
-                    className={`flex flex-col px-7 py-7 transition-[transform,opacity] duration-200 ease-out will-change-transform ${reportViewMotionClass} ${isCalculating ? 'opacity-60' : 'opacity-100'}`}
-                    style={{ transformStyle: 'preserve-3d', backfaceVisibility: 'hidden' }}
-                >
-                    {displayedReportView === "summary" ? (
-                        <div className={summaryShellClass}>
-                            <div key={displayedReportView}>
-                                {reportContent}
-                            </div>
+            <GlassPanel className="overflow-hidden">
+                <div className="flex flex-col p-4 md:p-6">
+                    {reportShellHeader}
+                    <div className="report-view-viewport overflow-hidden" style={reportViewportStyle}>
+                        <div
+                            key={displayedReportView}
+                            ref={setActiveContentNode}
+                            className={`report-view-motion ${activeReportBodyClass} transition-[opacity,transform] duration-[180ms] ease-out`}
+                            style={reportMotionStyle}
+                        >
+                            {reportContent}
                         </div>
-                    ) : (
-                        <div className={`${framedReportShellClass} overflow-hidden`}>
-                            <div key={displayedReportView} className="h-full">
-                                {reportContent}
-                            </div>
-                        </div>
-                    )}
+                    </div>
 
                     <div data-no-pdf className="flex flex-col mt-2">
-                        <div className="border-t border-gray-100" />
+                        <div className="border-t border-gray-100 md:border-t-0" />
                         <div className="-mx-2 flex w-[calc(100%+1rem)] min-w-0 items-center gap-1 pt-4 md:mx-0 md:w-full md:gap-3">
                             <div className="flex min-w-0 shrink-0 items-center gap-1.5 md:gap-3">
                                 <button onClick={handleCopy} disabled={!hasUsableEstimate} className={`h-[42px] w-[112px] md:h-auto md:w-[220px] flex items-center justify-center gap-1 md:gap-2 px-3 md:px-6 py-3 md:py-4 rounded-xl text-[10px] md:text-[12px] font-bold transition-colors duration-300 active:scale-[0.98] shadow-[0_8px_20px_rgba(0,0,0,0.15)] whitespace-nowrap overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed ${copyStatus === 'success' ? 'bg-emerald-500 text-white' : 'bg-gray-900 text-white hover:bg-black'}`}>
@@ -592,7 +737,7 @@ export const ReportPanel = ({
                         </div>
                     </div>
                 </div>
-            </div>
+            </GlassPanel>
 
             <GlassPanel className="md:hidden">
                 <div className="p-4 flex flex-col gap-2">

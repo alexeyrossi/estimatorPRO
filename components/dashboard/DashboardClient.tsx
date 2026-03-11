@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { normalizeInventoryAction, resolveItemAction } from "@/app/actions/estimate";
 import { ConfigPanel } from "@/components/ConfigPanel";
@@ -24,6 +24,13 @@ import type {
   SavedEstimateRecord,
 } from "@/lib/types/estimator";
 
+type HistoryPresencePhase = "collapsed" | "entering" | "idle" | "leaving";
+
+const measureElementHeight = (node: HTMLDivElement | null) => {
+  if (!node) return null;
+  return Math.ceil(node.getBoundingClientRect().height);
+};
+
 export function DashboardClient() {
   const [hasMounted, setHasMounted] = useState(false);
   const [activeTab, setActiveTab] = useState<"config" | "report">("config");
@@ -33,6 +40,17 @@ export function DashboardClient() {
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [addRowInput, setAddRowInput] = useState("");
   const [inventoryClipped, setInventoryClipped] = useState(false);
+  const [historyMounted, setHistoryMounted] = useState(false);
+  const [historyPresencePhase, setHistoryPresencePhase] = useState<HistoryPresencePhase>("collapsed");
+  const [historyPanelHeight, setHistoryPanelHeight] = useState<number | null>(null);
+  const [historyPanelNode, setHistoryPanelNode] = useState<HTMLDivElement | null>(null);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const historyMountedRef = useRef(historyMounted);
+  const historyMountFrameRef = useRef<number | null>(null);
+  const historyEnterFrameRef = useRef<number | null>(null);
+  const historySettleFrameRef = useRef<number | null>(null);
+  const historyUnmountTimerRef = useRef<number | null>(null);
+  const historyResizeFrameRef = useRef<number | null>(null);
 
   const {
     clearOverrides,
@@ -228,7 +246,201 @@ export function DashboardClient() {
     }
   }, [handleSaveEstimateBase]);
 
+  const clearHistoryPresenceTimers = useCallback(() => {
+    if (historyMountFrameRef.current !== null) {
+      window.cancelAnimationFrame(historyMountFrameRef.current);
+      historyMountFrameRef.current = null;
+    }
+    if (historyEnterFrameRef.current !== null) {
+      window.cancelAnimationFrame(historyEnterFrameRef.current);
+      historyEnterFrameRef.current = null;
+    }
+    if (historySettleFrameRef.current !== null) {
+      window.cancelAnimationFrame(historySettleFrameRef.current);
+      historySettleFrameRef.current = null;
+    }
+    if (historyUnmountTimerRef.current !== null) {
+      window.clearTimeout(historyUnmountTimerRef.current);
+      historyUnmountTimerRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    historyMountedRef.current = historyMounted;
+  }, [historyMounted]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
+
+    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const syncPreference = () => setPrefersReducedMotion(mediaQuery.matches);
+
+    syncPreference();
+
+    if (typeof mediaQuery.addEventListener === "function") {
+      mediaQuery.addEventListener("change", syncPreference);
+      return () => mediaQuery.removeEventListener("change", syncPreference);
+    }
+
+    mediaQuery.addListener(syncPreference);
+    return () => mediaQuery.removeListener(syncPreference);
+  }, []);
+
+  useEffect(() => {
+    clearHistoryPresenceTimers();
+
+    if (showHistory) {
+      if (prefersReducedMotion) {
+        historyMountFrameRef.current = window.requestAnimationFrame(() => {
+          setHistoryMounted(true);
+          setHistoryPresencePhase("idle");
+          historyMountFrameRef.current = null;
+        });
+        return () => clearHistoryPresenceTimers();
+      }
+
+      if (historyMountedRef.current) {
+        historyMountFrameRef.current = window.requestAnimationFrame(() => {
+          setHistoryPresencePhase("entering");
+          historyMountFrameRef.current = null;
+          historyEnterFrameRef.current = window.requestAnimationFrame(() => {
+            setHistoryPresencePhase("idle");
+            historyEnterFrameRef.current = null;
+          });
+        });
+        return () => clearHistoryPresenceTimers();
+      }
+
+      historyMountFrameRef.current = window.requestAnimationFrame(() => {
+        setHistoryMounted(true);
+        setHistoryPresencePhase("collapsed");
+        historyMountFrameRef.current = null;
+        historyEnterFrameRef.current = window.requestAnimationFrame(() => {
+          setHistoryPresencePhase("entering");
+          historyEnterFrameRef.current = null;
+          historySettleFrameRef.current = window.requestAnimationFrame(() => {
+            setHistoryPresencePhase("idle");
+            historySettleFrameRef.current = null;
+          });
+        });
+      });
+      return () => clearHistoryPresenceTimers();
+    }
+
+    if (!historyMountedRef.current) {
+      return () => clearHistoryPresenceTimers();
+    }
+
+    if (prefersReducedMotion) {
+      historyMountFrameRef.current = window.requestAnimationFrame(() => {
+        setHistoryPresencePhase("collapsed");
+        setHistoryMounted(false);
+        historyMountFrameRef.current = null;
+      });
+      return () => clearHistoryPresenceTimers();
+    }
+
+    historyMountFrameRef.current = window.requestAnimationFrame(() => {
+      setHistoryPresencePhase("leaving");
+      historyMountFrameRef.current = null;
+      historyUnmountTimerRef.current = window.setTimeout(() => {
+        setHistoryMounted(false);
+        setHistoryPresencePhase("collapsed");
+        historyUnmountTimerRef.current = null;
+      }, 220);
+    });
+
+    return () => clearHistoryPresenceTimers();
+  }, [clearHistoryPresenceTimers, prefersReducedMotion, showHistory]);
+
+  useEffect(() => {
+    if (!historyPanelNode) return;
+
+    const syncHeight = () => {
+      const nextHeight = measureElementHeight(historyPanelNode);
+      if (nextHeight != null) {
+        setHistoryPanelHeight((current) => current === nextHeight ? current : nextHeight);
+      }
+    };
+
+    historyResizeFrameRef.current = window.requestAnimationFrame(() => {
+      syncHeight();
+      historyResizeFrameRef.current = null;
+    });
+
+    if (typeof ResizeObserver === "undefined") {
+      return () => {
+        if (historyResizeFrameRef.current !== null) {
+          window.cancelAnimationFrame(historyResizeFrameRef.current);
+          historyResizeFrameRef.current = null;
+        }
+      };
+    }
+
+    const observer = new ResizeObserver(() => {
+      if (historyResizeFrameRef.current !== null) {
+        window.cancelAnimationFrame(historyResizeFrameRef.current);
+      }
+
+      historyResizeFrameRef.current = window.requestAnimationFrame(() => {
+        syncHeight();
+        historyResizeFrameRef.current = null;
+      });
+    });
+
+    observer.observe(historyPanelNode);
+
+    return () => {
+      observer.disconnect();
+      if (historyResizeFrameRef.current !== null) {
+        window.cancelAnimationFrame(historyResizeFrameRef.current);
+        historyResizeFrameRef.current = null;
+      }
+    };
+  }, [historyPanelNode]);
+
+  useEffect(() => {
+    return () => {
+      clearHistoryPresenceTimers();
+      if (historyResizeFrameRef.current !== null) {
+        window.cancelAnimationFrame(historyResizeFrameRef.current);
+        historyResizeFrameRef.current = null;
+      }
+    };
+  }, [clearHistoryPresenceTimers]);
+
   if (!hasMounted) return <div className="min-h-[100dvh] bg-[#F5F7FA]" />;
+
+  const isHistoryExpanded = historyPresencePhase === "entering" || historyPresencePhase === "idle";
+  const historyPresenceStyle: React.CSSProperties = {
+    height: isHistoryExpanded
+      ? prefersReducedMotion
+        ? historyPanelHeight != null ? `${historyPanelHeight}px` : "auto"
+        : `${historyPanelHeight ?? 0}px`
+      : "0px",
+    opacity: isHistoryExpanded ? 1 : 0,
+    marginBottom: isHistoryExpanded ? "24px" : "0px",
+    transition: "height 220ms ease-out, opacity 180ms ease-out, margin-bottom 220ms ease-out",
+  };
+  const historyMotionStyle: React.CSSProperties = prefersReducedMotion
+    ? {
+      opacity: isHistoryExpanded ? 1 : 0,
+      transform: "translateY(0px)",
+    }
+    : historyPresencePhase === "leaving"
+      ? {
+        opacity: 0,
+        transform: "translateY(-4px)",
+      }
+      : historyPresencePhase === "collapsed" || historyPresencePhase === "entering"
+        ? {
+          opacity: 0,
+          transform: "translateY(6px)",
+        }
+        : {
+          opacity: 1,
+          transform: "translateY(0px)",
+        };
 
   return (
     <div className="min-h-[100dvh] bg-[#F5F7FA] text-gray-900 font-sans p-4 md:p-8 flex flex-col items-center selection:bg-blue-100">
@@ -253,24 +465,32 @@ export function DashboardClient() {
         </div>
       )}
 
-      {showHistory && (
-        <HistoryPanel
-          historyItems={historyItems}
-          historyLoading={historyLoading}
-          onClose={() => setShowHistory(false)}
-          onLoadEstimate={(estimateId) => void handleLoadEstimate(estimateId)}
-          onMarkDelete={(estimateId) => setPendingDeletes((prev) => new Set(prev).add(estimateId))}
-          onUndoLastDelete={() => {
-            const lastDeletedId = Array.from(pendingDeletes).pop();
-            if (!lastDeletedId) return;
-            setPendingDeletes((prev) => {
-              const next = new Set(prev);
-              next.delete(lastDeletedId);
-              return next;
-            });
-          }}
-          pendingDeletes={pendingDeletes}
-        />
+      {historyMounted && (
+        <div className="history-presence-shell w-full max-w-6xl overflow-hidden" style={historyPresenceStyle}>
+          <div
+            ref={setHistoryPanelNode}
+            className="history-panel-motion w-full transition-[opacity,transform] duration-[180ms] ease-out"
+            style={historyMotionStyle}
+          >
+            <HistoryPanel
+              historyItems={historyItems}
+              historyLoading={historyLoading}
+              onClose={() => setShowHistory(false)}
+              onLoadEstimate={(estimateId) => void handleLoadEstimate(estimateId)}
+              onMarkDelete={(estimateId) => setPendingDeletes((prev) => new Set(prev).add(estimateId))}
+              onUndoLastDelete={() => {
+                const lastDeletedId = Array.from(pendingDeletes).pop();
+                if (!lastDeletedId) return;
+                setPendingDeletes((prev) => {
+                  const next = new Set(prev);
+                  next.delete(lastDeletedId);
+                  return next;
+                });
+              }}
+              pendingDeletes={pendingDeletes}
+            />
+          </div>
+        </div>
       )}
 
       <div className="dashboard-safe-pb w-full max-w-6xl flex flex-col gap-8 md:flex-row md:pb-8">
