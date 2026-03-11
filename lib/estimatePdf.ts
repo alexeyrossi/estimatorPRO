@@ -1,4 +1,5 @@
 import type { EstimateInputs, EstimateResult } from "@/lib/types/estimator";
+import { buildPrioritizedActionableAdvice } from "./reportNotes";
 
 type GenerateEstimatePdfOptions = {
   clientName: string;
@@ -227,7 +228,7 @@ export async function generateEstimatePdf({
   }
 
   const allNotes = [
-    ...(estimate.advice || []),
+    ...buildPrioritizedActionableAdvice(estimate.advice, estimate.truckFitNote),
     ...(estimate.risks || []).filter((risk) => risk.text).map((risk) => risk.text),
   ];
 

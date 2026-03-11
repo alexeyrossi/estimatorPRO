@@ -148,7 +148,7 @@ function getCaseTier(testCase) {
 }
 
 function snapshotEngine(result) {
-  return {
+  const snapshot = {
     finalVolume: result.finalVolume,
     netVolume: result.netVolume,
     billableCF: result.billableCF,
@@ -176,6 +176,9 @@ function snapshotEngine(result) {
     risks: [...(result.risks || [])].sort((a, b) => `${a.level}:${a.text}`.localeCompare(`${b.level}:${b.text}`)),
     overridesApplied: sortStrings(result.overridesApplied || []),
   };
+
+  if (result.truckFitNote) snapshot.truckFitNote = result.truckFitNote;
+  return snapshot;
 }
 
 function snapshotParser(result) {

@@ -17,6 +17,8 @@ export function computeTruckPlan(context: EngineContext, volumePlan: VolumePlan)
   let trucksFinal = 0;
   let truckSizeLabel = "N/A";
   let highCapRisk = false;
+  let softTruckWarning = false;
+  let truckFitNote: string | null = null;
 
   const hasPallets = (parsed.detectedItems || []).some((item) => {
     const nameLower = (item.name || "").toLowerCase();
@@ -48,7 +50,7 @@ export function computeTruckPlan(context: EngineContext, volumePlan: VolumePlan)
   }
 
   if (!isLaborOnly) {
-    const safeCapacity = PROTOCOL.TRUCK_CAPACITY_SAFE;
+    const hardCapacity = PROTOCOL.TRUCK_MAX_THEORETICAL;
     const extraStopTruckThresholdReduction = context.extraStopCount > 0
       ? Math.min(
         PROTOCOL.EXTRA_STOP_TRUCK_MAX_THRESHOLD_REDUCTION,
@@ -56,21 +58,19 @@ export function computeTruckPlan(context: EngineContext, volumePlan: VolumePlan)
         + (context.hasNonGroundExtraStop ? PROTOCOL.EXTRA_STOP_TRUCK_NON_GROUND_BONUS : 0)
       )
       : 0;
-    const borderlineTruckThreshold = Math.max(
-      PROTOCOL.BORDERLINE_TRUCK_THRESHOLD - PROTOCOL.EXTRA_STOP_TRUCK_MAX_THRESHOLD_REDUCTION,
-      PROTOCOL.BORDERLINE_TRUCK_THRESHOLD - extraStopTruckThresholdReduction
-    );
-    const defaultSingleTruckFloor = Math.floor(safeCapacity * PROTOCOL.BORDERLINE_TRUCK_THRESHOLD);
-    const adjustedSingleTruckFloor = Math.floor(safeCapacity * borderlineTruckThreshold);
-    trucksFinal = Math.max(1, Math.ceil(finalVolume / safeCapacity));
-    if (trucksFinal === 1 && finalVolume >= adjustedSingleTruckFloor) {
-      trucksFinal = 2;
-      highCapRisk = true;
-      if (extraStopTruckThresholdReduction > 0 && finalVolume < defaultSingleTruckFloor) {
+    const adjustedHardCap = Math.floor(hardCapacity * (1 - extraStopTruckThresholdReduction));
+
+    trucksFinal = Math.max(1, Math.ceil(finalVolume / hardCapacity));
+    if (trucksFinal === 1) {
+      if (extraStopTruckThresholdReduction > 0 && finalVolume >= adjustedHardCap) {
+        trucksFinal = 2;
+        highCapRisk = true;
         notes.risks.push({ text: "Multi-stop routing reduces practical 1-truck capacity: 2 trucks recommended.", level: "caution" });
         notes.auditSummary.push("Extra truck added (multi-stop routing).");
-      } else {
-        notes.risks.push({ text: "Borderline capacity: 2 trucks recommended.", level: "caution" });
+      } else if (finalVolume >= PROTOCOL.TRUCK_SOFT_TIP_FLOOR && finalVolume <= hardCapacity) {
+        softTruckWarning = true;
+        truckFitNote = "Near full 26ft load; 2nd truck may be needed if add-ons appear.";
+        notes.auditSummary.push("Near full 26ft load: 2nd truck may be needed if scope grows.");
       }
     }
 
@@ -83,7 +83,12 @@ export function computeTruckPlan(context: EngineContext, volumePlan: VolumePlan)
     if (inputs.moveType === "LD") {
       const weightTrucks = Math.ceil(weight / PROTOCOL.LD_WEIGHT_LIMIT);
       if (weightTrucks > trucksFinal) {
+        if (trucksFinal === 1) {
+          notes.risks.push({ text: "Estimated shipment weight exceeds single-truck payload: additional truck required.", level: "caution" });
+        }
         trucksFinal = weightTrucks;
+        softTruckWarning = false;
+        truckFitNote = null;
         notes.auditSummary.push("Extra truck added (weight limit).");
       }
     }
@@ -94,6 +99,8 @@ export function computeTruckPlan(context: EngineContext, volumePlan: VolumePlan)
     if (overriddenTrucks !== null) {
       trucksFinal = overriddenTrucks;
       highCapRisk = false;
+      softTruckWarning = false;
+      truckFitNote = null;
       const label = trucksFinal >= 2 ? "26ft Truck" : finalVolume < 800 ? "18ft Truck" : finalVolume < 1300 ? "24ft Truck" : "26ft Truck";
       truckSizeLabel = label + truckFeatureLabel;
       notes.overridesApplied.push("trucks");
@@ -120,6 +127,8 @@ export function computeTruckPlan(context: EngineContext, volumePlan: VolumePlan)
     trucksFinal,
     truckSizeLabel,
     highCapRisk,
+    softTruckWarning,
+    truckFitNote,
     truckFeatureLabel,
     hasPallets,
     needsLiftGate,

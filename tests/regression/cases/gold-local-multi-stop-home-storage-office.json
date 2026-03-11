@@ -197,8 +197,8 @@
     ]
   },
   "adviceExpect": [
+    "Confirm stop order, parking, and access for each stop before dispatch",
     "Crew Driver: Multi-stop routing increased coordination needs.",
-    "Multi-stop route: confirm stop order, parking, and stop-level access before dispatch.",
     "Time Driver: Extra stops added routing, staging, and access time.",
     "Volume Driver: Missing box allowance increased the volume baseline."
   ]

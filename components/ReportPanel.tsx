@@ -151,8 +151,8 @@ export const ReportPanel = ({
         wardrobes: estimate.materials?.wardrobes,
     };
     const { compactAuditSummary, actionableAdvice } = useMemo(
-        () => buildReportSummaryNotes(estimate.auditSummary, estimate.advice),
-        [estimate.auditSummary, estimate.advice]
+        () => buildReportSummaryNotes(estimate.auditSummary, estimate.advice, estimate.truckFitNote),
+        [estimate.auditSummary, estimate.advice, estimate.truckFitNote]
     );
 
     const heavyItems = useMemo(
@@ -304,8 +304,8 @@ export const ReportPanel = ({
     const detailsTopControl = (
         <button
             onClick={() => toggleReportView("details")}
-            aria-label={isDisplayedDetails ? "Back" : "Details"}
-            title={isDisplayedDetails ? "Back" : "Details"}
+            aria-label={isDisplayedDetails ? "Back" : "View estimate details"}
+            title={isDisplayedDetails ? "Back" : "View estimate details"}
             aria-pressed={isDisplayedDetails}
             className={`group relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-gray-500 hover:bg-gray-100 hover:text-gray-900 active:scale-[0.98] ${isDisplayedDetails ? "text-gray-900" : ""}`}
             style={softActionButtonTransition}
@@ -369,29 +369,28 @@ export const ReportPanel = ({
 
     const summaryContent = (
         <div className="flex min-h-0 flex-col">
-            <div className="flex items-start gap-4 pb-3">
-                <ConfidenceDonut score={estimate.confidence?.score || 0} label={estimate.confidence?.label || ""} />
+            <div className={`grid gap-y-4 pb-4 ${heavyItems.length > 0 ? "grid-cols-2 items-start gap-x-8" : ""}`}>
+                <div className="w-full px-1 py-1">
+                    <ConfidenceDonut score={estimate.confidence?.score || 0} label={estimate.confidence?.label || ""} />
+                </div>
+                {heavyItems.length > 0 && (
+                    <div className="w-full px-1 py-1">
+                        <div className="mb-2 flex items-center gap-2">
+                            <Weight className="w-4 h-4 shrink-0" strokeWidth={2.5} color="#f43f5e" />
+                            <span className="text-[10px] font-bold text-rose-600 uppercase tracking-widest">Heavy Items ({heavyItems.length})</span>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                            {heavyItems.map((name, i) => (
+                                <span key={`${name}-${i}`} className="rounded-lg border border-rose-200 px-2.5 py-1 text-[10px] font-semibold text-rose-600">
+                                    {name}
+                                </span>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
             <div className="min-h-0 flex-1 pr-1 md:pr-2">
                 <div className="flex flex-col">
-                    {heavyItems.length > 0 && (
-                        <>
-                            <div className="border-t border-gray-100" />
-                            <div className="py-4">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <Weight className="w-4 h-4 shrink-0" strokeWidth={2.5} color="#f43f5e" />
-                                    <span className="text-[10px] font-bold text-rose-600 uppercase tracking-widest">Heavy Items ({heavyItems.length})</span>
-                                </div>
-                                <p className="text-[11px] text-gray-500 font-medium mb-2">These items were flagged as heavy.</p>
-                                <div className="flex flex-wrap gap-1.5">
-                                    {heavyItems.map((name, i) => (
-                                        <span key={`${name}-${i}`} className="text-[10px] font-semibold text-rose-600 bg-rose-50 px-2.5 py-1 rounded-lg">{name}</span>
-                                    ))}
-                                </div>
-                            </div>
-                        </>
-                    )}
-
                     {estimate.unrecognizedDetails?.length > 0 && (
                         <>
                             <div className="border-t border-gray-100" />
@@ -473,7 +472,7 @@ export const ReportPanel = ({
                             <div className="border-t border-gray-100" />
                             <div className="py-3">
                                 <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
-                                    <span>💡</span> Smart Tips
+                                    <span>💡</span> Dispatch Notes
                                 </div>
                                 <div className="space-y-1.5">
                                     {actionableAdvice.map((x, i) => (
@@ -664,9 +663,9 @@ export const ReportPanel = ({
         <div id="pdf-export-area" className="flex-1 flex flex-col gap-6">
             <div className={`grid grid-cols-1 min-[360px]:grid-cols-2 lg:grid-cols-4 gap-4 transition-opacity duration-300 ${isCalculating ? 'opacity-60' : 'opacity-100'}`}>
                 <MetricCard icon={Box} label={primaryVolumeLabel} value={formatMetric(<AnimatedNumber value={primaryVolume} />, "cu ft")} sub={primaryVolumeSub} variant="blue" />
-                <MetricCard icon={estimate.splitRecommended ? CalendarDays : Clock} label={estimate.splitRecommended ? "Split Rec." : "Time Est."} value={<><AnimatedNumber value={estimate.timeMin} />–<AnimatedNumber value={estimate.timeMax} />h</>} sub={estimate.splitRecommended ? "SPLIT TO 2 DAYS" : "Est. Range"} variant={estimate.splitRecommended ? "red" : "purple"} isCritical={estimate.splitRecommended} />
+                <MetricCard icon={estimate.splitRecommended ? CalendarDays : Clock} label={estimate.splitRecommended ? "Move Plan" : "Time Est."} value={<><AnimatedNumber value={estimate.timeMin} />–<AnimatedNumber value={estimate.timeMax} />h</>} sub={estimate.splitRecommended ? "SPLIT TO 2 DAYS" : "Est. Range"} variant={estimate.splitRecommended ? "red" : "purple"} isCritical={estimate.splitRecommended} />
                 {isLabor ? <MetricCard icon={Info} label="Service" value="Labor" sub="No Trucks" variant="gray" /> : <MetricCard icon={Truck} label="Trucks" value={<AnimatedNumber value={estimate.trucksFinal} />} sub={estimate.truckSizeLabel?.replace(/\s*Truck\s*/i, ' ').trim()} variant="orange" />}
-                <MetricCard icon={Users} label="Crew" value={<AnimatedNumber value={estimate.crew} />} sub="Movers" variant="emerald" advice={estimate.nextMoverSavingsLabel} />
+                <MetricCard icon={Users} label="Crew" value={<AnimatedNumber value={estimate.crew} />} sub="Recommended Crew" variant="emerald" advice={estimate.nextMoverSavingsLabel} />
             </div>
 
             <GlassPanel className="overflow-hidden">
@@ -716,8 +715,8 @@ export const ReportPanel = ({
                             <div className="ml-auto flex min-w-0 shrink-0 items-center justify-end">
                                 <button
                                     onClick={() => toggleReportView("inventory")}
-                                    aria-label="Toggle inventory"
-                                    title="Inventory"
+                                    aria-label={isDisplayedInventory ? "Back" : "Inventory View"}
+                                    title={isDisplayedInventory ? "Back" : "Inventory View"}
                                     className={`group flex h-[42px] w-auto items-center justify-center gap-1 md:gap-2 rounded-xl px-1.5 md:px-4 py-0 md:py-3 text-[10px] md:text-[14px] font-bold uppercase active:scale-[1.02] ${isDisplayedInventory ? "bg-gray-100 text-gray-900" : "text-gray-500 hover:text-gray-900 hover:bg-gray-100"}`}
                                     style={softActionButtonTransition}
                                 >

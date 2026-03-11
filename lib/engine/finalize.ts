@@ -21,7 +21,7 @@ export function buildEstimateResult(
 ): EstimateResult {
   const { inputs, parsed, notes, countBy, useNormalized, isCommercial, commercialSignals, isLaborOnly, isLD, bedroomCount, scopeLabel, extraStopCount, parsed: { hasVague }, anyHeavySignal, fragileCount, estimatedRatio, syntheticBundleRatio, syntheticBundleGroups, ldFullPackLargeHome, suppressConferenceTableHeavy } = context;
   const { hiddenVolume, missingBoxesCount, llPct, rawVolume, billableCF, truckSpaceCF, finalVolume, weight } = volumePlan;
-  const { trucksFinal, truckSizeLabel, highCapRisk, hasPallets, league, leagueItems } = truckPlan;
+  const { trucksFinal, truckSizeLabel, highCapRisk, truckFitNote, hasPallets, league, leagueItems } = truckPlan;
   const { crew, timeMin, timeMax, splitRecommended, crewSuggestion, nextMoverTimeSavedHours, nextMoverSavingsLabel, totalManHours, daMins, boxDensity, calcDuration, safeDayLimit } = laborPlan;
 
   const baseFloor = isLaborOnly ? 10 : 20;
@@ -120,20 +120,20 @@ export function buildEstimateResult(
     } else {
       notes.advice.push("Confirm building access, parking, and loading-zone rules.");
     }
-    if (trucksFinal >= 2) notes.advice.push("Reserve loading dock time and truck staging in advance.");
+    if (trucksFinal >= 2) notes.advice.push("Reserve loading dock time and truck staging in advance");
     if (inputs.packingLevel !== "None") notes.advice.push("Comm. Packing: Label all boxes by office/room number.");
   } else {
     if (isCommercial && (inputs.accessOrigin === "elevator" || inputs.accessDest === "elevator") && isMedicalCommercial) {
       notes.advice.push("Confirm freight elevator access, move window, and cab dimensions.");
     }
-    if (isCommercial && trucksFinal >= 2) notes.advice.push("Reserve loading dock time and truck staging in advance.");
+    if (isCommercial && trucksFinal >= 2) notes.advice.push("Reserve loading dock time and truck staging in advance");
     if (isCommercial && isMedicalCommercial) notes.advice.push("Pre-measure oversized equipment, cabinets, and appliance paths.");
     if (inputs.packingLevel !== "None" && isCommercial) notes.advice.push("Comm. Packing: Label all boxes by office/room number.");
   }
   if (isCommercial && commercialSignals.hasPalletizedFreight) {
     notes.advice.push("Confirm dock door access, pallet counts, and receiving window before dispatch.");
   }
-  if (extraStopCount > 0) notes.advice.push("Multi-stop route: confirm stop order, parking, and stop-level access before dispatch.");
+  if (extraStopCount > 0) notes.advice.push("Confirm stop order, parking, and access for each stop before dispatch");
   if (finalVolume > 1800 && trucksFinal === 1) notes.advice.push("High Volume: Ensure parking spot is 40ft+ for large truck maneuvering.");
 
   const uniqueAdvice: string[] = [];
@@ -254,7 +254,7 @@ export function buildEstimateResult(
     league,
     leagueItems,
     boxDensity,
-    truckFitNote: null,
+    truckFitNote,
     netVolume: rawVolume,
     billableCF,
     truckSpaceCF,

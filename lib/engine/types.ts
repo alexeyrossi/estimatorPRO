@@ -107,6 +107,8 @@ export interface TruckPlan {
   trucksFinal: number;
   truckSizeLabel: string;
   highCapRisk: boolean;
+  softTruckWarning: boolean;
+  truckFitNote: string | null;
   truckFeatureLabel: string;
   hasPallets: boolean;
   needsLiftGate: boolean;

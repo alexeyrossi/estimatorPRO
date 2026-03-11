@@ -289,7 +289,7 @@ export function summarizeNormalizedRows(rows: NormalizedRow[], rawTextForSignals
 
 export function parseInventory(text: string) {
   const rawNormalized = normalizeTextNumbers(text);
-  const ROOM_ALIAS_REGEX_BASE = "main house|living|dining|kitchen|master|bedroom|bath|garage|patio|study|office|basement|attic|nursery|guest|closet|laundry|den|foyer|hallway|mudroom|sunroom|bonus|master bedroom|master bdr|mbr|primary bedroom|primary bed|main bedroom|owner suite|home office|library|man cave|gym|home gym|fitness room|workout room|deck|backyard|storage|storage unit|shed|playroom|kids room|open office|conference|cafeteria|executive|equipment|reception|break room|server room|warehouse|breakfast nook|exterior|back house|music studio|studio|tv room|storage room";
+  const ROOM_ALIAS_REGEX_BASE = "main house|living|dining|kitchen|master|bedroom|bath|garage|patio|study|office|private office|front office|basement|attic|nursery|guest|closet|laundry|den|foyer|hallway|mudroom|sunroom|bonus|master bedroom|master bdr|mbr|primary bedroom|primary bed|main bedroom|owner suite|home office|library|man cave|gym|home gym|fitness room|workout room|deck|backyard|storage|storage unit|shed|playroom|kids room|open office|conference|cafeteria|executive|equipment|reception|break room|server room|warehouse|breakfast nook|exterior|back house|music studio|studio|tv room|storage room|exam room|work room|utility room|lobby|waiting area";
   const inlineRoomBreak = new RegExp(`\\.\\s+(?=(?:${ROOM_ALIAS_REGEX_BASE})(?:\\s+room|\\s+area|\\s+rooms|\\s+offices)?\\s*:)`, "gi");
   const rawLines = rawNormalized
     .replace(/\r/g, "")
@@ -307,9 +307,14 @@ export function parseInventory(text: string) {
     ["front door / front porch", "Front Entry/Porch"],
     ["boxes and bins", "Boxes/Bins"],
     ["boxes & bins", "Boxes/Bins"],
-    ["storage closet", "Storage/Outdoor"],
-    ["bathroom", "Bathroom"]
+    ["storage closet", "Storage closet"],
+    ["bathroom", "Bathroom"],
+    ["work / utility room", "Work / Utility Room"],
+    ["front office / reception", "Front Office / Reception"],
+    ["lobby / waiting area", "Lobby / Waiting Area"]
   ]);
+  const ROOM_SEGMENT_ONLY = new RegExp(`^(${ROOM_ALIAS_REGEX_BASE})(\\s+room|\\s+area|\\s+rooms|\\s+offices|\\s+area)?$`, "i");
+  const ROOM_NUMBERED_HEADER = new RegExp(`^(${ROOM_ALIAS_REGEX_BASE})\\s+\\d+$`, "i");
   const getExactRoomHeader = (line: string) => {
     const key = (line || "")
       .toLowerCase()
@@ -320,14 +325,68 @@ export function parseInventory(text: string) {
       .trim();
     return EXACT_ROOM_HEADERS.get(key) || null;
   };
+  const toTitleCase = (value: string) => value
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+  const isKnownRoomSegment = (segment: string) => {
+    const normalized = (segment || "").replace(/:$/, "").replace(/\s+/g, " ").trim();
+    return !!normalized && (getExactRoomHeader(normalized) !== null || ROOM_SEGMENT_ONLY.test(normalized) || ROOM_NUMBERED_HEADER.test(normalized));
+  };
+  const normalizeRoomSegment = (room: string) => {
+    const normalized = (room || "").replace(/:$/, "").replace(/\s+/g, " ").trim();
+    const lower = normalized.toLowerCase();
+    if (/^(master bedroom|master bdr|mbr|primary bedroom|primary bed|main bedroom|owner suite|master)$/.test(lower)) return "Master Bedroom";
+    if (/^(living room)$/.test(lower)) return "Living room";
+    if (/^(dining room)$/.test(lower)) return "Dining room";
+    if (/^(private office)$/.test(lower)) return "Private Office";
+    if (/^(front office)$/.test(lower)) return "Front Office";
+    if (/^(home office|study|den|library|man cave|office|executive offices?|executive)$/.test(lower)) return "Office";
+    if (/^(exam room)$/.test(lower)) return "Exam Room";
+    if (/^(work room)$/.test(lower)) return "Work Room";
+    if (/^(utility room)$/.test(lower)) return "Utility Room";
+    if (/^(waiting area)$/.test(lower)) return "Waiting Area";
+    if (/^(lobby)$/.test(lower)) return "Lobby";
+    if (/^(reception)$/.test(lower)) return "Reception";
+    if (/^(gym|home gym|fitness room|workout room)$/.test(lower)) return "Gym";
+    if (/^(studio|music studio|back house|back house music studio)$/.test(lower)) return "Studio";
+    if (/^(garage|patio|deck|backyard|storage unit|attic|shed|storage)$/.test(lower)) return "Storage/Outdoor";
+    if (/^(playroom|nursery|kids room)$/.test(lower)) return "Kids/Family";
+    if (/^(open office|open office area)$/.test(lower)) return "Open Office";
+    if (/^(conference rooms?|conference)$/.test(lower)) return "Conference Room";
+    if (/^(cafeteria)$/.test(lower)) return "Cafeteria";
+    if (/^(equipment|server room|break room|warehouse)$/.test(lower)) return toTitleCase(lower);
+    return toTitleCase(lower);
+  };
+  const normalizeRoomData = (room: string) => {
+    const normalized = (room || "").replace(/:$/, "").replace(/\s+/g, " ").trim();
+    const exact = getExactRoomHeader(normalized);
+    if (exact) return exact;
+
+    const numbered = normalized.match(/^(.*?)(\s+\d+)$/);
+    if (numbered && isKnownRoomSegment(numbered[1])) {
+      return `${normalizeRoomSegment(numbered[1])}${numbered[2]}`;
+    }
+
+    const segments = normalized.split(/\s*\/\s*|\s+[—–-]\s+/).map((segment) => segment.trim()).filter(Boolean);
+    if (segments.length > 1 && segments.every((segment) => isKnownRoomSegment(segment))) {
+      return segments.map((segment) => toTitleCase(segment.toLowerCase())).join(" / ");
+    }
+
+    return normalizeRoomSegment(normalized);
+  };
   const isStandaloneRoomHeader = (line: string) => {
     const stripped = (line || "").replace(/\([^)]*\)/g, "").replace(/:$/, "").trim();
-    if (!stripped || /\d/.test(stripped)) return null;
+    if (!stripped) return null;
+    const exact = getExactRoomHeader(stripped);
+    if (exact) return exact;
+    if (ROOM_NUMBERED_HEADER.test(stripped)) return stripped;
+    if (ROOM_SEGMENT_ONLY.test(stripped)) return stripped;
     const segments = stripped.split(/\s*\/\s*|\s+[—–-]\s+/).map((segment) => segment.trim()).filter(Boolean);
     if (segments.length < 2) return null;
-    const roomOnly = new RegExp(`^(${ROOM_ALIAS_REGEX_BASE})(\\s+room|\\s+area|\\s+rooms|\\s+offices|\\s+area)?$`, "i");
-    if (!segments.every((segment) => roomOnly.test(segment))) return null;
-    return segments[segments.length - 1];
+    if (!segments.every((segment) => isKnownRoomSegment(segment))) return null;
+    return stripped;
   };
 
   for (const line of rawLines) {
@@ -339,22 +398,6 @@ export function parseInventory(text: string) {
     const ROOM_PREFIX = new RegExp(`^(${ROOM_ALIAS_REGEX_BASE})\\b`, "i");
     // Generic section header: any text-only line ending in ':' with no digits (e.g. "Open Office Area:", "Cafeteria:")
     const GENERIC_SECTION_HEADER = /^[a-zA-Z][a-zA-Z\s\/\-]+:$/.test(clean.trim()) && !/\d/.test(clean);
-
-    const normalizeRoomData = (room: string) => {
-      const lower = room.toLowerCase();
-      if (/^(master bedroom|master bdr|mbr|primary bedroom|primary bed|main bedroom|owner suite|master)$/.test(lower)) return "Master Bedroom";
-      if (/^(home office|study|den|library|man cave|office|executive offices?|executive)$/.test(lower)) return "Office";
-      if (/^(gym|home gym|fitness room|workout room)$/.test(lower)) return "Gym";
-      if (/^(studio|music studio|back house|back house music studio)$/.test(lower)) return "Studio";
-      if (/^(garage|patio|deck|backyard|storage unit|attic|shed|storage)$/.test(lower)) return "Storage/Outdoor";
-      if (/^(playroom|nursery|kids room)$/.test(lower)) return "Kids/Family";
-      if (/^(open office|open office area)$/.test(lower)) return "Open Office";
-      if (/^(conference rooms?|conference)$/.test(lower)) return "Conference Room";
-      if (/^(cafeteria)$/.test(lower)) return "Cafeteria";
-      if (/^(equipment|server room|reception|break room|warehouse)$/.test(lower)) return lower.charAt(0).toUpperCase() + lower.slice(1);
-
-      return room.charAt(0).toUpperCase() + room.slice(1);
-    };
 
     const exactRoomHeader = getExactRoomHeader(clean);
     if (!isProtectedItem && exactRoomHeader) {
@@ -369,11 +412,11 @@ export function parseInventory(text: string) {
     }
     if (!isProtectedItem && clean) {
       if ((ROOM_ONLY.test(clean) || GENERIC_SECTION_HEADER) && !/[0-9]/.test(clean)) {
-        currentRoom = normalizeRoomData(clean.replace(/:$/, "").split("/")[0].trim()); clean = "";
+        currentRoom = normalizeRoomData(clean.replace(/:$/, "").trim()); clean = "";
       } else {
         const colonHdr = clean.match(/^(.+?)\s*:\s*(.*)$/);
         if (colonHdr && ROOM_PREFIX.test(colonHdr[1])) { currentRoom = normalizeRoomData(colonHdr[1].trim()); clean = colonHdr[2] || ""; }
-        else if (/^(master|bedroom|bath)\s*\d+$/i.test(clean)) { currentRoom = normalizeRoomData(clean.trim()); clean = ""; }
+        else if (ROOM_NUMBERED_HEADER.test(clean)) { currentRoom = normalizeRoomData(clean.trim()); clean = ""; }
       }
     }
     if (!clean?.trim()) continue;

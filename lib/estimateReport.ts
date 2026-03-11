@@ -1,10 +1,15 @@
 import type { EstimateInputs, EstimateResult } from "@/lib/types/estimator";
+import { buildPrioritizedActionableAdvice } from "./reportNotes";
 
 export function formatEstimateReportText(inputs: EstimateInputs, estimate: EstimateResult) {
   const isLabor = inputs.moveType === "Labor";
   const truckText = isLabor ? "N/A" : `${estimate.trucksFinal} x ${estimate.truckSizeLabel}`;
   const splitText = estimate.splitRecommended ? "(SPLIT TO 2 DAYS)" : "";
   const materials = [];
+  const noteLines = [
+    ...buildPrioritizedActionableAdvice(estimate.advice, estimate.truckFitNote),
+    ...((estimate.risks || []).map((risk) => risk.text)),
+  ];
 
   if (estimate.materials?.blankets) materials.push(`${estimate.materials.blankets} blankets`);
   if (estimate.materials?.wardrobes) materials.push(`${estimate.materials.wardrobes} wardrobes`);
@@ -31,7 +36,7 @@ export function formatEstimateReportText(inputs: EstimateInputs, estimate: Estim
 ${packingLine}
 
 🛡 NOTES & RISKS
-${estimate.risks?.length > 0 ? estimate.risks.map((risk) => `-${risk.text}`).join("\n") : "-Standard residential move."}
+${noteLines.length > 0 ? noteLines.map((note) => `-${note}`).join("\n") : "-Standard residential move."}
 -Access: ${accessText}
 ${estimate.daMins > 0 ? `-Assembly: ~${estimate.daMins} min total` : ""}
 -Confidence: ${estimate.confidence?.label} (${estimate.confidence?.score}%)`;

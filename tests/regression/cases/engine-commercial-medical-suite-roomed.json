@@ -1,0 +1,50 @@
+{
+  "id": "engine-commercial-medical-suite-roomed",
+  "kind": "engine",
+  "description": "Medical office room headers should stay as rooms and avoid false 2-truck escalation.",
+  "input": {
+    "homeSize": "Commercial",
+    "moveType": "Local",
+    "distance": "1",
+    "packingLevel": "Full",
+    "accessOrigin": "ground",
+    "accessDest": "ground",
+    "inventoryText": "Private Office\nDesk / table\nOffice chair\nFiling cabinet\nComputer monitor (PBO)\nComputer (PBO)\n\nHallway\nEKG machine\nFloor scale\nWall painting\nMisc loose items\n\nExam Room 1\nExam table\nMedical equipment cart\nCabinet contents (packed)\nWall items\n\nExam Room 2\nExam table\n3 chairs\nPlants\nCabinet contents (packed)\nWall items\n\nWork / Utility Room\nShared work table\nSmall refrigerator\nSupplies / room contents\n\nFront Office / Reception\nSmall refrigerator\nMicrowave\nFile cabinets\nShred box / shredder\nTV\nTV stand\nOffice misc / drawer contents\n\nLobby / Waiting Area\n7 waiting chairs\nWall decor\n\nBathroom\nWheelchair",
+    "extraStops": []
+  },
+  "expect": {
+    "finalVolume": 900,
+    "netVolume": 698,
+    "billableCF": 725,
+    "truckSpaceCF": 900,
+    "trucksFinal": 1,
+    "truckSizeLabel": "24ft Truck",
+    "crew": 4,
+    "timeMin": 5,
+    "timeMax": 6,
+    "splitRecommended": false,
+    "confidence": {
+      "score": 88,
+      "label": "High"
+    },
+    "materials": {
+      "blankets": 30,
+      "boxes": 40,
+      "wardrobes": 0
+    },
+    "smartEquipment": [
+      "Appliance Dolly",
+      "Protective Wrap"
+    ],
+    "anyHeavySignal": false,
+    "heavyItemNames": [],
+    "detectedQtyTotal": 51,
+    "totalManHours": 13.6,
+    "daMins": 35,
+    "league": 1,
+    "boxDensity": 31,
+    "extraStopCount": 0,
+    "risks": [],
+    "overridesApplied": []
+  }
+}

@@ -173,11 +173,11 @@
       "netVolume": 1281,
       "billableCF": 1350,
       "truckSpaceCF": 1550,
-      "trucksFinal": 2,
+      "trucksFinal": 1,
       "truckSizeLabel": "26ft Truck + Lift-gate",
-      "crew": 6,
-      "timeMin": 7,
-      "timeMax": 9,
+      "crew": 4,
+      "timeMin": 8,
+      "timeMax": 10,
       "splitRecommended": false,
       "confidence": {
         "score": 100,
@@ -195,17 +195,12 @@
         "server rack"
       ],
       "detectedQtyTotal": 76,
-      "totalManHours": 28.5,
+      "totalManHours": 27.1,
       "daMins": 205,
       "league": 2,
       "boxDensity": 0,
       "extraStopCount": 0,
-      "risks": [
-        {
-          "text": "Borderline capacity: 2 trucks recommended.",
-          "level": "caution"
-        }
-      ],
+      "risks": [],
       "overridesApplied": []
     }
   },
@@ -328,11 +323,11 @@
       "netVolume": 713,
       "billableCF": 750,
       "truckSpaceCF": 850,
-      "trucksFinal": 2,
+      "trucksFinal": 1,
       "truckSizeLabel": "26ft Truck",
-      "crew": 5,
-      "timeMin": 8,
-      "timeMax": 10,
+      "crew": 4,
+      "timeMin": 7,
+      "timeMax": 9,
       "splitRecommended": false,
       "confidence": {
         "score": 100,
@@ -347,17 +342,12 @@
       "anyHeavySignal": false,
       "heavyItemNames": [],
       "detectedQtyTotal": 48,
-      "totalManHours": 17.8,
+      "totalManHours": 16.8,
       "daMins": 80,
       "league": 0,
       "boxDensity": 0,
       "extraStopCount": 2,
-      "risks": [
-        {
-          "text": "Multi-stop routing reduces practical 1-truck capacity: 2 trucks recommended.",
-          "level": "caution"
-        }
-      ],
+      "risks": [],
       "overridesApplied": [
         "volume"
       ]

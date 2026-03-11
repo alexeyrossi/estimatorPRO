@@ -102,7 +102,7 @@ const getInventoryModeToggleMeta = (
         return { label: "Re-sync Items", title: "Re-sync detected items", Icon: RefreshCcw };
     }
 
-    return { label: "Item Editor", title: "Open item editor", Icon: ListChecks };
+    return { label: "Edit View", title: "Switch to edit view", Icon: ListChecks };
 };
 
 interface ConfigPanelProps {
@@ -251,12 +251,12 @@ export const ConfigPanel = ({
 
             <div className="space-y-4 pt-1 md:pt-2">
                 <div>
-                    <InputLabel label={inputs.moveType === "Local" ? "Origin Access" : "Location Access"} />
+                    <InputLabel label={inputs.moveType === "Labor" ? "Location Access" : "Pickup Access"} />
                     <AccessSegmented value={inputs.accessOrigin} onChange={(v) => setInputs({ ...inputs, accessOrigin: v })} />
                 </div>
                 {inputs.moveType === "Local" && (
                     <div>
-                        <InputLabel label="Destination Access" />
+                        <InputLabel label="Delivery Access" />
                         <AccessSegmented value={inputs.accessDest} onChange={(v) => setInputs({ ...inputs, accessDest: v })} />
                     </div>
                 )}
@@ -389,7 +389,7 @@ export const ConfigPanel = ({
                             className="bg-white border border-gray-200 rounded-2xl p-3 shadow-sm"
                             style={{ scrollMarginBottom: INVENTORY_SCROLL_MARGIN_BOTTOM }}
                         >
-                            <div className="text-[10px] font-bold text-gray-400 mb-2 uppercase tracking-widest px-1">Item Editor</div>
+                            <div className="text-[10px] font-bold text-gray-400 mb-2 uppercase tracking-widest px-1">Edit Items</div>
                             <div
                                 className="overflow-y-auto overflow-x-auto pr-1"
                                 style={{

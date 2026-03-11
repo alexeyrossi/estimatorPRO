@@ -167,7 +167,7 @@ export const VOLUME_TABLE = {
 
   // --- Outdoor & Garage ---
   "bike": 7, "bicycle": 7, "motorcycle": 50,
-  "walker": 5, "mobility scooter": 20,
+  "walker": 5, "wheelchair": 10, "mobility scooter": 20,
   "bbq": 30, "gas grill": 30, "barbecue": 30, "grill": 30, "camping grill": 2, "large bbq": 10, "smoker": 80, "fire pit": 15, "patio heater": 15, // Updated CF
   "patio set": 150, "outdoor table": 40, "outdoor chair": 10, "aluminum chair": 1, "metal chair": 3, "wood chair": 5, "patio umbrella": 10,
   "ladder": 10, "step ladder": 5, "extension ladder": 15, "step stool": 5,
@@ -476,6 +476,7 @@ export const ALIAS_RULES = [
   { re: /\b(printer)\b/i, to: "printer" },
   { re: /\bscanner\b/i, to: "scanner" },
   { re: /\bshredder\b/i, to: "shredder" },
+  { re: /\bfiling\s*cabinet(s)?\b/i, to: "file cabinet" },
   { re: /\bpc\s*tower\b|\bcomputer\s*tower\b/i, to: "computer tower" },
   { re: /\bmonitor\b|\bcomputer\s*screen\b/i, to: "computer monitor" },
   { re: /\bsound\s*bar\b/i, to: "soundbar" },
@@ -489,6 +490,7 @@ export const ALIAS_RULES = [
   { re: /\bwine\s*(refrigerator|fridge)\b/i, to: "wine fridge" },
   { re: /\bice\s*maker\b/i, to: "ice maker" },
   { re: /\bmicrowave\b/i, to: "microwave" },
+  { re: /\bsmall\s*(refrigerator|fridge)\b/i, to: "mini fridge" },
   { re: /\b(toaster\s*oven|mini\s*oven)\b/i, to: "mini oven" },
   { re: /\bportable\s*ac\b|\bportable\s*air\s*conditioner\b/i, to: "portable ac" },
   { re: /\bair\s*conditioner\b/i, to: "air conditioner" },
@@ -592,10 +594,18 @@ export const ALIAS_RULES = [
   { re: /\b(rolling\s*rack\s*cabinet)\b/i, to: "server rack" },
   { re: /\b(amplifiers?|rack\s*units?|security\s*cameras?)\b/i, to: "medium box" },
   { re: /\b(mic\s*stand|speaker\s*stand)\b/i, to: "stand" },
+  { re: /^\s*ekg\s*machine\s*$/i, to: "equipment" },
+  { re: /^\s*medical\s*equipment\s*cart\s*$/i, to: "equipment" },
+  { re: /^\s*wheel\s*chair\s*$/i, to: "wheelchair" },
   { re: /\b(paper\s*shredder)\b/i, to: "shredder" },
   { re: /\b(ent\s*center)\b/i, to: "entertainment center" },
   { re: /\b(bottle\s*display)\b/i, to: "display cabinet" },
   { re: /\b(wall\s*lights?)\b/i, to: "lamp" },
+  { re: /^\s*wall\s*items?\s*$/i, to: "artwork" },
+  { re: /^\s*room\s*contents?\s*$/i, to: "medium box" },
+  { re: /^\s*office\s*misc\s*$/i, to: "medium box" },
+  { re: /^\s*misc\s*loose\s*items?\s*$/i, to: "medium box" },
+  { re: /^\s*supplies?\s*$/i, to: "medium box" },
   { re: /\b(planters?|pots?)\b/i, to: "plant" },
 
   // TRAP FOR MOVER EQUIPMENT (0 Volume)

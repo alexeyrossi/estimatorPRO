@@ -306,9 +306,7 @@ export function computeLaborPlan(context: EngineContext, volumePlan: VolumePlan,
   if (timeMax >= 13) splitRecommended = true;
 
   if (finalVolume > 4000) {
-    const additionalCrewAvailable = crew < crewHardCap && crew < PROTOCOL.MAX_CREW_SIZE;
-    if (additionalCrewAvailable) notes.advice.push(`Large Move: Recommend splitting into 2 days OR ${Math.max(6, crew + 1)}+ movers.`);
-    else notes.advice.push("Large Move: Recommend splitting into 2 days.");
+    notes.advice.push("Large move — plan as a 2-day job");
   }
 
   return {
