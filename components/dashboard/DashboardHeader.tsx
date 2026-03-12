@@ -42,8 +42,8 @@ export function DashboardHeader({
           <div className="flex min-w-0 flex-col">
             <h1 className="text-xl font-black text-gray-900 leading-none tracking-tight">Estimator</h1>
             <div className="flex items-center gap-1.5 mt-1">
-              <span className="text-[10px] font-bold text-gray-400 tracking-wider uppercase">v11.59</span>
-              <span className="text-[8px] font-black text-white bg-blue-600 shadow-sm px-1.5 py-0.5 rounded tracking-widest uppercase">PRO</span>
+              <span className="text-[10px] font-bold text-gray-400 tracking-wider uppercase">v1.01</span>
+              <span className="text-[8px] font-black text-white bg-gradient-to-r from-blue-500 via-indigo-500 to-violet-500 shadow-sm px-1.5 py-0.5 rounded tracking-widest uppercase">AI</span>
             </div>
           </div>
         </div>
