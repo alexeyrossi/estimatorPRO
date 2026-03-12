@@ -76,7 +76,7 @@ export interface EstimateResult {
   materials: { blankets: number; boxes: number; wardrobes: number };
   smartEquipment: string[];
   homeLabel: string;
-  confidence: { score: number; label: string; reasons: string[] };
+  confidence: { score: number; label: string; reasons: string[]; factors: string[] };
   auditSummary: string[];
   advice: string[];
   overridesApplied: string[];

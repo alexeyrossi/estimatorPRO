@@ -160,8 +160,7 @@ export async function fetchHistoryAction(): Promise<EstimateHistoryItem[]> {
     .from('estimates')
     .select('id, client_name, final_volume, net_volume, inputs_state, created_at')
     .eq('manager_id', access.userId)
-    .order('created_at', { ascending: false })
-    .limit(30);
+    .order('created_at', { ascending: false });
 
   if (error) {
     console.error("fetchHistoryAction error:", error);

@@ -13,6 +13,40 @@ import { matchLongestKey, parseOverrideValue, roundUpTo } from "../parser";
 import type { EstimateResult } from "../types/estimator";
 import type { EngineContext, LaborPlan, TruckPlan, VolumePlan } from "./types";
 
+function buildConfidenceFactors({
+  estimatedRatio,
+  hasVague,
+  syntheticBundleRatio,
+  syntheticBundleGroups,
+}: {
+  estimatedRatio: number;
+  hasVague: boolean;
+  syntheticBundleRatio: number;
+  syntheticBundleGroups: number;
+}) {
+  const factors: string[] = [];
+
+  if (estimatedRatio > 0.4) {
+    factors.push("Many items were inferred instead of matched directly.");
+  } else if (estimatedRatio > 0.05) {
+    factors.push("Some items were estimated from unclear or unmatched text.");
+  }
+
+  if (hasVague) {
+    factors.push("Inventory description is vague.");
+  }
+
+  if (syntheticBundleRatio >= 0.1 || syntheticBundleGroups >= 3) {
+    factors.push("Packed contents were inferred as box bundles.");
+  }
+
+  if (!factors.length) {
+    factors.push("Most items were recognized directly from the inventory.");
+  }
+
+  return factors;
+}
+
 export function buildEstimateResult(
   context: EngineContext,
   volumePlan: VolumePlan,
@@ -80,6 +114,12 @@ export function buildEstimateResult(
   }
   confidenceScore = Math.max(40, Math.min(100, confidenceScore));
   const confidenceLabel = confidenceScore >= 80 ? "High" : confidenceScore >= 60 ? "Medium" : "Low";
+  const confidenceFactors = buildConfidenceFactors({
+    estimatedRatio,
+    hasVague,
+    syntheticBundleRatio,
+    syntheticBundleGroups,
+  });
 
   if (!isCommercial && (inputs.moveType === "Local" || inputs.moveType === "LD")) {
     let volumeDriver = "Volume Driver: Inventory volume was adjusted for safe loading.";
@@ -239,7 +279,7 @@ export function buildEstimateResult(
     materials: { blankets, boxes: boxesBring, wardrobes },
     smartEquipment,
     homeLabel: scopeLabel,
-    confidence: { score: confidenceScore, label: confidenceLabel, reasons: confidenceReasons },
+    confidence: { score: confidenceScore, label: confidenceLabel, reasons: confidenceReasons, factors: confidenceFactors },
     auditSummary: notes.auditSummary,
     advice: uniqueAdvice,
     overridesApplied: notes.overridesApplied,

@@ -290,7 +290,7 @@ export const ConfigPanel = ({
                                         const newStops = (inputs.extraStops || []).filter((_, i) => i !== idx);
                                         setInputs({ ...inputs, extraStops: newStops });
                                     }}
-                                        className="p-1.5 rounded-lg text-red-400 hover:bg-red-50 border border-transparent hover:border-red-100 hover:text-red-600 transition-colors">
+                                        className="p-1.5 rounded-lg text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors">
                                         <Trash2 className="w-3.5 h-3.5" />
                                     </button>
                                 </div>
@@ -405,11 +405,11 @@ export const ConfigPanel = ({
                                 }}
                             >
                                 <div className="min-w-[260px] w-full">
-                                    <div className="grid grid-cols-[1fr_2.5rem_2.5rem_2.5rem_1.5rem] gap-1.5 mb-1 px-1 text-[9px] text-gray-400 font-bold sticky top-0 bg-white z-10 pb-1 border-b border-gray-50">
+                                    <div className="grid grid-cols-[1fr_2.5rem_2.5rem_2.5rem_1.75rem] gap-1.5 mb-1 px-1 text-[9px] text-gray-400 font-bold sticky top-0 bg-white z-10 pb-1 border-b border-gray-50">
                                         <div>Item</div><div className="text-center">Qty</div><div className="text-center">CF/ea</div><div className="text-center">Heavy</div><div></div>
                                     </div>
                                     {normalizedRows.map(row => (
-                                        <div key={row.id} className="grid grid-cols-[1fr_2.5rem_2.5rem_2.5rem_1.5rem] gap-1.5 items-center mb-1 text-[10px] font-semibold">
+                                        <div key={row.id} className="grid grid-cols-[1fr_2.5rem_2.5rem_2.5rem_1.75rem] gap-1.5 items-center mb-1 text-[10px] font-semibold">
                                             <input className="min-w-0 rounded px-2 h-7 outline-none bg-gray-50 border-transparent hover:bg-gray-100 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
                                                 value={row.name}
                                                 onChange={e => setNormalizedRows(prev => prev.map(r => r.id === row.id ? { ...r, name: e.target.value, cfExact: undefined, isSynthetic: false } : r))}
@@ -439,9 +439,9 @@ export const ConfigPanel = ({
                                                 </label>
                                             </div>
                                             <button onClick={() => setNormalizedRows(prev => prev.filter(r => r.id !== row.id))}
-                                                className="flex justify-center items-center text-gray-300 hover:text-red-500 transition-colors cursor-pointer p-2 -mr-1"
+                                                className="flex items-center justify-center rounded-lg p-1.5 text-gray-300 hover:bg-red-50 hover:text-red-600 transition-colors"
                                                 aria-label="Delete item">
-                                                <Trash2 className="w-4 h-4" />
+                                                <Trash2 className="w-3.5 h-3.5" />
                                             </button>
                                         </div>
                                     ))}

@@ -3,7 +3,7 @@ import { EstimateInputs, EstimateResult } from '@/lib/types/estimator';
 import { OVERRIDE_KEYS, sanitizeOverrides } from '@/lib/estimatePolicy';
 import { buildReportSummaryNotes } from '@/lib/reportNotes';
 import {
-    Truck, Box, List, Weight, Terminal, ChevronRight, Lock, Scale, PackageOpen, Clock, CalendarDays, Info, Users, AlertTriangle, ArrowUpFromLine, ArrowLeft, Check, Clipboard, FileText, Loader2, Settings2
+    Truck, Box, List, Weight, Terminal, ChevronRight, Lock, Scale, PackageOpen, Clock, CalendarDays, Info, Users, AlertTriangle, Route, ArrowLeft, Check, Clipboard, FileText, Loader2, Settings2, RefreshCcw
 } from 'lucide-react';
 import { GlassPanel } from './GlassPanel';
 import { MetricCard } from './MetricCard';
@@ -154,6 +154,13 @@ export const ReportPanel = ({
         () => buildReportSummaryNotes(estimate.auditSummary, estimate.advice, estimate.truckFitNote),
         [estimate.auditSummary, estimate.advice, estimate.truckFitNote]
     );
+    const overridesApplied = estimate.overridesApplied ?? [];
+    const hasCrewOverride = overridesApplied.includes("crew");
+    const hasTrucksOverride = overridesApplied.includes("trucks");
+    const trucksSub = hasTrucksOverride
+        ? "Override active"
+        : estimate.truckSizeLabel?.replace(/\s*Truck\s*/i, ' ').trim();
+    const crewSub = hasCrewOverride ? "Manual override" : "Recommended Crew";
 
     const heavyItems = useMemo(
         () => estimate.heavyItemNames || [],
@@ -346,9 +353,17 @@ export const ReportPanel = ({
             onClick={clearOverrides}
             disabled={!hasManualOverrideValues}
             aria-hidden={!hasManualOverrideValues}
-            className={`rounded-xl border border-gray-200 px-3 py-2 text-[10px] font-bold text-gray-500 transition-[opacity,color,border-color] hover:border-gray-300 hover:text-gray-900 disabled:cursor-not-allowed ${hasManualOverrideValues ? "opacity-100" : "pointer-events-none opacity-0"}`}
+            aria-label="Reset overrides"
+            title="Reset overrides"
+            className={`group relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-gray-500 hover:bg-gray-100 hover:text-gray-900 active:scale-[0.98] md:w-auto md:gap-2 md:px-3.5 disabled:cursor-not-allowed ${hasManualOverrideValues ? "opacity-100" : "pointer-events-none opacity-0"}`}
+            style={softActionButtonTransition}
         >
-            Clear
+            <span className="relative h-4 w-4 shrink-0">
+                <RefreshCcw className="h-4 w-4" />
+            </span>
+            <span className="hidden md:inline text-[11px] font-bold leading-none">
+                Reset
+            </span>
         </button>
     );
     const shellHeaderMeta = displayedReportView === "inventory"
@@ -386,7 +401,11 @@ export const ReportPanel = ({
         <div className="flex min-h-0 flex-col">
             <div className={`grid gap-y-4 pb-4 ${heavyItems.length > 0 ? "grid-cols-2 items-start gap-x-8" : ""}`}>
                 <div className="w-full px-1 py-1">
-                    <ConfidenceDonut score={estimate.confidence?.score || 0} label={estimate.confidence?.label || ""} />
+                    <ConfidenceDonut
+                        score={estimate.confidence?.score || 0}
+                        label={estimate.confidence?.label || ""}
+                        factors={estimate.confidence?.factors || []}
+                    />
                 </div>
                 {heavyItems.length > 0 && (
                     <div className="w-full px-1 py-1">
@@ -442,7 +461,7 @@ export const ReportPanel = ({
                             <div className="border-t border-gray-100" />
                             <div className="py-4">
                                 <div className="text-[10px] font-bold text-blue-500 uppercase tracking-widest mb-3 flex items-center gap-2">
-                                    <ArrowUpFromLine className="w-4 h-4" /> Long Distance Breakdown
+                                    <Route className="w-4 h-4" /> Long Distance Breakdown
                                 </div>
                                 <div className="grid grid-cols-3 gap-2.5 sm:gap-6">
                                     <div className="min-w-0 text-center">
@@ -579,7 +598,7 @@ export const ReportPanel = ({
                                         placeholder={placeholder}
                                         value={overrides[key as keyof typeof overrides] || ""}
                                         onChange={e => setOverrides({ ...overrides, [key]: e.target.value })}
-                                        className="text-[11px] font-bold p-3.5 rounded-xl bg-gray-800 text-white border border-transparent outline-none focus:bg-gray-700 placeholder:text-gray-500 transition-colors"
+                                        className="min-w-0 w-full text-base md:text-[11px] font-bold px-3 py-3.5 md:p-3.5 rounded-xl bg-gray-800 text-white border border-transparent outline-none focus:bg-gray-700 placeholder:text-gray-500 transition-colors"
                                     />
                                 );
                             })}
@@ -662,7 +681,7 @@ export const ReportPanel = ({
                         </div>
                     </div>
 
-                    {estimate.overridesApplied?.length > 0 && <div className="text-[11px] text-gray-500 font-bold">Overrides Applied: {estimate.overridesApplied.join(", ")}</div>}
+                    {overridesApplied.length > 0 && <div className="text-[11px] text-gray-500 font-bold">Overrides Applied: {overridesApplied.join(", ")}</div>}
                 </div>
             </div>
         </div>
@@ -679,8 +698,8 @@ export const ReportPanel = ({
             <div className={`grid grid-cols-1 min-[360px]:grid-cols-2 lg:grid-cols-4 gap-4 transition-opacity duration-300 ${isCalculating ? 'opacity-60' : 'opacity-100'}`}>
                 <MetricCard icon={Box} label={primaryVolumeLabel} value={formatMetric(<AnimatedNumber value={primaryVolume} />, "cu ft")} sub={primaryVolumeSub} variant="blue" />
                 <MetricCard icon={estimate.splitRecommended ? CalendarDays : Clock} label={estimate.splitRecommended ? "Move Plan" : "Time Est."} value={<><AnimatedNumber value={estimate.timeMin} />–<AnimatedNumber value={estimate.timeMax} />h</>} sub={estimate.splitRecommended ? "SPLIT TO 2 DAYS" : "Est. Range"} variant={estimate.splitRecommended ? "red" : "purple"} isCritical={estimate.splitRecommended} />
-                {isLabor ? <MetricCard icon={Info} label="Service" value="Labor" sub="No Trucks" variant="gray" /> : <MetricCard icon={Truck} label="Trucks" value={<AnimatedNumber value={estimate.trucksFinal} />} sub={estimate.truckSizeLabel?.replace(/\s*Truck\s*/i, ' ').trim()} variant="orange" />}
-                <MetricCard icon={Users} label="Crew" value={<AnimatedNumber value={estimate.crew} />} sub="Recommended Crew" variant="emerald" advice={estimate.nextMoverSavingsLabel} />
+                {isLabor ? <MetricCard icon={Info} label="Service" value="Labor" sub="No Trucks" variant="gray" /> : <MetricCard icon={Truck} label="Trucks" value={<AnimatedNumber value={estimate.trucksFinal} />} sub={trucksSub} variant="orange" />}
+                <MetricCard icon={Users} label="Crew" value={<AnimatedNumber value={estimate.crew} />} sub={crewSub} variant="emerald" advice={estimate.nextMoverSavingsLabel} />
             </div>
 
             <GlassPanel className="overflow-hidden">
@@ -709,8 +728,8 @@ export const ReportPanel = ({
                                 <button
                                     onClick={handleDownloadPdf}
                                     disabled={isGeneratingPdf || !hasUsableEstimate}
-                                    aria-label={isGeneratingPdf ? "Generating PDF" : "Download PDF"}
-                                    title="Download PDF"
+                                    aria-label={isGeneratingPdf ? "Generating PDF" : "Export PDF"}
+                                    title="Export PDF"
                                     className={`group h-[42px] w-auto flex items-center justify-center gap-1 md:gap-2 rounded-xl px-2 md:px-5 py-0 md:py-3 text-[10px] md:text-[14px] font-bold transition-all duration-200 text-gray-500 hover:text-gray-900 hover:bg-gray-100 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed`}
                                 >
                                     {isGeneratingPdf ? (

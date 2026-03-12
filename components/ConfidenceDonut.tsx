@@ -1,7 +1,27 @@
 'use client';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useId, useLayoutEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
+import { Info } from 'lucide-react';
 
-export const ConfidenceDonut = ({ score, label }: { score: number; label: string }) => {
+const TOOLTIP_WIDTH = 224;
+const TOOLTIP_GAP = 8;
+const VIEWPORT_PADDING = 16;
+
+type TooltipPosition = {
+    top: number;
+    left: number;
+    width: number;
+};
+
+export const ConfidenceDonut = ({
+    score,
+    label,
+    factors,
+}: {
+    score: number;
+    label: string;
+    factors: string[];
+}) => {
     const size = 72;
     const stroke = 5;
     const radius = 31;
@@ -9,14 +29,69 @@ export const ConfidenceDonut = ({ score, label }: { score: number; label: string
 
     const [displayScore, setDisplayScore] = useState(0);
     const [dashOffset, setDashOffset] = useState(circumference);
+    const [tooltipOpen, setTooltipOpen] = useState(false);
+    const [supportsHover, setSupportsHover] = useState(false);
+    const [tooltipPosition, setTooltipPosition] = useState<TooltipPosition | null>(null);
     const prevScore = useRef(0);
     const rafRef = useRef<number>(0);
+    const tooltipRootRef = useRef<HTMLDivElement | null>(null);
+    const tooltipTriggerRef = useRef<HTMLButtonElement | null>(null);
+    const tooltipCardRef = useRef<HTMLDivElement | null>(null);
+    const tooltipId = useId();
 
     const colors = label === "High"
         ? { ring: "#34D399", text: "text-emerald-700", bg: "bg-emerald-50" }
         : label === "Medium"
             ? { ring: "#FBBF24", text: "text-amber-700", bg: "bg-amber-50" }
             : { ring: "#F87171", text: "text-red-700", bg: "bg-red-50" };
+    const tooltipSummary = label === "High"
+        ? "Mostly direct inventory matches."
+        : label === "Medium"
+            ? "Some inventory details were inferred."
+            : "Several inventory details were inferred.";
+    const tooltipFactors = (Array.isArray(factors) && factors.length > 0
+        ? factors
+        : ["Most items were recognized directly from the inventory."]
+    ).slice(0, 3);
+
+    const updateTooltipPosition = useCallback(() => {
+        if (typeof window === 'undefined' || !tooltipTriggerRef.current) return;
+
+        const triggerRect = tooltipTriggerRef.current.getBoundingClientRect();
+        const tooltipWidth = Math.min(
+            TOOLTIP_WIDTH,
+            Math.max(0, window.innerWidth - VIEWPORT_PADDING * 2)
+        );
+        const tooltipHeight = tooltipCardRef.current?.getBoundingClientRect().height ?? 0;
+        const centeredLeft = triggerRect.left + triggerRect.width / 2 - tooltipWidth / 2;
+        const maxLeft = Math.max(VIEWPORT_PADDING, window.innerWidth - VIEWPORT_PADDING - tooltipWidth);
+        const left = Math.min(Math.max(VIEWPORT_PADDING, centeredLeft), maxLeft);
+        const belowTop = triggerRect.bottom + TOOLTIP_GAP;
+        const aboveTop = triggerRect.top - TOOLTIP_GAP - tooltipHeight;
+        let top = belowTop;
+
+        if (
+            tooltipHeight > 0
+            && belowTop + tooltipHeight > window.innerHeight - VIEWPORT_PADDING
+            && aboveTop >= VIEWPORT_PADDING
+        ) {
+            top = aboveTop;
+        } else if (tooltipHeight > 0) {
+            top = Math.min(
+                Math.max(VIEWPORT_PADDING, belowTop),
+                Math.max(VIEWPORT_PADDING, window.innerHeight - VIEWPORT_PADDING - tooltipHeight)
+            );
+        }
+
+        setTooltipPosition((current) => (
+            current
+            && current.top === top
+            && current.left === left
+            && current.width === tooltipWidth
+                ? current
+                : { top, left, width: tooltipWidth }
+        ));
+    }, []);
 
     useEffect(() => {
         const from = prevScore.current;
@@ -51,50 +126,205 @@ export const ConfidenceDonut = ({ score, label }: { score: number; label: string
         return () => cancelAnimationFrame(rafRef.current);
     }, [score, circumference]);
 
+    useEffect(() => {
+        if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+
+        const mediaQuery = window.matchMedia('(hover: hover) and (pointer: fine)');
+        const syncSupport = () => setSupportsHover(mediaQuery.matches);
+
+        syncSupport();
+
+        if (typeof mediaQuery.addEventListener === 'function') {
+            mediaQuery.addEventListener('change', syncSupport);
+            return () => mediaQuery.removeEventListener('change', syncSupport);
+        }
+
+        mediaQuery.addListener(syncSupport);
+        return () => mediaQuery.removeListener(syncSupport);
+    }, []);
+
+    useLayoutEffect(() => {
+        if (!tooltipOpen) return;
+        updateTooltipPosition();
+    }, [tooltipFactors.length, tooltipOpen, tooltipSummary, updateTooltipPosition]);
+
+    useEffect(() => {
+        if (!tooltipOpen) return;
+
+        const handlePointerDown = (event: PointerEvent) => {
+            const target = event.target as Node;
+            if (
+                !tooltipRootRef.current?.contains(target)
+                && !tooltipCardRef.current?.contains(target)
+            ) {
+                setTooltipOpen(false);
+            }
+        };
+
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                setTooltipOpen(false);
+            }
+        };
+
+        const handlePositionChange = () => {
+            updateTooltipPosition();
+        };
+
+        document.addEventListener('pointerdown', handlePointerDown);
+        document.addEventListener('keydown', handleKeyDown);
+        window.addEventListener('resize', handlePositionChange);
+        window.addEventListener('scroll', handlePositionChange, true);
+        window.visualViewport?.addEventListener('resize', handlePositionChange);
+
+        return () => {
+            document.removeEventListener('pointerdown', handlePointerDown);
+            document.removeEventListener('keydown', handleKeyDown);
+            window.removeEventListener('resize', handlePositionChange);
+            window.removeEventListener('scroll', handlePositionChange, true);
+            window.visualViewport?.removeEventListener('resize', handlePositionChange);
+        };
+    }, [tooltipOpen, updateTooltipPosition]);
+
+    const tooltipPortal = tooltipOpen && typeof document !== 'undefined'
+        ? createPortal(
+            <div
+                ref={tooltipCardRef}
+                id={tooltipId}
+                role="tooltip"
+                className="fixed z-[80] rounded-2xl border border-gray-200 bg-white p-3 shadow-lg"
+                style={tooltipPosition
+                    ? {
+                        top: tooltipPosition.top,
+                        left: tooltipPosition.left,
+                        width: tooltipPosition.width,
+                    }
+                    : {
+                        top: 0,
+                        left: 0,
+                        width: TOOLTIP_WIDTH,
+                        visibility: 'hidden',
+                    }}
+                onMouseEnter={() => {
+                    if (supportsHover) setTooltipOpen(true);
+                }}
+                onMouseLeave={(event) => {
+                    if (
+                        supportsHover
+                        && !tooltipRootRef.current?.contains(event.relatedTarget as Node | null)
+                    ) {
+                        setTooltipOpen(false);
+                    }
+                }}
+            >
+                <div className="text-[11px] font-bold text-gray-800">
+                    {tooltipSummary}
+                </div>
+                <div className="mt-2 space-y-1.5">
+                    {tooltipFactors.map((factor) => (
+                        <div key={factor} className="text-[11px] font-medium leading-relaxed text-gray-500">
+                            {factor}
+                        </div>
+                    ))}
+                </div>
+            </div>,
+            document.body
+        )
+        : null;
+
     return (
-        <div className="flex items-center gap-5">
-            <div className="relative flex-shrink-0" style={{ width: size, height: size }}>
-                <svg
-                    width={size}
-                    height={size}
-                    className="relative transform -rotate-90 overflow-visible"
-                >
-                    {/* Background track */}
-                    <circle
-                        cx={size / 2} cy={size / 2} r={radius}
-                        fill="none"
-                        stroke="#F3F4F6"
-                        strokeWidth={stroke}
-                    />
-                    {/* Animated progress ring */}
-                    <circle
-                        cx={size / 2} cy={size / 2} r={radius}
-                        fill="none"
-                        stroke={colors.ring}
-                        strokeWidth={stroke}
-                        strokeLinecap="round"
-                        strokeDasharray={circumference}
-                        strokeDashoffset={dashOffset}
-                        style={{
-                            transition: 'none', /* we animate via RAF, not CSS */
+        <>
+            <div className="flex items-center gap-5">
+                <div className="relative flex-shrink-0" style={{ width: size, height: size }}>
+                    <svg
+                        width={size}
+                        height={size}
+                        className="relative transform -rotate-90 overflow-visible"
+                    >
+                        {/* Background track */}
+                        <circle
+                            cx={size / 2} cy={size / 2} r={radius}
+                            fill="none"
+                            stroke="#F3F4F6"
+                            strokeWidth={stroke}
+                        />
+                        {/* Animated progress ring */}
+                        <circle
+                            cx={size / 2} cy={size / 2} r={radius}
+                            fill="none"
+                            stroke={colors.ring}
+                            strokeWidth={stroke}
+                            strokeLinecap="round"
+                            strokeDasharray={circumference}
+                            strokeDashoffset={dashOffset}
+                            style={{
+                                transition: 'none', /* we animate via RAF, not CSS */
+                            }}
+                        />
+                    </svg>
+                    {/* Center number */}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="text-[16px] font-black text-gray-800 tabular-nums">
+                            {displayScore}
+                        </span>
+                    </div>
+                </div>
+                <div className="flex flex-col">
+                    <div
+                        ref={tooltipRootRef}
+                        className="mb-1.5 flex items-center gap-1.5"
+                        onMouseEnter={() => {
+                            if (supportsHover) setTooltipOpen(true);
                         }}
-                    />
-                </svg>
-                {/* Center number */}
-                <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-[16px] font-black text-gray-800 tabular-nums">
-                        {displayScore}
+                        onMouseLeave={(event) => {
+                            if (
+                                supportsHover
+                                && !tooltipCardRef.current?.contains(event.relatedTarget as Node | null)
+                            ) {
+                                setTooltipOpen(false);
+                            }
+                        }}
+                        onBlur={(event) => {
+                            const nextTarget = event.relatedTarget as Node | null;
+                            if (
+                                !event.currentTarget.contains(nextTarget)
+                                && !tooltipCardRef.current?.contains(nextTarget)
+                            ) {
+                                setTooltipOpen(false);
+                            }
+                        }}
+                    >
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                            Confidence
+                        </span>
+                        <button
+                            ref={tooltipTriggerRef}
+                            type="button"
+                            aria-label="Why this confidence score"
+                            aria-describedby={tooltipOpen ? tooltipId : undefined}
+                            aria-expanded={tooltipOpen}
+                            className="flex h-4 w-4 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 focus:bg-gray-100 focus:text-gray-600 focus:outline-none"
+                            onFocus={() => {
+                                if (supportsHover) setTooltipOpen(true);
+                            }}
+                            onClick={() => {
+                                if (supportsHover) {
+                                    setTooltipOpen(true);
+                                    return;
+                                }
+
+                                setTooltipOpen((current) => !current);
+                            }}
+                        >
+                            <Info className="h-3.5 w-3.5" strokeWidth={2.25} />
+                        </button>
+                    </div>
+                    <span className={`inline-block px-3 py-1 rounded-xl text-[11px] font-bold ${colors.text} ${colors.bg}`}>
+                        {label} Score
                     </span>
                 </div>
             </div>
-            <div className="flex flex-col">
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">
-                    Confidence
-                </span>
-                <span className={`inline-block px-3 py-1 rounded-xl text-[11px] font-bold ${colors.text} ${colors.bg}`}>
-                    {label} Score
-                </span>
-            </div>
-        </div>
+            {tooltipPortal}
+        </>
     );
 };

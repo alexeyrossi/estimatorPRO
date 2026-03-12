@@ -15,6 +15,7 @@ type HistoryPanelProps = {
 };
 
 type HistoryContentState = "loading" | "empty" | "list";
+const DEFAULT_VISIBLE_HISTORY_COUNT = 11;
 
 const getHistoryContentState = (historyLoading: boolean, itemCount: number): HistoryContentState => {
   if (historyLoading) return "loading";
@@ -42,10 +43,19 @@ export function HistoryPanel({
   onUndoLastDelete,
   pendingDeletes,
 }: HistoryPanelProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
   const visibleHistoryItems = useMemo(
     () => historyItems.filter((item) => !pendingDeletes.has(item.id)),
     [historyItems, pendingDeletes]
   );
+  const totalVisibleCount = visibleHistoryItems.length;
+  const canExpandHistory = totalVisibleCount > DEFAULT_VISIBLE_HISTORY_COUNT;
+  const collapsedHistoryItems = useMemo(
+    () => visibleHistoryItems.slice(0, DEFAULT_VISIBLE_HISTORY_COUNT),
+    [visibleHistoryItems]
+  );
+  const expandedHistory = canExpandHistory && isExpanded;
+  const renderedHistoryItems = expandedHistory ? visibleHistoryItems : collapsedHistoryItems;
   const targetContentState = getHistoryContentState(historyLoading, visibleHistoryItems.length);
   const [displayedContentState, setDisplayedContentState] = useState<HistoryContentState>(targetContentState);
   const [contentPhase, setContentPhase] = useState<"idle" | "leaving" | "entering">("idle");
@@ -243,71 +253,86 @@ export function HistoryPanel({
         </div>
       )
       : (
-        <div className="mb-2 flex max-h-[260px] flex-wrap gap-3 overflow-y-auto pr-1">
-          {visibleHistoryItems.map((item) => {
-            const isExiting = exitingItemIds.has(item.id);
-            const isEntering = enteringItemIds.has(item.id);
-            const itemMotionStyle: React.CSSProperties = prefersReducedMotion
-              ? {
-                opacity: 1,
-                transform: "translateY(0px) scale(1)",
-              }
-              : isExiting
+        <>
+          <div className="mb-2 flex max-h-[260px] flex-wrap gap-3 overflow-y-auto pr-1">
+            {renderedHistoryItems.map((item) => {
+              const isExiting = exitingItemIds.has(item.id);
+              const isEntering = enteringItemIds.has(item.id);
+              const itemMotionStyle: React.CSSProperties = prefersReducedMotion
                 ? {
-                  opacity: 0,
-                  transform: "translateY(-4px) scale(0.985)",
+                  opacity: 1,
+                  transform: "translateY(0px) scale(1)",
                 }
-                : isEntering
+                : isExiting
                   ? {
                     opacity: 0,
-                    transform: "translateY(6px) scale(0.992)",
+                    transform: "translateY(-4px) scale(0.985)",
                   }
-                  : {
-                    opacity: 1,
-                    transform: "translateY(0px) scale(1)",
-                  };
+                  : isEntering
+                    ? {
+                      opacity: 0,
+                      transform: "translateY(6px) scale(0.992)",
+                    }
+                    : {
+                      opacity: 1,
+                      transform: "translateY(0px) scale(1)",
+                    };
 
-            return (
-              <div
-                key={item.id}
-                className="history-item-motion relative group transition-[opacity,transform] duration-[180ms] ease-out"
-                style={itemMotionStyle}
+              return (
+                <div
+                  key={item.id}
+                  className="history-item-motion relative group transition-[opacity,transform] duration-[180ms] ease-out"
+                  style={itemMotionStyle}
+                >
+                  <button
+                    onClick={() => onLoadEstimate(item.id)}
+                    disabled={isExiting}
+                    className="block min-h-[66px] w-full cursor-pointer overflow-hidden rounded-xl border-[1.5px] border-dashed border-gray-200 bg-white px-3.5 py-3 text-left transition-all duration-200 hover:border-gray-400 hover:bg-gray-50/50 disabled:cursor-default disabled:opacity-70"
+                  >
+                    <div className="truncate pr-5 text-[11px] font-bold text-gray-800">{item.client_name}</div>
+                    <div className="mt-1.5 flex items-center gap-1.5 text-[11px] font-bold text-gray-600">
+                      <Package className="h-3 w-3 text-gray-400" strokeWidth={2} />
+                      <span className="tabular-nums">{(item.net_volume || item.final_volume)?.toLocaleString()} cf</span>
+                      <span className="text-gray-300">·</span>
+                      <MapPin className="h-3 w-3 text-gray-400" strokeWidth={2} />
+                      <span>
+                        {!item.home_size ? "" : item.home_size === "Commercial" ? "Comm." : item.home_size === "1" ? "1BR/Less" : `${item.home_size}BR`}/{item.move_type === "LD" ? "LD" : item.move_type === "Labor" ? "Labor" : "Local"}
+                      </span>
+                    </div>
+                    <div className="mt-1 flex items-center gap-1 text-[10px] font-medium text-gray-400">
+                      <Calendar className="h-3 w-3" strokeWidth={2} />
+                      {new Date(item.created_at).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                    </div>
+                  </button>
+                  <button
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      handleDelete(item.id);
+                    }}
+                    disabled={isExiting}
+                    className="absolute top-2 right-2 flex h-5 w-5 items-center justify-center rounded-md text-gray-400 transition-all hover:bg-red-50 hover:text-red-500 disabled:cursor-default disabled:opacity-40 md:text-gray-300 md:opacity-0 md:group-hover:opacity-100"
+                    aria-label="Delete estimate"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+          {canExpandHistory && (
+            <div className="flex justify-center pt-1">
+              <button
+                type="button"
+                onClick={() => setIsExpanded((current) => !current)}
+                className="rounded-xl px-3 py-2 text-[11px] font-semibold text-gray-500 transition-all duration-200 hover:bg-gray-100 hover:text-gray-900 active:scale-[0.98]"
+                aria-expanded={expandedHistory}
+                aria-label={expandedHistory ? "Show fewer saved estimates" : `Show all ${totalVisibleCount} saved estimates`}
               >
-                <button
-                  onClick={() => onLoadEstimate(item.id)}
-                  disabled={isExiting}
-                  className="block min-h-[66px] w-full cursor-pointer overflow-hidden rounded-xl border-[1.5px] border-dashed border-gray-200 bg-white px-3.5 py-3 text-left transition-all duration-200 hover:border-gray-400 hover:bg-gray-50/50 disabled:cursor-default disabled:opacity-70"
-                >
-                  <div className="truncate pr-5 text-[11px] font-bold text-gray-800">{item.client_name}</div>
-                  <div className="mt-1.5 flex items-center gap-1.5 text-[11px] font-bold text-gray-600">
-                    <Package className="h-3 w-3 text-gray-400" strokeWidth={2} />
-                    <span className="tabular-nums">{(item.net_volume || item.final_volume)?.toLocaleString()} cf</span>
-                    <span className="text-gray-300">·</span>
-                    <MapPin className="h-3 w-3 text-gray-400" strokeWidth={2} />
-                    <span>
-                      {!item.home_size ? "" : item.home_size === "Commercial" ? "Comm." : item.home_size === "1" ? "1BR/Less" : `${item.home_size}BR`}/{item.move_type === "LD" ? "LD" : item.move_type === "Labor" ? "Labor" : "Local"}
-                    </span>
-                  </div>
-                  <div className="mt-1 flex items-center gap-1 text-[10px] font-medium text-gray-400">
-                    <Calendar className="h-3 w-3" strokeWidth={2} />
-                    {new Date(item.created_at).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
-                  </div>
-                </button>
-                <button
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    handleDelete(item.id);
-                  }}
-                  disabled={isExiting}
-                  className="absolute top-2 right-2 flex h-5 w-5 items-center justify-center rounded-md text-gray-400 transition-all hover:bg-red-50 hover:text-red-500 disabled:cursor-default disabled:opacity-40 md:text-gray-300 md:opacity-0 md:group-hover:opacity-100"
-                  aria-label="Delete estimate"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </div>
-            );
-          })}
-        </div>
+                {expandedHistory ? "Show Less" : `Show All (${totalVisibleCount})`}
+              </button>
+            </div>
+          )}
+        </>
       );
 
   return (

@@ -40,7 +40,7 @@ test("formatEstimateReportText keeps current quote summary structure", () => {
       timeMax: 8,
       risks: [{ text: "Tight stairs", level: "critical" }],
       daMins: 30,
-      confidence: { label: "High", score: 92, reasons: [] },
+      confidence: { label: "High", score: 92, reasons: [], factors: [] },
     }
   );
 
@@ -89,7 +89,7 @@ test("formatEstimateReportText includes truck fit note when present", () => {
       timeMax: 7,
       risks: [],
       daMins: 0,
-      confidence: { label: "High", score: 95, reasons: [] },
+      confidence: { label: "High", score: 95, reasons: [], factors: [] },
     }
   );
 
