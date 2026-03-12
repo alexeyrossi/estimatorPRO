@@ -1,9 +1,9 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { EstimateInputs, EstimateResult } from '@/lib/types/estimator';
-import { OVERRIDE_KEYS } from '@/lib/estimatePolicy';
+import { OVERRIDE_KEYS, sanitizeOverrides } from '@/lib/estimatePolicy';
 import { buildReportSummaryNotes } from '@/lib/reportNotes';
 import {
-    Truck, Box, List, Weight, Terminal, ChevronRight, Lock, Scale, PackageOpen, Clock, CalendarDays, Info, Users, AlertTriangle, ArrowUpFromLine, ArrowLeft, Check, Clipboard, Loader2, SlidersHorizontal
+    Truck, Box, List, Weight, Terminal, ChevronRight, Lock, Scale, PackageOpen, Clock, CalendarDays, Info, Users, AlertTriangle, ArrowUpFromLine, ArrowLeft, Check, Clipboard, Loader2, SlidersVertical
 } from 'lucide-react';
 import { GlassPanel } from './GlassPanel';
 import { MetricCard } from './MetricCard';
@@ -159,6 +159,10 @@ export const ReportPanel = ({
         () => estimate.heavyItemNames || [],
         [estimate.heavyItemNames]
     );
+    const hasManualOverrideValues = useMemo(
+        () => Object.keys(sanitizeOverrides(overrides)).length > 0,
+        [overrides]
+    );
 
     useEffect(() => {
         if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
@@ -307,20 +311,31 @@ export const ReportPanel = ({
             aria-label={isDisplayedDetails ? "Back" : "View estimate details"}
             title={isDisplayedDetails ? "Back" : "View estimate details"}
             aria-pressed={isDisplayedDetails}
-            className={`group relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-gray-500 hover:bg-gray-100 hover:text-gray-900 active:scale-[0.98] ${isDisplayedDetails ? "text-gray-900" : ""}`}
+            className={`group relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-gray-500 hover:bg-gray-100 hover:text-gray-900 active:scale-[0.98] md:w-auto md:gap-2 md:px-3.5 ${isDisplayedDetails ? "text-gray-900 md:bg-gray-100" : ""}`}
             style={softActionButtonTransition}
         >
-            <span className="relative h-4 w-4 overflow-hidden">
-                <span
-                    className={`absolute inset-0 transition-[opacity,transform] duration-200 ease-out ${isDisplayedDetails ? "opacity-100 translate-x-0 scale-100" : "pointer-events-none -translate-x-1 opacity-0 scale-95"}`}
-                >
-                    <ArrowLeft className="h-4 w-4" />
-                </span>
-                <span
-                    className={`absolute inset-0 transition-[opacity,transform] duration-200 ease-out ${isDisplayedDetails ? "pointer-events-none translate-x-1 opacity-0 scale-95" : "opacity-100 translate-x-0 scale-100"}`}
-                >
-                    <SlidersHorizontal className="h-4 w-4" />
-                </span>
+            <span className="relative h-4 w-4 shrink-0">
+                {isDisplayedDetails ? <ArrowLeft className="h-4 w-4" /> : <SlidersVertical className="h-4 w-4" />}
+            </span>
+            <span className="hidden md:inline text-[11px] font-bold leading-none">
+                {isDisplayedDetails ? "Back" : "Details"}
+            </span>
+        </button>
+    );
+    const inventoryTopControl = (
+        <button
+            onClick={() => toggleReportView("inventory")}
+            aria-label={isDisplayedInventory ? "Back" : "Inventory View"}
+            title={isDisplayedInventory ? "Back" : "Inventory View"}
+            aria-pressed={isDisplayedInventory}
+            className={`group relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-gray-500 hover:bg-gray-100 hover:text-gray-900 active:scale-[0.98] md:w-auto md:gap-2 md:px-3.5 ${isDisplayedInventory ? "text-gray-900 md:bg-gray-100" : ""}`}
+            style={softActionButtonTransition}
+        >
+            <span className="relative h-4 w-4 shrink-0">
+                {isDisplayedInventory ? <ArrowLeft className="h-4 w-4" /> : <List className="h-4 w-4" />}
+            </span>
+            <span className="hidden md:inline text-[11px] font-bold leading-none">
+                {isDisplayedInventory ? "Back" : "Inventory"}
             </span>
         </button>
     );
@@ -329,8 +344,9 @@ export const ReportPanel = ({
     const clearOverridesButton = (
         <button
             onClick={clearOverrides}
-            disabled={Object.keys(overrides).length === 0}
-            className="rounded-xl border border-gray-200 px-3 py-2 text-[10px] font-bold text-gray-500 transition-colors hover:border-gray-300 hover:text-gray-900 disabled:cursor-not-allowed disabled:opacity-40"
+            disabled={!hasManualOverrideValues}
+            aria-hidden={!hasManualOverrideValues}
+            className={`rounded-xl border border-gray-200 px-3 py-2 text-[10px] font-bold text-gray-500 transition-[opacity,color,border-color] hover:border-gray-300 hover:text-gray-900 disabled:cursor-not-allowed ${hasManualOverrideValues ? "opacity-100" : "pointer-events-none opacity-0"}`}
         >
             Clear
         </button>
@@ -340,14 +356,13 @@ export const ReportPanel = ({
         : displayedReportView === "details"
             ? { Icon: Lock, title: "Manual Overrides" }
             : { Icon: Clipboard, title: "Summary" };
-    const shellHeaderActions = isDisplayedDetails
-        ? (
-            <div className="flex items-center gap-2">
-                {clearOverridesButton}
-                {detailsTopControl}
-            </div>
-        )
-        : detailsTopControl;
+    const shellHeaderActions = (
+        <div className="flex items-center gap-2">
+            {isDisplayedDetails && clearOverridesButton}
+            {inventoryTopControl}
+            {detailsTopControl}
+        </div>
+    );
     const reportShellHeaderLabel = (
         <div className={panelLayerLabelClass}>
             <shellHeaderMeta.Icon className="w-4 h-4 text-gray-800" />
@@ -708,27 +723,6 @@ export const ReportPanel = ({
                                         <>
                                             <svg className="transition-transform duration-200 group-active:-translate-y-0.5 group-active:scale-95" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
                                             <span>PDF</span>
-                                        </>
-                                    )}
-                                </button>
-                            </div>
-                            <div className="ml-auto flex min-w-0 shrink-0 items-center justify-end">
-                                <button
-                                    onClick={() => toggleReportView("inventory")}
-                                    aria-label={isDisplayedInventory ? "Back" : "Inventory View"}
-                                    title={isDisplayedInventory ? "Back" : "Inventory View"}
-                                    className={`group flex h-[42px] w-auto items-center justify-center gap-1 md:gap-2 rounded-xl px-1.5 md:px-4 py-0 md:py-3 text-[10px] md:text-[14px] font-bold uppercase active:scale-[1.02] ${isDisplayedInventory ? "bg-gray-100 text-gray-900" : "text-gray-500 hover:text-gray-900 hover:bg-gray-100"}`}
-                                    style={softActionButtonTransition}
-                                >
-                                    {isDisplayedInventory ? (
-                                        <>
-                                            <ArrowLeft className="w-4 h-4 transition-transform duration-200 group-active:scale-95" />
-                                            <span>BACK</span>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <List className="w-4 h-4 transition-transform duration-200 group-active:scale-95" />
-                                            <span>INVENTORY</span>
                                         </>
                                     )}
                                 </button>
