@@ -200,8 +200,8 @@ export const ConfigPanel = ({
     return (
         <GlassPanel><div className="p-4 md:p-6 flex-1 flex flex-col space-y-5 md:space-y-6">
             <div className="hidden md:flex items-center gap-2 mb-2 pb-5 border-b border-gray-100">
-                <Settings className="w-4 h-4 text-gray-400" />
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Parameters</span>
+                <Settings className="w-4 h-4 text-gray-800" />
+                <span className="text-[10px] font-bold text-gray-800 uppercase tracking-widest">Parameters</span>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -369,7 +369,7 @@ export const ConfigPanel = ({
                                     handleRawInventoryChange(limited);
                                 }}
                                 onFocus={handleRawInventoryFocus}
-                                className="block w-full min-h-[96px] md:min-h-[224px] bg-white border border-gray-200 rounded-2xl px-4 py-3.5 sm:p-5 text-base md:text-[14px] leading-relaxed text-gray-800 outline-none resize-none shadow-sm font-mono transition-colors"
+                                className="block w-full min-h-[96px] md:min-h-[224px] bg-white border border-gray-200 rounded-2xl px-4 py-3.5 sm:p-5 text-base md:text-[14px] leading-relaxed text-gray-800 outline-none resize-none font-mono transition-colors"
                                 placeholder="Paste inventory..."
                                 style={{
                                     maxHeight: inventoryViewport.rawMaxHeight,
@@ -386,7 +386,7 @@ export const ConfigPanel = ({
                         </>
                     ) : (
                         <div
-                            className="bg-white border border-gray-200 rounded-2xl p-3 shadow-sm"
+                            className="bg-white border border-gray-200 rounded-2xl p-3"
                             style={{ scrollMarginBottom: INVENTORY_SCROLL_MARGIN_BOTTOM }}
                         >
                             <div className="text-[10px] font-bold text-gray-400 mb-2 uppercase tracking-widest px-1">Edit Items</div>

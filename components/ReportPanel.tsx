@@ -276,7 +276,7 @@ export const ReportPanel = ({
         };
     }, [activeContentNode]);
 
-    const framedReportBodyClass = "h-[calc(57dvh-3.25rem)] min-h-[338px] max-h-[468px] md:h-[516px] md:min-h-[516px] md:max-h-[516px]";
+    const framedReportBodyClass = "h-[calc(57dvh-3.25rem)] min-h-[338px] max-h-[468px] md:h-[492px] md:min-h-[492px] md:max-h-[492px]";
     const isDisplayedInventory = displayedReportView === "inventory";
     const isDisplayedDetails = displayedReportView === "details";
     const activeReportBodyClass = displayedReportView === "summary"
@@ -325,7 +325,7 @@ export const ReportPanel = ({
         </button>
     );
     const panelLayerLabelClass = "flex items-center gap-2";
-    const panelLayerTitleClass = "text-[10px] font-bold text-gray-400 uppercase tracking-widest";
+    const panelLayerTitleClass = "text-[10px] font-bold text-gray-800 uppercase tracking-widest";
     const clearOverridesButton = (
         <button
             onClick={clearOverrides}
@@ -350,7 +350,7 @@ export const ReportPanel = ({
         : detailsTopControl;
     const reportShellHeaderLabel = (
         <div className={panelLayerLabelClass}>
-            <shellHeaderMeta.Icon className="w-4 h-4 text-gray-400" />
+            <shellHeaderMeta.Icon className="w-4 h-4 text-gray-800" />
             <span className={panelLayerTitleClass}>{shellHeaderMeta.title}</span>
         </div>
     );
@@ -381,7 +381,7 @@ export const ReportPanel = ({
                         </div>
                         <div className="flex flex-wrap gap-1.5">
                             {heavyItems.map((name, i) => (
-                                <span key={`${name}-${i}`} className="rounded-lg border border-rose-200 px-2.5 py-1 text-[10px] font-semibold text-rose-600">
+                                <span key={`${name}-${i}`} className="rounded-lg bg-rose-50 px-2.5 py-1 text-[10px] font-semibold text-rose-600">
                                     {name}
                                 </span>
                             ))}
@@ -573,7 +573,7 @@ export const ReportPanel = ({
 
                     <div className="space-y-3">
                         <div className={panelLayerLabelClass}>
-                            <Terminal className="w-4 h-4 text-gray-400" />
+                            <Terminal className="w-4 h-4 text-gray-800" />
                             <span className={panelLayerTitleClass}>Volume Calculation Path</span>
                         </div>
                         <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800">

@@ -26,7 +26,7 @@ export const MetricCard = ({ icon: Icon, label, value, sub, variant = "gray", is
 
             <div className="relative z-10 flex items-center gap-2">
                 <div className={`p-2 rounded-xl ${isCritical ? 'bg-red-100 text-red-600' : `${style.light} ${style.text}`}`}><Icon className="w-4 h-4" /></div>
-                <span className={`text-[10px] font-bold uppercase tracking-widest ${isCritical ? 'text-red-500' : 'text-gray-400'}`}>{label}</span>
+                <span className={`text-[10px] font-bold uppercase tracking-widest ${isCritical ? 'text-red-500' : 'text-gray-800'}`}>{label}</span>
             </div>
             <div className="relative z-10 mt-4 min-w-0">
                 <div className={`min-w-0 text-xl sm:text-2xl font-black tracking-tight leading-tight tabular-nums ${isCritical ? 'text-red-800' : 'text-gray-900'}`}>{value}</div>
