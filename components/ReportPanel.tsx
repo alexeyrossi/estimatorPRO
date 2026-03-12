@@ -399,8 +399,8 @@ export const ReportPanel = ({
 
     const summaryContent = (
         <div className="flex min-h-0 flex-col">
-            <div className={`grid gap-y-4 pb-4 ${heavyItems.length > 0 ? "grid-cols-2 items-start gap-x-8" : ""}`}>
-                <div className="w-full px-1 py-1">
+            <div className={`grid gap-y-4 pb-4 ${heavyItems.length > 0 ? "grid-cols-2 items-start gap-x-3 sm:gap-x-8" : ""}`}>
+                <div className="flex w-full justify-center px-1 py-1 sm:block">
                     <ConfidenceDonut
                         score={estimate.confidence?.score || 0}
                         label={estimate.confidence?.label || ""}
@@ -408,17 +408,19 @@ export const ReportPanel = ({
                     />
                 </div>
                 {heavyItems.length > 0 && (
-                    <div className="w-full px-1 py-1">
-                        <div className="mb-2 flex items-center gap-2">
+                    <div className="flex w-full justify-center px-1 py-1 sm:block">
+                        <div className="flex w-full max-w-full flex-col items-center text-center sm:items-start sm:text-left">
+                            <div className="mb-2 flex items-center justify-center gap-2 sm:justify-start">
                             <Weight className="w-4 h-4 shrink-0" strokeWidth={2.5} color="#f43f5e" />
                             <span className="text-[10px] font-bold text-rose-600 uppercase tracking-widest">Heavy Items ({heavyItems.length})</span>
-                        </div>
-                        <div className="flex flex-wrap gap-1.5">
-                            {heavyItems.map((name, i) => (
-                                <span key={`${name}-${i}`} className="rounded-lg bg-rose-50 px-2.5 py-1 text-[10px] font-semibold text-rose-600">
-                                    {name}
-                                </span>
-                            ))}
+                            </div>
+                            <div className="flex max-w-full flex-wrap justify-center gap-1.5 sm:justify-start">
+                                {heavyItems.map((name, i) => (
+                                    <span key={`${name}-${i}`} className="rounded-lg bg-rose-50 px-2.5 py-1 text-[10px] font-semibold text-rose-600">
+                                        {name}
+                                    </span>
+                                ))}
+                            </div>
                         </div>
                     </div>
                 )}

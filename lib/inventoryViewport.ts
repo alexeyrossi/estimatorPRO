@@ -17,6 +17,13 @@ export type InventoryViewportMeasurement = {
     hasEditableFocus: boolean;
 };
 
+export type InventoryExpandedMetrics = {
+    workspaceHeight: number;
+    rawMinHeight: number;
+    rawMaxHeight: number;
+    normalizedMaxHeight: number;
+};
+
 const MOBILE_BREAKPOINT_PX = 768;
 const MOBILE_RAW_MIN_HEIGHT = 96;
 const DESKTOP_RAW_MIN_HEIGHT = 224;
@@ -25,6 +32,12 @@ const DESKTOP_RAW_MAX_HEIGHT = 320;
 const MOBILE_NORMALIZED_MAX_HEIGHT = 360;
 const DESKTOP_NORMALIZED_MAX_HEIGHT = 288;
 const MOBILE_NORMALIZED_MIN_HEIGHT = 220;
+const MOBILE_EXPANDED_WORKSPACE_MIN_HEIGHT = 368;
+const MOBILE_EXPANDED_WORKSPACE_MAX_HEIGHT = 520;
+const DESKTOP_EXPANDED_WORKSPACE_MIN_HEIGHT = 520;
+const DESKTOP_EXPANDED_WORKSPACE_MAX_HEIGHT = 760;
+const MOBILE_EXPANDED_NORMALIZED_CHROME = 74;
+const DESKTOP_EXPANDED_NORMALIZED_CHROME = 86;
 
 const hasSameViewportMetrics = (a: InventoryViewportMetrics, b: InventoryViewportMetrics) =>
     a.isMobile === b.isMobile
@@ -115,4 +128,42 @@ export const resolveStableInventoryViewportSnapshot = (
     }
 
     return hasSameViewportSnapshot(previousSnapshot, nextSnapshot) ? previousSnapshot : nextSnapshot;
+};
+
+export const getInventoryExpandedMetrics = (
+    snapshot: InventoryViewportSnapshot
+): InventoryExpandedMetrics => {
+    const { metrics, viewportHeight } = snapshot;
+
+    if (metrics.isMobile) {
+        const workspaceHeight = Math.max(
+            MOBILE_EXPANDED_WORKSPACE_MIN_HEIGHT,
+            Math.min(MOBILE_EXPANDED_WORKSPACE_MAX_HEIGHT, Math.round(viewportHeight * 0.52))
+        );
+
+        return {
+            workspaceHeight,
+            rawMinHeight: Math.max(workspaceHeight - 28, MOBILE_EXPANDED_WORKSPACE_MIN_HEIGHT - 24),
+            rawMaxHeight: Math.max(workspaceHeight - 28, MOBILE_EXPANDED_WORKSPACE_MIN_HEIGHT - 24),
+            normalizedMaxHeight: Math.max(
+                workspaceHeight - MOBILE_EXPANDED_NORMALIZED_CHROME,
+                MOBILE_EXPANDED_WORKSPACE_MIN_HEIGHT - MOBILE_EXPANDED_NORMALIZED_CHROME
+            ),
+        };
+    }
+
+    const workspaceHeight = Math.max(
+        DESKTOP_EXPANDED_WORKSPACE_MIN_HEIGHT,
+        Math.min(DESKTOP_EXPANDED_WORKSPACE_MAX_HEIGHT, Math.round(viewportHeight * 0.74))
+    );
+
+    return {
+        workspaceHeight,
+        rawMinHeight: Math.max(workspaceHeight - 32, DESKTOP_EXPANDED_WORKSPACE_MIN_HEIGHT - 32),
+        rawMaxHeight: Math.max(workspaceHeight - 32, DESKTOP_EXPANDED_WORKSPACE_MIN_HEIGHT - 32),
+        normalizedMaxHeight: Math.max(
+            workspaceHeight - DESKTOP_EXPANDED_NORMALIZED_CHROME,
+            DESKTOP_EXPANDED_WORKSPACE_MIN_HEIGHT - DESKTOP_EXPANDED_NORMALIZED_CHROME
+        ),
+    };
 };

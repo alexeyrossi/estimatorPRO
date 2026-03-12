@@ -234,7 +234,7 @@ export const ConfidenceDonut = ({
 
     return (
         <>
-            <div className="flex items-center gap-5">
+            <div className="flex items-center justify-center gap-4 sm:justify-start sm:gap-5">
                 <div className="relative flex-shrink-0" style={{ width: size, height: size }}>
                     <svg
                         width={size}
@@ -269,10 +269,10 @@ export const ConfidenceDonut = ({
                         </span>
                     </div>
                 </div>
-                <div className="flex flex-col">
+                <div className="flex flex-col items-center text-center sm:items-start sm:text-left">
                     <div
                         ref={tooltipRootRef}
-                        className="mb-1.5 flex items-center gap-1.5"
+                        className="mb-1.5 flex items-center justify-center gap-1.5 sm:justify-start"
                         onMouseEnter={() => {
                             if (supportsHover) setTooltipOpen(true);
                         }}

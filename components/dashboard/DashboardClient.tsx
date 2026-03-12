@@ -498,6 +498,7 @@ export function DashboardClient() {
           <ConfigPanel
             inputs={inputs}
             setInputs={setInputs}
+            isConfigTabActive={activeTab === "config"}
             inventoryMode={inventoryMode}
             normalizedRows={normalizedRows}
             setNormalizedRows={setNormalizedRows}

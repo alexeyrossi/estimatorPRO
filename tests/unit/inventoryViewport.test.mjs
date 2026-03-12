@@ -6,6 +6,7 @@ import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 const {
   DESKTOP_INVENTORY_VIEWPORT_SNAPSHOT,
+  getInventoryExpandedMetrics,
   getInventoryViewportMetrics,
   resolveStableInventoryViewportSnapshot,
 } = require("../../lib/inventoryViewport.ts");
@@ -69,4 +70,42 @@ test("desktop resize remains live and does not freeze on editable focus", () => 
   assert.notEqual(next, DESKTOP_INVENTORY_VIEWPORT_SNAPSHOT);
   assert.equal(next.viewportHeight, 640);
   assert.deepEqual(next.metrics, DESKTOP_INVENTORY_VIEWPORT_SNAPSHOT.metrics);
+});
+
+test("desktop expanded metrics produce a tall in-card workspace", () => {
+  const metrics = getInventoryExpandedMetrics(DESKTOP_INVENTORY_VIEWPORT_SNAPSHOT);
+
+  assert.deepEqual(metrics, {
+    workspaceHeight: 666,
+    rawMinHeight: 634,
+    rawMaxHeight: 634,
+    normalizedMaxHeight: 580,
+  });
+});
+
+test("mobile expanded metrics use the stable snapshot while keyboard is open", () => {
+  const previous = createSnapshot(390, 844);
+  const stableSnapshot = resolveStableInventoryViewportSnapshot(previous, {
+    viewportWidth: 390,
+    viewportHeight: 512,
+    hasEditableFocus: true,
+  });
+
+  const metrics = getInventoryExpandedMetrics(stableSnapshot);
+
+  assert.deepEqual(metrics, {
+    workspaceHeight: 439,
+    rawMinHeight: 411,
+    rawMaxHeight: 411,
+    normalizedMaxHeight: 365,
+  });
+});
+
+test("expanded metrics leave extra chrome room for normalized inventory controls", () => {
+  const snapshot = createSnapshot(390, 844);
+  const metrics = getInventoryExpandedMetrics(snapshot);
+
+  assert.ok(metrics.rawMaxHeight > metrics.normalizedMaxHeight);
+  assert.equal(metrics.rawMinHeight, metrics.rawMaxHeight);
+  assert.ok(metrics.workspaceHeight > metrics.normalizedMaxHeight);
 });
