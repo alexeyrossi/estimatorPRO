@@ -1,5 +1,11 @@
 import React, { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { EstimateInputs, NormalizedRow, EstimateResult, RowsStatus } from '@/lib/types/estimator';
+import {
+    DESKTOP_INVENTORY_VIEWPORT_SNAPSHOT,
+    resolveStableInventoryViewportSnapshot,
+    type InventoryViewportMetrics,
+    type InventoryViewportSnapshot,
+} from '@/lib/inventoryViewport';
 import { Settings, MapPin, Trash2, Plus, Weight, Undo2, ListChecks, RefreshCcw, AlignLeft } from 'lucide-react';
 import { MAX_EXTRA_STOPS } from '@/lib/estimatePolicy';
 import { GlassPanel } from './GlassPanel';
@@ -7,50 +13,21 @@ import { Select } from './Select';
 import { InputLabel } from './InputLabel';
 import { AccessSegmented } from './AccessSegmented';
 
-type InventoryViewportMetrics = {
-    isMobile: boolean;
-    rawMinHeight: number;
-    rawMaxHeight: number;
-    normalizedMaxHeight: number;
-};
-
-const DESKTOP_VIEWPORT_METRICS: InventoryViewportMetrics = {
-    isMobile: false,
-    rawMinHeight: 224,
-    rawMaxHeight: 320,
-    normalizedMaxHeight: 288,
-};
-
 const INVENTORY_SCROLL_MARGIN_BOTTOM = 'calc(8rem + env(safe-area-inset-bottom))';
+const NON_TEXT_INPUT_TYPES = new Set([
+    'button',
+    'checkbox',
+    'color',
+    'file',
+    'hidden',
+    'image',
+    'radio',
+    'range',
+    'reset',
+    'submit',
+]);
 
-const getInventoryViewportMetrics = (): InventoryViewportMetrics => {
-    if (typeof window === 'undefined') return DESKTOP_VIEWPORT_METRICS;
-
-    const isMobile = window.innerWidth < 768;
-    const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
-    const rawMinHeight = isMobile ? 96 : 224;
-    const rawMaxHeight = isMobile
-        ? Math.max(rawMinHeight, Math.min(260, Math.round(viewportHeight * 0.32)))
-        : 320;
-    const normalizedMaxHeight = isMobile
-        ? Math.max(220, Math.min(360, Math.round(viewportHeight * 0.4)))
-        : 288;
-
-    return {
-        isMobile,
-        rawMinHeight,
-        rawMaxHeight,
-        normalizedMaxHeight,
-    };
-};
-
-const hasSameViewportMetrics = (a: InventoryViewportMetrics, b: InventoryViewportMetrics) =>
-    a.isMobile === b.isMobile
-    && a.rawMinHeight === b.rawMinHeight
-    && a.rawMaxHeight === b.rawMaxHeight
-    && a.normalizedMaxHeight === b.normalizedMaxHeight;
-
-let inventoryViewportSnapshot = DESKTOP_VIEWPORT_METRICS;
+let inventoryViewportSnapshot: InventoryViewportSnapshot = DESKTOP_INVENTORY_VIEWPORT_SNAPSHOT;
 
 const measureRawComposer = (
     textarea: HTMLTextAreaElement | null,
@@ -80,15 +57,45 @@ const subscribeToInventoryViewport = (callback: () => void) => {
     };
 };
 
-const getInventoryViewportSnapshot = () => {
-    const nextViewport = getInventoryViewportMetrics();
-    if (!hasSameViewportMetrics(inventoryViewportSnapshot, nextViewport)) {
-        inventoryViewportSnapshot = nextViewport;
+const hasActiveEditableFocus = () => {
+    if (typeof document === 'undefined') return false;
+
+    const activeElement = document.activeElement;
+
+    if (!(activeElement instanceof HTMLElement)) {
+        return false;
     }
+
+    if (activeElement.isContentEditable || activeElement.tagName === 'TEXTAREA') {
+        return true;
+    }
+
+    if (activeElement.tagName !== 'INPUT') {
+        return false;
+    }
+
+    const inputType = activeElement.getAttribute('type')?.toLowerCase() ?? 'text';
+    return !NON_TEXT_INPUT_TYPES.has(inputType);
+};
+
+const getInventoryViewportSnapshot = () => {
+    if (typeof window === 'undefined') {
+        return inventoryViewportSnapshot;
+    }
+
+    inventoryViewportSnapshot = resolveStableInventoryViewportSnapshot(
+        inventoryViewportSnapshot,
+        {
+            viewportWidth: window.innerWidth,
+            viewportHeight: window.visualViewport?.height ?? window.innerHeight,
+            hasEditableFocus: hasActiveEditableFocus(),
+        }
+    );
+
     return inventoryViewportSnapshot;
 };
 
-const getInventoryViewportServerSnapshot = () => DESKTOP_VIEWPORT_METRICS;
+const getInventoryViewportServerSnapshot = () => DESKTOP_INVENTORY_VIEWPORT_SNAPSHOT;
 
 const getInventoryModeToggleMeta = (
     inventoryMode: "raw" | "normalized",
@@ -181,7 +188,7 @@ export const ConfigPanel = ({
     useEffect(() => {
         if (inventoryMode !== "raw") return;
 
-        const nextStyle = measureRawComposer(rawTextareaRef.current, inventoryViewport);
+        const nextStyle = measureRawComposer(rawTextareaRef.current, inventoryViewport.metrics);
         if (!nextStyle) return;
         const textarea = rawTextareaRef.current;
         if (!textarea) return;
@@ -372,7 +379,7 @@ export const ConfigPanel = ({
                                 className="block w-full min-h-[96px] md:min-h-[224px] bg-white border border-gray-200 rounded-2xl px-4 py-3.5 sm:p-5 text-base md:text-[14px] leading-relaxed text-gray-800 outline-none resize-none font-mono transition-colors"
                                 placeholder="Paste inventory..."
                                 style={{
-                                    maxHeight: inventoryViewport.rawMaxHeight,
+                                    maxHeight: inventoryViewport.metrics.rawMaxHeight,
                                     WebkitOverflowScrolling: 'touch',
                                     scrollMarginBottom: INVENTORY_SCROLL_MARGIN_BOTTOM,
                                 }}
@@ -393,7 +400,7 @@ export const ConfigPanel = ({
                             <div
                                 className="overflow-y-auto overflow-x-auto pr-1"
                                 style={{
-                                    maxHeight: inventoryViewport.normalizedMaxHeight,
+                                    maxHeight: inventoryViewport.metrics.normalizedMaxHeight,
                                     WebkitOverflowScrolling: 'touch',
                                 }}
                             >
