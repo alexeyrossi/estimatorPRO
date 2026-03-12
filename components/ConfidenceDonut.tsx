@@ -234,12 +234,13 @@ export const ConfidenceDonut = ({
 
     return (
         <>
-            <div className="flex items-center justify-center gap-4 sm:justify-start sm:gap-5">
-                <div className="relative flex-shrink-0" style={{ width: size, height: size }}>
+            <div className="flex items-center justify-center gap-3 sm:justify-start sm:gap-5">
+                <div className="relative h-[60px] w-[60px] flex-shrink-0 sm:h-[72px] sm:w-[72px]">
                     <svg
+                        viewBox={`0 0 ${size} ${size}`}
                         width={size}
                         height={size}
-                        className="relative transform -rotate-90 overflow-visible"
+                        className="relative h-full w-full transform -rotate-90 overflow-visible"
                     >
                         {/* Background track */}
                         <circle
@@ -264,12 +265,12 @@ export const ConfidenceDonut = ({
                     </svg>
                     {/* Center number */}
                     <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="text-[16px] font-black text-gray-800 tabular-nums">
+                        <span className="text-[15px] font-black text-gray-800 tabular-nums sm:text-[16px]">
                             {displayScore}
                         </span>
                     </div>
                 </div>
-                <div className="flex flex-col items-center text-center sm:items-start sm:text-left">
+                <div className="flex min-w-0 flex-col items-center text-center sm:items-start sm:text-left">
                     <div
                         ref={tooltipRootRef}
                         className="mb-1.5 flex items-center justify-center gap-1.5 sm:justify-start"

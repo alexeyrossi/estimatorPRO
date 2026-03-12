@@ -31,7 +31,7 @@ export const MetricCard = ({ icon: Icon, label, value, sub, variant = "gray", is
             <div className="relative z-10 mt-4 min-w-0">
                 <div className={`min-w-0 text-xl sm:text-2xl font-black tracking-tight leading-tight tabular-nums ${isCritical ? 'text-red-800' : 'text-gray-900'}`}>{value}</div>
                 {sub && <div className={`text-[11px] font-semibold mt-1 leading-snug sm:truncate ${isCritical ? 'text-red-600' : 'text-gray-400'}`}>{sub}</div>}
-                {advice && <div className="mt-2 text-[10px] bg-emerald-50 text-emerald-700 px-2 py-1 rounded-lg font-semibold inline-block border border-emerald-100">{advice}</div>}
+                {advice && <div className="mt-2 inline-flex items-center whitespace-nowrap rounded-lg border border-emerald-100 bg-emerald-50 px-1.5 py-1 text-[9px] leading-tight font-semibold text-emerald-700 sm:px-2 sm:text-[10px]">{advice}</div>}
             </div>
         </div>
     );

@@ -6,8 +6,10 @@ import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 const {
   CONFIG_PANEL_VIEW_SWAP_DELAY_MS,
+  MOBILE_EXPANDED_VIEWPORT_GUTTER_PX,
   resolveConfigPanelViewSwap,
   resolveConfigPanelViewTransition,
+  resolveMobileExpandedViewportHeight,
 } = require("../../lib/configPanelView.ts");
 
 test("parameters to inventoryExpanded starts with leaving phase", () => {
@@ -39,5 +41,27 @@ test("swap helper returns entering phase for animated transition", () => {
       displayedView: "parameters",
       phase: "entering",
     }
+  );
+});
+
+test("mobile expanded viewport height subtracts panel top and bottom gutter", () => {
+  assert.equal(
+    resolveMobileExpandedViewportHeight({
+      minHeight: 368,
+      viewportHeight: 844,
+      viewportTop: 184,
+    }),
+    844 - 184 - MOBILE_EXPANDED_VIEWPORT_GUTTER_PX
+  );
+});
+
+test("mobile expanded viewport height clamps to the configured minimum", () => {
+  assert.equal(
+    resolveMobileExpandedViewportHeight({
+      minHeight: 368,
+      viewportHeight: 560,
+      viewportTop: 220,
+    }),
+    368
   );
 });

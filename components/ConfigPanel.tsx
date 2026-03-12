@@ -2,10 +2,10 @@ import React, { useCallback, useEffect, useRef, useState, useSyncExternalStore }
 import type { LucideIcon } from 'lucide-react';
 import {
     AlignLeft,
-    ListChecks,
     MapPin,
     Maximize2,
     Minimize2,
+    Pencil,
     Plus,
     RefreshCcw,
     Settings,
@@ -22,6 +22,7 @@ import {
 import {
     resolveConfigPanelViewSwap,
     resolveConfigPanelViewTransition,
+    resolveMobileExpandedViewportHeight,
     type ConfigPanelView,
     type ConfigPanelViewPhase,
 } from '@/lib/configPanelView';
@@ -51,6 +52,7 @@ const softActionButtonTransition = {
     transitionDuration: '150ms, 200ms, 200ms',
     transitionTimingFunction: 'ease-out',
 } as const;
+const MOBILE_EXPANDED_VIEWPORT_MIN_HEIGHT = 368;
 
 let inventoryViewportSnapshot: InventoryViewportSnapshot = DESKTOP_INVENTORY_VIEWPORT_SNAPSHOT;
 
@@ -153,7 +155,7 @@ const getInventoryModeToggleMeta = (
         label: 'Edit View',
         mobileLabel: 'Edit',
         title: 'Switch to edit view',
-        Icon: ListChecks,
+        Icon: Pencil,
     };
 };
 
@@ -278,12 +280,15 @@ export const ConfigPanel = ({
     const [displayedConfigView, setDisplayedConfigView] = useState<ConfigPanelView>('parameters');
     const [configViewPhase, setConfigViewPhase] = useState<ConfigPanelViewPhase>('idle');
     const [contentViewportHeight, setContentViewportHeight] = useState<number | null>(null);
+    const [mobileExpandedViewportHeight, setMobileExpandedViewportHeight] = useState<number | null>(null);
     const [activeContentNode, setActiveContentNode] = useState<HTMLDivElement | null>(null);
 
     const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const swapTimerRef = useRef<number | null>(null);
     const enterFrameRef = useRef<number | null>(null);
     const resizeFrameRef = useRef<number | null>(null);
+    const mobileExpandedMeasureFrameRef = useRef<number | null>(null);
+    const configViewportRef = useRef<HTMLDivElement | null>(null);
     const rawTextareaRef = useRef<HTMLTextAreaElement | null>(null);
     const normalizedListRef = useRef<HTMLDivElement | null>(null);
     const rawScrollTopRef = useRef(0);
@@ -292,6 +297,8 @@ export const ConfigPanel = ({
     const hasInventoryContent = inputs.inventoryText.length > 0 || normalizedRows.length > 0;
     const showInventoryActions = hasInventoryContent || Boolean(undoCache);
     const isExpandedViewDisplayed = displayedConfigView === 'inventoryExpanded';
+    const isMobileExpandedViewDisplayed = inventoryViewport.metrics.isMobile && isExpandedViewDisplayed;
+    const isMobileExpandedRawViewDisplayed = isMobileExpandedViewDisplayed && inventoryMode === 'raw';
 
     const clearViewTimers = useCallback(() => {
         if (swapTimerRef.current !== null) {
@@ -305,6 +312,10 @@ export const ConfigPanel = ({
         if (resizeFrameRef.current !== null) {
             window.cancelAnimationFrame(resizeFrameRef.current);
             resizeFrameRef.current = null;
+        }
+        if (mobileExpandedMeasureFrameRef.current !== null) {
+            window.cancelAnimationFrame(mobileExpandedMeasureFrameRef.current);
+            mobileExpandedMeasureFrameRef.current = null;
         }
     }, []);
 
@@ -358,6 +369,21 @@ export const ConfigPanel = ({
     const handleNormalizedScroll = (event: React.UIEvent<HTMLDivElement>) => {
         normalizedScrollTopRef.current = event.currentTarget.scrollTop;
     };
+
+    const syncMobileExpandedViewportHeight = useCallback(() => {
+        if (!inventoryViewport.metrics.isMobile || displayedConfigView !== 'inventoryExpanded') return;
+
+        const viewportNode = configViewportRef.current;
+        if (!viewportNode) return;
+
+        const nextHeight = resolveMobileExpandedViewportHeight({
+            minHeight: MOBILE_EXPANDED_VIEWPORT_MIN_HEIGHT,
+            viewportHeight: inventoryViewport.viewportHeight,
+            viewportTop: viewportNode.getBoundingClientRect().top,
+        });
+
+        setMobileExpandedViewportHeight((current) => current === nextHeight ? current : nextHeight);
+    }, [displayedConfigView, inventoryViewport.metrics.isMobile, inventoryViewport.viewportHeight]);
 
     useEffect(() => {
         return () => {
@@ -475,6 +501,58 @@ export const ConfigPanel = ({
     }, [activeContentNode]);
 
     useEffect(() => {
+        if (!isMobileExpandedViewDisplayed) return;
+
+        const scheduleSync = () => {
+            if (mobileExpandedMeasureFrameRef.current !== null) {
+                window.cancelAnimationFrame(mobileExpandedMeasureFrameRef.current);
+            }
+
+            mobileExpandedMeasureFrameRef.current = window.requestAnimationFrame(() => {
+                syncMobileExpandedViewportHeight();
+                mobileExpandedMeasureFrameRef.current = null;
+            });
+        };
+
+        scheduleSync();
+
+        window.addEventListener('scroll', scheduleSync, { passive: true });
+
+        if (typeof ResizeObserver === 'undefined') {
+            return () => {
+                window.removeEventListener('scroll', scheduleSync);
+                if (mobileExpandedMeasureFrameRef.current !== null) {
+                    window.cancelAnimationFrame(mobileExpandedMeasureFrameRef.current);
+                    mobileExpandedMeasureFrameRef.current = null;
+                }
+            };
+        }
+
+        const observer = new ResizeObserver(() => {
+            scheduleSync();
+        });
+
+        if (document.body) {
+            observer.observe(document.body);
+        }
+        if (document.documentElement && document.documentElement !== document.body) {
+            observer.observe(document.documentElement);
+        }
+        if (configViewportRef.current) {
+            observer.observe(configViewportRef.current);
+        }
+
+        return () => {
+            window.removeEventListener('scroll', scheduleSync);
+            observer.disconnect();
+            if (mobileExpandedMeasureFrameRef.current !== null) {
+                window.cancelAnimationFrame(mobileExpandedMeasureFrameRef.current);
+                mobileExpandedMeasureFrameRef.current = null;
+            }
+        };
+    }, [isMobileExpandedViewDisplayed, syncMobileExpandedViewportHeight]);
+
+    useEffect(() => {
         if (
             !inventoryViewport.metrics.isMobile
             || isConfigTabActive
@@ -504,6 +582,15 @@ export const ConfigPanel = ({
     }, [displayedConfigView, inventoryMode]);
 
     useEffect(() => {
+        const textarea = rawTextareaRef.current;
+        if (!textarea) return;
+
+        if (isMobileExpandedRawViewDisplayed) {
+            textarea.style.height = '';
+            textarea.style.overflowY = 'auto';
+            return;
+        }
+
         if (inventoryMode !== 'raw') return;
 
         const rawLimits = isExpandedViewDisplayed
@@ -515,11 +602,8 @@ export const ConfigPanel = ({
                 minHeight: inventoryViewport.metrics.rawMinHeight,
                 maxHeight: inventoryViewport.metrics.rawMaxHeight,
             };
-        const nextStyle = measureRawComposer(rawTextareaRef.current, rawLimits);
+        const nextStyle = measureRawComposer(textarea, rawLimits);
         if (!nextStyle) return;
-
-        const textarea = rawTextareaRef.current;
-        if (!textarea) return;
 
         textarea.style.height = `${nextStyle.height}px`;
         textarea.style.overflowY = nextStyle.overflowY;
@@ -528,8 +612,10 @@ export const ConfigPanel = ({
         expandedMetrics.rawMinHeight,
         inputs.inventoryText,
         isExpandedViewDisplayed,
+        isMobileExpandedRawViewDisplayed,
         inventoryMode,
-        inventoryViewport,
+        inventoryViewport.metrics.rawMaxHeight,
+        inventoryViewport.metrics.rawMinHeight,
     ]);
 
     const configMotionStyle: React.CSSProperties = configViewPhase === 'leaving'
@@ -547,8 +633,11 @@ export const ConfigPanel = ({
                 transform: 'translateY(0px)',
             };
 
+    const resolvedConfigViewportHeight = isMobileExpandedViewDisplayed
+        ? mobileExpandedViewportHeight ?? contentViewportHeight
+        : contentViewportHeight;
     const configViewportStyle: React.CSSProperties = {
-        height: contentViewportHeight != null ? `${contentViewportHeight}px` : undefined,
+        height: resolvedConfigViewportHeight != null ? `${resolvedConfigViewportHeight}px` : undefined,
         transition: 'height 220ms ease-out',
     };
 
@@ -629,9 +718,13 @@ export const ConfigPanel = ({
                         : 'min-h-[96px] rounded-2xl border border-gray-200 bg-white px-4 py-3.5 pr-10 text-base sm:p-5 sm:pr-10 md:min-h-[224px] md:pr-10 md:text-[14px]'}`}
                     placeholder="Paste inventory..."
                     style={{
-                        maxHeight: expanded ? expandedMetrics.rawMaxHeight : inventoryViewport.metrics.rawMaxHeight,
                         WebkitOverflowScrolling: 'touch',
                         scrollMarginBottom: INVENTORY_SCROLL_MARGIN_BOTTOM,
+                        ...(!expanded
+                            ? { maxHeight: inventoryViewport.metrics.rawMaxHeight }
+                            : inventoryViewport.metrics.isMobile
+                                ? {}
+                                : { maxHeight: expandedMetrics.rawMaxHeight }),
                     }}
                     aria-label="Raw inventory text input"
                 />
@@ -662,8 +755,12 @@ export const ConfigPanel = ({
                 onScroll={handleNormalizedScroll}
                 className={`inventory-scrollbar-hidden overflow-x-auto overflow-y-auto pr-1 ${expanded ? 'flex-1 min-h-0' : ''}`}
                 style={{
-                    maxHeight: expanded ? expandedMetrics.normalizedMaxHeight : inventoryViewport.metrics.normalizedMaxHeight,
                     WebkitOverflowScrolling: 'touch',
+                    ...(!expanded
+                        ? { maxHeight: inventoryViewport.metrics.normalizedMaxHeight }
+                        : inventoryViewport.metrics.isMobile
+                            ? {}
+                            : { maxHeight: expandedMetrics.normalizedMaxHeight }),
                 }}
             >
                 <div className="min-w-[260px] w-full">
@@ -677,7 +774,7 @@ export const ConfigPanel = ({
                     {normalizedRows.map((row) => (
                         <div key={row.id} className="mb-1 grid grid-cols-[1fr_2.5rem_2.5rem_2.5rem_1.75rem] items-center gap-1.5 text-[10px] font-semibold">
                             <input
-                                className="min-w-0 h-7 rounded border-transparent bg-gray-50 px-2 outline-none transition-all hover:bg-gray-100 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                                className="min-w-0 h-8 rounded border-transparent bg-gray-50 px-2 text-base outline-none transition-all hover:bg-gray-100 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 md:h-7 md:text-[10px]"
                                 value={row.name}
                                 onChange={(event) => setNormalizedRows((prev) => prev.map((candidate) => candidate.id === row.id ? {
                                     ...candidate,
@@ -689,7 +786,7 @@ export const ConfigPanel = ({
                             />
                             <input
                                 type="number"
-                                className="h-7 rounded border-transparent bg-gray-50 px-1 text-center outline-none transition-all hover:bg-gray-100 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                                className="h-8 rounded border-transparent bg-gray-50 px-1 text-center text-base outline-none transition-all hover:bg-gray-100 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 md:h-7 md:text-[10px]"
                                 value={row.qty as string | number}
                                 onChange={(event) => handleRowQtyChange(row.id, event.target.value)}
                                 onBlur={() => handleRowQtyChange(row.id, row.qty as string, true)}
@@ -697,7 +794,7 @@ export const ConfigPanel = ({
                             />
                             <input
                                 type="number"
-                                className="h-7 rounded border-transparent bg-gray-50 px-1 text-center outline-none transition-all hover:bg-gray-100 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                                className="h-8 rounded border-transparent bg-gray-50 px-1 text-center text-base outline-none transition-all hover:bg-gray-100 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 md:h-7 md:text-[10px]"
                                 value={row.cfUnit as string | number}
                                 onChange={(event) => setNormalizedRows((prev) => prev.map((candidate) => candidate.id === row.id ? {
                                     ...candidate,
@@ -958,8 +1055,11 @@ export const ConfigPanel = ({
     );
 
     const expandedContent = (
-        <div className="flex flex-col gap-3">
-            <div className="min-h-0" style={{ height: `${expandedMetrics.workspaceHeight}px` }}>
+        <div className={`flex flex-col gap-3 ${inventoryViewport.metrics.isMobile ? 'h-full min-h-0' : ''}`}>
+            <div
+                className={inventoryViewport.metrics.isMobile ? 'flex-1 min-h-0' : 'min-h-0'}
+                style={inventoryViewport.metrics.isMobile ? undefined : { height: `${expandedMetrics.workspaceHeight}px` }}
+            >
                 {renderInventoryBody(true)}
             </div>
             {inventoryClipped && (
@@ -981,11 +1081,11 @@ export const ConfigPanel = ({
         <GlassPanel className="overflow-hidden">
             <div className="flex flex-col p-4 md:p-6">
                 {configShellHeader}
-                <div className="config-view-viewport overflow-hidden" style={configViewportStyle}>
+                <div ref={configViewportRef} className="config-view-viewport overflow-hidden" style={configViewportStyle}>
                     <div
                         key={displayedConfigView}
                         ref={setActiveContentNode}
-                        className="config-view-motion transition-[opacity,transform] duration-[180ms] ease-out"
+                        className={`config-view-motion transition-[opacity,transform] duration-[180ms] ease-out ${isMobileExpandedViewDisplayed ? 'h-full' : ''}`}
                         style={configMotionStyle}
                     >
                         {configContent}

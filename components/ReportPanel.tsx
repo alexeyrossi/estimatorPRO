@@ -705,7 +705,7 @@ export const ReportPanel = ({
             </div>
 
             <GlassPanel className="overflow-hidden">
-                <div className="flex flex-col p-4 md:p-6">
+                <div className="flex flex-col p-4 md:px-6 md:pt-5 md:pb-6">
                     {reportShellHeader}
                     <div className="report-view-viewport overflow-hidden" style={reportViewportStyle}>
                         <div
