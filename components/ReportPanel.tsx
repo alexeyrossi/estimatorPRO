@@ -318,15 +318,17 @@ export const ReportPanel = ({
             aria-label={isDisplayedDetails ? "Back" : "View estimate details"}
             title={isDisplayedDetails ? "Back" : "View estimate details"}
             aria-pressed={isDisplayedDetails}
-            className={`group relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-gray-500 hover:bg-gray-100 hover:text-gray-900 active:scale-[0.98] md:w-auto md:gap-2 md:px-3.5 ${isDisplayedDetails ? "text-gray-900 md:bg-gray-100" : ""}`}
+            className={`group relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-gray-500 hover:bg-gray-100 hover:text-gray-900 active:scale-[0.98] ${isDisplayedDetails ? "bg-gray-100 text-gray-900" : "md:w-auto md:gap-2 md:px-3.5"}`}
             style={softActionButtonTransition}
         >
             <span className="relative h-4 w-4 shrink-0">
                 {isDisplayedDetails ? <ArrowLeft className="h-4 w-4" /> : <Settings2 className="h-4 w-4" />}
             </span>
-            <span className="hidden md:inline text-[11px] font-bold leading-none">
-                {isDisplayedDetails ? "Back" : "Details"}
-            </span>
+            {!isDisplayedDetails && (
+                <span className="hidden md:inline text-[11px] font-bold leading-none">
+                    Details
+                </span>
+            )}
         </button>
     );
     const inventoryTopControl = (
@@ -335,15 +337,17 @@ export const ReportPanel = ({
             aria-label={isDisplayedInventory ? "Back" : "Inventory View"}
             title={isDisplayedInventory ? "Back" : "Inventory View"}
             aria-pressed={isDisplayedInventory}
-            className={`group relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-gray-500 hover:bg-gray-100 hover:text-gray-900 active:scale-[0.98] md:w-auto md:gap-2 md:px-3.5 ${isDisplayedInventory ? "text-gray-900 md:bg-gray-100" : ""}`}
+            className={`group relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-gray-500 hover:bg-gray-100 hover:text-gray-900 active:scale-[0.98] ${isDisplayedInventory ? "bg-gray-100 text-gray-900" : "md:w-auto md:gap-2 md:px-3.5"}`}
             style={softActionButtonTransition}
         >
             <span className="relative h-4 w-4 shrink-0">
                 {isDisplayedInventory ? <ArrowLeft className="h-4 w-4" /> : <List className="h-4 w-4" />}
             </span>
-            <span className="hidden md:inline text-[11px] font-bold leading-none">
-                {isDisplayedInventory ? "Back" : "Inventory"}
-            </span>
+            {!isDisplayedInventory && (
+                <span className="hidden md:inline text-[11px] font-bold leading-none">
+                    Inventory
+                </span>
+            )}
         </button>
     );
     const panelLayerLabelClass = "flex items-center gap-2";

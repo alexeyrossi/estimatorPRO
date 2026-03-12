@@ -648,7 +648,7 @@ export const ConfigPanel = ({
                     <button
                         type="button"
                         onClick={handleClearInventory}
-                        className="rounded-lg p-1.5 text-red-400 transition-colors hover:bg-red-50 hover:text-red-600"
+                        className="rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-red-50 hover:text-red-600"
                         title="Clear inventory"
                         aria-label="Clear inventory"
                     >
