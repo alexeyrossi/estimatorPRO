@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Calendar, ClipboardList, MapPin, Package, Undo2, X } from "lucide-react";
+import { Bookmark, Calendar, MapPin, Package, Undo2, X } from "lucide-react";
 import type { EstimateHistoryItem } from "@/lib/types/estimator";
 
 type HistoryPanelProps = {
@@ -315,7 +315,7 @@ export function HistoryPanel({
       <div className="rounded-[2rem] border border-gray-100 bg-white p-5 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <ClipboardList className="h-4 w-4 text-gray-400" />
+            <Bookmark className="h-4 w-4 text-gray-400" />
             <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Saved Estimates</span>
           </div>
           <div className="flex items-center gap-3 text-gray-400">

@@ -1,4 +1,4 @@
-import { Calculator, ClipboardList, Loader2, LogOut, Settings, Truck } from "lucide-react";
+import { Bookmark, Calculator, Loader2, LogOut, Settings, Truck } from "lucide-react";
 
 type DashboardHeaderProps = {
   activeTab: "config" | "report";
@@ -73,7 +73,7 @@ export function DashboardHeader({
             onClick={onToggleHistory}
             className="bg-white rounded-[1.5rem] shadow-[0_4px_24px_rgba(0,0,0,0.03)] px-4 py-2 flex items-center gap-2 text-[12px] font-bold text-gray-400 hover:text-gray-600 transition-all duration-200 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:-translate-y-0.5 border border-transparent active:scale-95"
           >
-            <ClipboardList className="w-4 h-4" strokeWidth={2} />
+            <Bookmark className="w-4 h-4" strokeWidth={2} />
             History
           </button>
 
@@ -108,7 +108,7 @@ export function DashboardHeader({
           aria-label="Open history"
           title="History"
         >
-          <ClipboardList className="w-4 h-4" strokeWidth={2} />
+          <Bookmark className="w-4 h-4" strokeWidth={2} />
         </button>
         <button
           onClick={onLogout}

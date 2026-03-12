@@ -3,7 +3,7 @@ import { EstimateInputs, EstimateResult } from '@/lib/types/estimator';
 import { OVERRIDE_KEYS, sanitizeOverrides } from '@/lib/estimatePolicy';
 import { buildReportSummaryNotes } from '@/lib/reportNotes';
 import {
-    Truck, Box, List, Weight, Terminal, ChevronRight, Lock, Scale, PackageOpen, Clock, CalendarDays, Info, Users, AlertTriangle, ArrowUpFromLine, ArrowLeft, Check, Clipboard, Loader2, SlidersVertical
+    Truck, Box, List, Weight, Terminal, ChevronRight, Lock, Scale, PackageOpen, Clock, CalendarDays, Info, Users, AlertTriangle, ArrowUpFromLine, ArrowLeft, Check, Clipboard, FileText, Loader2, Settings2
 } from 'lucide-react';
 import { GlassPanel } from './GlassPanel';
 import { MetricCard } from './MetricCard';
@@ -315,7 +315,7 @@ export const ReportPanel = ({
             style={softActionButtonTransition}
         >
             <span className="relative h-4 w-4 shrink-0">
-                {isDisplayedDetails ? <ArrowLeft className="h-4 w-4" /> : <SlidersVertical className="h-4 w-4" />}
+                {isDisplayedDetails ? <ArrowLeft className="h-4 w-4" /> : <Settings2 className="h-4 w-4" />}
             </span>
             <span className="hidden md:inline text-[11px] font-bold leading-none">
                 {isDisplayedDetails ? "Back" : "Details"}
@@ -355,7 +355,7 @@ export const ReportPanel = ({
         ? { Icon: List, title: "Detected Items" }
         : displayedReportView === "details"
             ? { Icon: Lock, title: "Manual Overrides" }
-            : { Icon: Clipboard, title: "Summary" };
+            : { Icon: FileText, title: "Summary" };
     const shellHeaderActions = (
         <div className="flex items-center gap-2">
             {isDisplayedDetails && clearOverridesButton}
@@ -589,7 +589,7 @@ export const ReportPanel = ({
                     <div className="space-y-3">
                         <div className={panelLayerLabelClass}>
                             <Terminal className="w-4 h-4 text-gray-800" />
-                            <span className={panelLayerTitleClass}>Volume Calculation Path</span>
+                            <span className={panelLayerTitleClass}>Calculation Path</span>
                         </div>
                         <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
                             <div className="grid grid-cols-2 gap-x-5 gap-y-4 min-[390px]:grid-cols-3 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)] md:items-center md:gap-x-6 md:gap-y-0">
