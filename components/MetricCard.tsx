@@ -21,17 +21,25 @@ export const MetricCard = ({ icon: Icon, label, value, sub, variant = "gray", is
                             { bg: "bg-slate-500", text: "text-slate-600", light: "bg-slate-50" });
 
     return (
-        <div className={`relative min-w-0 overflow-hidden px-4 py-4 sm:px-6 sm:py-4.5 rounded-[1.5rem] bg-white min-h-[120px] flex flex-col justify-center h-full transition-all duration-300 group hover:-translate-y-0.5 shadow-[0_4px_24px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] ${isCritical ? 'bg-red-50/30' : ''}`}>
-            <div className={`absolute -right-6 -top-6 w-32 h-32 rounded-full blur-3xl opacity-0 group-hover:opacity-15 transition-opacity duration-500 ${style.bg}`} />
+        <div
+            className="group relative min-w-0 h-full rounded-[1.5rem] shadow-[0_4px_24px_rgba(0,0,0,0.03)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)]"
+        >
+            <div className={`relative isolate min-h-[120px] h-full min-w-0 overflow-hidden rounded-[1.5rem] bg-white px-4 py-4 sm:px-6 sm:py-4.5 flex flex-col justify-center ${isCritical ? 'bg-red-50/30' : ''}`}>
+                <div
+                    aria-hidden="true"
+                    className={`pointer-events-none absolute -right-6 -top-6 h-32 w-32 rounded-full blur-3xl opacity-0 transition-opacity duration-500 group-hover:opacity-15 transform-gpu ${style.bg}`}
+                    style={{ willChange: 'opacity, transform', transform: 'translate3d(0, 0, 0)' }}
+                />
 
-            <div className="relative z-10 flex items-center gap-2">
-                <div className={`p-2 rounded-xl ${isCritical ? 'bg-red-100 text-red-600' : `${style.light} ${style.text}`}`}><Icon className="w-4 h-4" /></div>
-                <span className={`text-[10px] font-semibold uppercase tracking-widest ${isCritical ? 'text-red-500' : 'text-slate-600'}`}>{label}</span>
-            </div>
-            <div className="relative z-10 mt-4 min-w-0">
-                <div className={`min-w-0 text-xl sm:text-2xl font-black tracking-tight leading-tight tabular-nums ${isCritical ? 'text-red-800' : 'text-slate-900'}`}>{value}</div>
-                {sub && <div className={`mt-1 text-[11px] font-semibold leading-snug sm:truncate ${isCritical ? 'text-red-600' : 'text-slate-500'}`}>{sub}</div>}
-                {advice && <div className="mt-2 inline-flex items-center whitespace-nowrap rounded-lg border border-emerald-100 bg-emerald-50 px-1.5 py-1 text-[9px] leading-tight font-semibold text-emerald-700 sm:px-2 sm:text-[10px]">{advice}</div>}
+                <div className="relative z-10 flex items-center gap-2">
+                    <div className={`p-2 rounded-xl ${isCritical ? 'bg-red-100 text-red-600' : `${style.light} ${style.text}`}`}><Icon className="w-4 h-4" /></div>
+                    <span className={`text-[10px] font-semibold uppercase tracking-widest ${isCritical ? 'text-red-500' : 'text-slate-600'}`}>{label}</span>
+                </div>
+                <div className="relative z-10 mt-4 min-w-0">
+                    <div className={`min-w-0 text-xl sm:text-2xl font-black tracking-tight leading-tight tabular-nums ${isCritical ? 'text-red-800' : 'text-slate-900'}`}>{value}</div>
+                    {sub && <div className={`mt-1 text-[11px] font-semibold leading-snug sm:truncate ${isCritical ? 'text-red-600' : 'text-slate-500'}`}>{sub}</div>}
+                    {advice && <div className="mt-2 inline-flex items-center whitespace-nowrap rounded-lg border border-emerald-100 bg-emerald-50 px-1.5 py-1 text-[9px] leading-tight font-semibold text-emerald-700 sm:px-2 sm:text-[10px]">{advice}</div>}
+                </div>
             </div>
         </div>
     );
