@@ -11,9 +11,10 @@ import {
 } from "../../lib/types/estimator";
 import { getSessionAccess, requireAuthenticatedAccess } from "../../lib/auth/access";
 import { buildEstimate } from "../../lib/engine";
-import { cleanTranscriptToInventoryText } from "../../lib/geminiTranscriptCleaner";
+import { cleanTranscriptToRoomInventory } from "../../lib/geminiTranscriptCleaner";
 import { applyAliasesRegex, normalizeRowsFromText } from "../../lib/parser";
 import { SORTED_KEYS, KEY_REGEX, VOLUME_TABLE, TRUE_HEAVY_ITEMS } from "../../lib/dictionaries";
+import { serializeRoomInventoryToText, type RoomInventoryGroup } from "../../lib/roomInventory";
 import {
   MAX_INVENTORY_CHARS,
   normalizeLegacyMoveType,
@@ -53,9 +54,14 @@ export async function normalizeInventoryAction(text: string): Promise<Normalized
   return result.rows as NormalizedRow[];
 }
 
-export async function cleanTranscriptAction(text: string): Promise<string> {
+export async function cleanTranscriptAction(text: string): Promise<{ rooms: RoomInventoryGroup[]; inventoryText: string }> {
   await requireAuthenticatedAccess();
-  return cleanTranscriptToInventoryText(String(text ?? "").slice(0, MAX_INVENTORY_CHARS));
+  const cleanedInventory = await cleanTranscriptToRoomInventory(String(text ?? "").slice(0, MAX_INVENTORY_CHARS));
+
+  return {
+    rooms: cleanedInventory.rooms,
+    inventoryText: serializeRoomInventoryToText(cleanedInventory.rooms),
+  };
 }
 
 export async function resolveItemAction(name: string): Promise<{ resolvedName: string; cfUnit: number; isHeavy: boolean }> {

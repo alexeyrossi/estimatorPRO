@@ -190,9 +190,9 @@ export function DashboardClient() {
 
     setIsCleaningTranscript(true);
     try {
-      const cleanedText = await cleanTranscriptAction(rawText);
+      const cleanedResult = await cleanTranscriptAction(rawText);
       setInventoryClipped(false);
-      dispatchDraft({ type: "setRawText", inventoryText: cleanedText });
+      dispatchDraft({ type: "setRawText", inventoryText: cleanedResult.inventoryText });
     } catch (error: unknown) {
       console.error(error);
       toast.error("Failed to clean transcript. Please try again.");

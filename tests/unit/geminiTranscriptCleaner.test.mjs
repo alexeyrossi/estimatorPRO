@@ -58,7 +58,7 @@ async function withImmediateTimeout(fn) {
   }
 }
 
-test("cleanTranscriptToInventoryText sends the expected Gemini request payload", async () => {
+test("cleanTranscriptToRoomInventory sends the expected Gemini request payload", async () => {
   let requestUrl = "";
   let requestOptions = null;
 
@@ -78,7 +78,14 @@ test("cleanTranscriptToInventoryText sends the expected Gemini request payload",
             content: {
               parts: [
                 {
-                  text: "{\"inventory_text\":\"1 couch  \\r\\n2 chairs\\t\"}",
+                  text: JSON.stringify({
+                    rooms: [
+                      {
+                        room_name: " Entry / Hall ",
+                        items: ["1 couch  ", " 2 chairs\t"],
+                      },
+                    ],
+                  }),
                 },
               ],
             },
@@ -89,10 +96,17 @@ test("cleanTranscriptToInventoryText sends the expected Gemini request payload",
         headers: { "Content-Type": "application/json" },
       });
     }, async () => {
-      const { cleanTranscriptToInventoryText } = loadFreshCleanerModule();
-      const cleanedText = await cleanTranscriptToInventoryText("We have one couch and two chairs.");
+      const { cleanTranscriptToRoomInventory } = loadFreshCleanerModule();
+      const cleanedInventory = await cleanTranscriptToRoomInventory("Entry / Hall has one couch and two chairs.");
 
-      assert.equal(cleanedText, "1 couch\n2 chairs");
+      assert.deepEqual(cleanedInventory, {
+        rooms: [
+          {
+            room_name: "Entry / Hall",
+            items: ["1 couch", "2 chairs"],
+          },
+        ],
+      });
       assert.equal(requestUrl, "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent");
       assert.equal(requestOptions.method, "POST");
       assert.equal(requestOptions.cache, "no-store");
@@ -105,20 +119,79 @@ test("cleanTranscriptToInventoryText sends the expected Gemini request payload",
       assert.deepEqual(body.generationConfig.responseJsonSchema, {
         type: "object",
         properties: {
-          inventory_text: {
-            type: "string",
+          rooms: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                room_name: {
+                  type: "string",
+                },
+                items: {
+                  type: "array",
+                  items: {
+                    type: "string",
+                  },
+                },
+              },
+              required: ["room_name", "items"],
+              additionalProperties: false,
+            },
           },
         },
-        required: ["inventory_text"],
+        required: ["rooms"],
+        additionalProperties: false,
       });
-      assert.match(body.system_instruction.parts[0].text, /You are an AI transcript cleaner for a moving estimator\./);
-      assert.match(body.contents[0].parts[0].text, /Return JSON only in this exact shape:/);
-      assert.match(body.contents[0].parts[0].text, /Transcript:\nWe have one couch and two chairs\./);
+      assert.match(body.system_instruction.parts[0].text, /room-grouped inventory draft/i);
+      assert.match(body.contents[0].parts[0].text, /preserve room and area labels whenever present or clearly implied/i);
+      assert.match(body.contents[0].parts[0].text, /Transcript:\nEntry \/ Hall has one couch and two chairs\./);
     });
   });
 });
 
-test("cleanTranscriptToInventoryText rejects non-OK Gemini responses", async () => {
+test("cleanTranscriptToInventoryText serializes grouped room inventory for the raw parser flow", async () => {
+  await withMockedModule("../../lib/env.ts", {
+    getGeminiEnv: () => ({
+      apiKey: "gemini-key",
+      model: "gemini-2.5-flash-lite",
+    }),
+  }, async () => {
+    await withFetchMock(async () => new Response(JSON.stringify({
+      candidates: [
+        {
+          content: {
+            parts: [
+              {
+                text: JSON.stringify({
+                  rooms: [
+                    {
+                      room_name: "Entry / Hall",
+                      items: ["1 console table", "1 mirror"],
+                    },
+                    {
+                      room_name: "Master Bedroom",
+                      items: ["1 king bed", "2 nightstands"],
+                    },
+                  ],
+                }),
+              },
+            ],
+          },
+        },
+      ],
+    }), { status: 200 }), async () => {
+      const { cleanTranscriptToInventoryText } = loadFreshCleanerModule();
+      const cleanedText = await cleanTranscriptToInventoryText("one transcript");
+
+      assert.equal(
+        cleanedText,
+        "Entry / Hall:\n1 console table\n1 mirror\n\nMaster Bedroom:\n1 king bed\n2 nightstands"
+      );
+    });
+  });
+});
+
+test("cleanTranscriptToRoomInventory rejects non-OK Gemini responses", async () => {
   await withMockedModule("../../lib/env.ts", {
     getGeminiEnv: () => ({
       apiKey: "gemini-key",
@@ -126,17 +199,17 @@ test("cleanTranscriptToInventoryText rejects non-OK Gemini responses", async () 
     }),
   }, async () => {
     await withFetchMock(async () => new Response("backend exploded", { status: 503 }), async () => {
-      const { cleanTranscriptToInventoryText } = loadFreshCleanerModule();
+      const { cleanTranscriptToRoomInventory } = loadFreshCleanerModule();
 
       await assert.rejects(
-        () => cleanTranscriptToInventoryText("one couch"),
+        () => cleanTranscriptToRoomInventory("one couch"),
         /Gemini transcript cleaner request failed \(503\): backend exploded/
       );
     });
   });
 });
 
-test("cleanTranscriptToInventoryText rejects malformed candidate JSON", async () => {
+test("cleanTranscriptToRoomInventory rejects malformed candidate JSON", async () => {
   await withMockedModule("../../lib/env.ts", {
     getGeminiEnv: () => ({
       apiKey: "gemini-key",
@@ -156,17 +229,17 @@ test("cleanTranscriptToInventoryText rejects malformed candidate JSON", async ()
         },
       ],
     }), { status: 200 }), async () => {
-      const { cleanTranscriptToInventoryText } = loadFreshCleanerModule();
+      const { cleanTranscriptToRoomInventory } = loadFreshCleanerModule();
 
       await assert.rejects(
-        () => cleanTranscriptToInventoryText("one couch"),
+        () => cleanTranscriptToRoomInventory("one couch"),
         /Gemini transcript cleaner returned malformed JSON/
       );
     });
   });
 });
 
-test("cleanTranscriptToInventoryText rejects missing inventory_text output", async () => {
+test("cleanTranscriptToRoomInventory rejects missing rooms output", async () => {
   await withMockedModule("../../lib/env.ts", {
     getGeminiEnv: () => ({
       apiKey: "gemini-key",
@@ -186,17 +259,47 @@ test("cleanTranscriptToInventoryText rejects missing inventory_text output", asy
         },
       ],
     }), { status: 200 }), async () => {
-      const { cleanTranscriptToInventoryText } = loadFreshCleanerModule();
+      const { cleanTranscriptToRoomInventory } = loadFreshCleanerModule();
 
       await assert.rejects(
-        () => cleanTranscriptToInventoryText("one couch"),
-        /Gemini transcript cleaner response missing inventory_text/
+        () => cleanTranscriptToRoomInventory("one couch"),
+        /Gemini transcript cleaner response missing rooms/
       );
     });
   });
 });
 
-test("cleanTranscriptToInventoryText rejects Gemini timeouts", async () => {
+test("cleanTranscriptToRoomInventory rejects malformed room entries", async () => {
+  await withMockedModule("../../lib/env.ts", {
+    getGeminiEnv: () => ({
+      apiKey: "gemini-key",
+      model: "gemini-2.5-flash-lite",
+    }),
+  }, async () => {
+    await withFetchMock(async () => new Response(JSON.stringify({
+      candidates: [
+        {
+          content: {
+            parts: [
+              {
+                text: "{\"rooms\":[{\"room_name\":\"Garage\"}]}",
+              },
+            ],
+          },
+        },
+      ],
+    }), { status: 200 }), async () => {
+      const { cleanTranscriptToRoomInventory } = loadFreshCleanerModule();
+
+      await assert.rejects(
+        () => cleanTranscriptToRoomInventory("one couch"),
+        /Gemini transcript cleaner returned malformed room inventory/
+      );
+    });
+  });
+});
+
+test("cleanTranscriptToRoomInventory rejects Gemini timeouts", async () => {
   await withMockedModule("../../lib/env.ts", {
     getGeminiEnv: () => ({
       apiKey: "gemini-key",
@@ -213,10 +316,10 @@ test("cleanTranscriptToInventoryText rejects Gemini timeouts", async () => {
 
         return new Promise(() => {});
       }, async () => {
-        const { cleanTranscriptToInventoryText } = loadFreshCleanerModule();
+        const { cleanTranscriptToRoomInventory } = loadFreshCleanerModule();
 
         await assert.rejects(
-          () => cleanTranscriptToInventoryText("one couch"),
+          () => cleanTranscriptToRoomInventory("one couch"),
           /Gemini transcript cleaner timed out/
         );
       });

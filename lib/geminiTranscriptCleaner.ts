@@ -1,6 +1,11 @@
 import "server-only";
 
 import { getGeminiEnv } from "./env";
+import {
+  normalizeRoomInventoryResponse,
+  serializeRoomInventoryToText,
+  type RoomInventoryDraft,
+} from "./roomInventory";
 
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta";
 const GEMINI_TIMEOUT_MS = 15_000;
@@ -8,7 +13,7 @@ const GEMINI_TEMPERATURE = 0.1;
 
 const TRANSCRIPT_CLEANER_SYSTEM_PROMPT = `You are an AI transcript cleaner for a moving estimator.
 
-Your only job is to convert a messy moving-related customer conversation transcript into a clean raw inventory list for an existing downstream inventory parser.
+Your only job is to convert a messy moving-related customer conversation transcript into a room-grouped inventory draft for an existing downstream inventory parser.
 
 Critical role boundaries:
 - You are NOT the inventory parser.
@@ -17,7 +22,6 @@ Critical role boundaries:
 - You are NOT the estimator.
 - You are NOT the pricing engine.
 - You must not replace downstream parsing logic.
-- You must not return structured inventory objects.
 - You must not interpret business logic beyond cleaning the transcript.
 
 The downstream parser is already highly refined and handles:
@@ -26,16 +30,23 @@ The downstream parser is already highly refined and handles:
 - normalization
 - item recognition
 
-Your output must be optimized for that parser.
+Your output must be optimized for that parser while preserving room or area grouping.
 
 Return JSON only in this exact shape:
 {
-  "inventory_text": "string"
+  "rooms": [
+    {
+      "room_name": "string",
+      "items": ["string"]
+    }
+  ]
 }
 
 Output requirements:
-- inventory_text must contain only clearly confirmed physical inventory items.
-- Output one item per line.
+- Preserve room or area grouping whenever present or clearly implied.
+- If no room or area grouping is present, place all items in a single room named "General".
+- Do not flatten everything into one global list.
+- Each item string must contain only one clearly confirmed physical inventory item.
 - Use compact parser-friendly phrasing.
 - Prefer formats like:
   "1 couch"
@@ -44,8 +55,11 @@ Output requirements:
   "1 mattress"
 - Keep wording short and literal.
 - Preserve useful raw wording when it helps downstream parsing.
-- Include quantity only when clearly stated or directly implied.
-- If quantity is unclear, omit the item instead of guessing.
+- Be conservative about invention, but aggressive about retaining explicitly mentioned items.
+- Include quantity when clearly stated or directly implied. If quantity is unclear but the item is clearly present, keep it as quantity 1.
+- If an item is clearly present but loosely named, keep the rough label instead of omitting it.
+- Do not merge separate mentions unless they are clearly the same item in the same room.
+- Do not merge items across rooms.
 - If an item is uncertain, tentative, hypothetical, or unconfirmed, omit it.
 
 Strictly exclude:
@@ -74,21 +88,17 @@ Strictly exclude:
 - anything that is not a clearly confirmed physical inventory item
 
 Do not include:
-- headings
-- bullets
-- markdown
 - commentary
 - explanations
 - notes
 - prose
-- punctuation noise
 - extra JSON fields
 
 Do not:
 - invent items
-- guess unclear quantities
+- guess hidden furniture from room context
 - infer missing furniture from room context
-- infer item types from vague references
+- over-normalize item names
 - include non-physical services
 - calculate trucks
 - calculate volume
@@ -96,60 +106,102 @@ Do not:
 - calculate pricing
 - calculate packing
 
-Important conservative rule:
-If there is any meaningful doubt whether an item is clearly confirmed, leave it out.
+Important extraction rules:
+- Include all explicitly mentioned physical inventory items.
+- If an item is clearly present but roughly named, keep the rough label.
+- Preserve duplicate-but-valid items in different rooms as separate room entries.
+- Exclude non-inventory chatter and non-item logistics.
 
 Examples:
 
 Transcript:
-"Hey, we definitely have one big couch, one queen bed, one mattress, and two nightstands."
+"Entry / Hall: console table, mirror, large plant. Master Bedroom: king bed, 2 nightstands, dresser, mirror, 2 rocking chairs."
 
 Return:
 {
-  "inventory_text": "1 big couch\\n1 queen bed\\n1 mattress\\n2 nightstands"
+  "rooms": [
+    {
+      "room_name": "Entry / Hall",
+      "items": [
+        "1 console table",
+        "1 mirror",
+        "1 large plant"
+      ]
+    },
+    {
+      "room_name": "Master Bedroom",
+      "items": [
+        "1 king bed",
+        "2 nightstands",
+        "1 dresser",
+        "1 mirror",
+        "2 rocking chairs"
+      ]
+    }
+  ]
 }
 
 Transcript:
-"We are moving next Friday from Irvine. We have one dining table and four chairs. Maybe there is also a small cabinet in the hallway, not sure."
+"Kids Room: small bed, dresser, kids furniture item, toy holders (3)."
 
 Return:
 {
-  "inventory_text": "1 dining table\\n4 chairs"
+  "rooms": [
+    {
+      "room_name": "Kids Room",
+      "items": [
+        "1 small bed",
+        "1 dresser",
+        "1 kids furniture item",
+        "3 toy holders"
+      ]
+    }
+  ]
 }
 
 Transcript:
-"There are stairs at pickup and we need kitchen packing, but inventory is one couch and one dresser."
+"Garage: 2 strollers, ~12 folding chairs, 2 large folding tables, TV box, misc garage items."
 
 Return:
 {
-  "inventory_text": "1 couch\\n1 dresser"
-}
-
-Transcript:
-"I think maybe a chair, not sure, and possibly a desk."
-
-Return:
-{
-  "inventory_text": ""
+  "rooms": [
+    {
+      "room_name": "Garage",
+      "items": [
+        "2 strollers",
+        "12 folding chairs",
+        "2 large folding tables",
+        "1 TV box",
+        "1 misc garage items"
+      ]
+    }
+  ]
 }
 
 Final goal:
-Produce the cleanest possible raw inventory list for a downstream parser, while being conservative and excluding anything uncertain or non-inventory.`;
+Produce the cleanest possible room-grouped inventory draft for a downstream parser, with high recall for explicit items and no invented inventory.`;
 
 function buildTranscriptCleanerPrompt(transcript: string) {
-  return `Clean this moving-related transcript into a compact raw inventory list for a downstream parser.
+  return `Extract a room-grouped moving inventory draft for a downstream parser.
 
 Return JSON only in this exact shape:
 {
-  "inventory_text": "string"
+  "rooms": [
+    {
+      "room_name": "string",
+      "items": ["string"]
+    }
+  ]
 }
 
 Rules:
-- include only clearly confirmed physical inventory items
-- one item per line
-- compact parser-friendly wording
-- exclude uncertain items
-- exclude logistics, packing, stairs, elevator, long carry, fragile handling, storage, pricing, scheduling, addresses, phone numbers, and unrelated conversation
+- preserve room and area labels whenever present or clearly implied
+- do not flatten everything into one list
+- include all clearly mentioned physical inventory items
+- keep rough labels when the item is clearly present but loosely named
+- do not merge items across different rooms
+- exclude uncertain items, chatter, pricing, scheduling, contact info, logistics, access notes, packing, stairs, elevator, long carry, fragile handling, storage stops, and unrelated conversation
+- if no room grouping is present, use one room named "General"
 - do not explain
 
 Transcript:
@@ -188,16 +240,34 @@ function extractGeminiText(payload: unknown): string {
   return text;
 }
 
-function normalizeInventoryText(inventoryText: string) {
-  return inventoryText
-    .replace(/\r\n?/g, "\n")
-    .split("\n")
-    .map((line) => line.replace(/[ \t]+$/g, ""))
-    .join("\n")
-    .trim();
-}
+const ROOM_INVENTORY_JSON_SCHEMA = {
+  type: "object",
+  properties: {
+    rooms: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          room_name: {
+            type: "string",
+          },
+          items: {
+            type: "array",
+            items: {
+              type: "string",
+            },
+          },
+        },
+        required: ["room_name", "items"],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ["rooms"],
+  additionalProperties: false,
+} as const;
 
-function parseInventoryText(text: string) {
+function parseRoomInventory(text: string): RoomInventoryDraft {
   let parsed: unknown;
 
   try {
@@ -206,19 +276,10 @@ function parseInventoryText(text: string) {
     throw new Error("Gemini transcript cleaner returned malformed JSON.");
   }
 
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    throw new Error("Gemini transcript cleaner returned malformed JSON.");
-  }
-
-  const inventoryText = (parsed as { inventory_text?: unknown }).inventory_text;
-  if (typeof inventoryText !== "string") {
-    throw new Error("Gemini transcript cleaner response missing inventory_text.");
-  }
-
-  return normalizeInventoryText(inventoryText);
+  return normalizeRoomInventoryResponse(parsed);
 }
 
-export async function cleanTranscriptToInventoryText(transcript: string): Promise<string> {
+export async function cleanTranscriptToRoomInventory(transcript: string): Promise<RoomInventoryDraft> {
   const { apiKey, model } = getGeminiEnv();
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), GEMINI_TIMEOUT_MS);
@@ -244,15 +305,7 @@ export async function cleanTranscriptToInventoryText(transcript: string): Promis
     generationConfig: {
       temperature: GEMINI_TEMPERATURE,
       responseMimeType: "application/json",
-      responseJsonSchema: {
-        type: "object",
-        properties: {
-          inventory_text: {
-            type: "string",
-          },
-        },
-        required: ["inventory_text"],
-      },
+      responseJsonSchema: ROOM_INVENTORY_JSON_SCHEMA,
     },
   };
 
@@ -293,5 +346,10 @@ export async function cleanTranscriptToInventoryText(transcript: string): Promis
     throw new Error("Gemini transcript cleaner returned invalid API JSON.");
   }
 
-  return parseInventoryText(extractGeminiText(result));
+  return parseRoomInventory(extractGeminiText(result));
+}
+
+export async function cleanTranscriptToInventoryText(transcript: string): Promise<string> {
+  const roomInventory = await cleanTranscriptToRoomInventory(transcript);
+  return serializeRoomInventoryToText(roomInventory.rooms);
 }
