@@ -28,6 +28,7 @@ export function computeVolumePlan(context: EngineContext): VolumePlan {
   let hiddenVolume = 0;
   let missingBoxesCount = 0;
   let baseHomeHiddenVolume = 0;
+  const coverageContributors: Array<{ label: string; amount: number; detail: string }> = [];
   const isTinyScope = bedroomCount === 0 && parsed.totalVol < 120;
 
   if (!isCommercial) {
@@ -54,6 +55,11 @@ export function computeVolumePlan(context: EngineContext): VolumePlan {
           ];
         baseHomeHiddenVolume += hvAdd;
         hiddenVolume += hvAdd;
+        coverageContributors.push({
+          label: "Hidden Volume Floor",
+          amount: hvAdd,
+          detail: `Low volume for ${hvRow.label}${hvNotes.length ? `, ${hvNotes.join(", ")}` : ""}.`,
+        });
         notes.logs.push(`Volume Check: +${hvAdd} cf added.`);
         notes.auditSummary.push(`Added +${hvAdd} cf (low volume for ${hvRow.label}${hvNotes.length ? `, ${hvNotes.join(", ")}` : ""}).`);
       }
@@ -70,6 +76,11 @@ export function computeVolumePlan(context: EngineContext): VolumePlan {
         if (missingBoxesCount > 0) {
           missingBoxesCount = roundUpTo(missingBoxesCount, 5);
           hiddenVolume += missingBoxesCount * 5;
+          coverageContributors.push({
+            label: "Box Coverage",
+            amount: missingBoxesCount * 5,
+            detail: `${missingBoxesCount} auto-added boxes for ${inventoryCompleteness === "sparse" ? "coverage gap" : `${inventoryCompleteness} inventory coverage`}.`,
+          });
           notes.auditSummary.push(`Added ${missingBoxesCount} boxes (${inventoryCompleteness === "sparse" ? "coverage gap" : `${inventoryCompleteness} inventory coverage`}).`);
         }
       }
@@ -85,6 +96,11 @@ export function computeVolumePlan(context: EngineContext): VolumePlan {
         if (missingBoxesCount > 0) {
           missingBoxesCount = roundUpTo(missingBoxesCount, 5);
           hiddenVolume += missingBoxesCount * 5;
+          coverageContributors.push({
+            label: "Soft Box Top-Up",
+            amount: missingBoxesCount * 5,
+            detail: `${missingBoxesCount} soft top-up boxes for ${inventoryCompleteness === "sparse" ? "coverage gap" : `${inventoryCompleteness} inventory coverage`}.`,
+          });
           notes.auditSummary.push(`Soft top-up +${missingBoxesCount} boxes (${inventoryCompleteness === "sparse" ? "coverage gap" : `${inventoryCompleteness} inventory coverage`}).`);
         }
       }
@@ -96,6 +112,13 @@ export function computeVolumePlan(context: EngineContext): VolumePlan {
         : 200;
       hiddenVolume += commercialBaseline;
       if (commercialBaseline > 0) {
+        coverageContributors.push({
+          label: "Commercial Coverage",
+          amount: commercialBaseline,
+          detail: commercialSignals.lightOfficeEligible
+            ? `${inventoryCompleteness} office inventory baseline.`
+            : "Sparse commercial inventory baseline.",
+        });
         notes.auditSummary.push(`Added +${commercialBaseline} cf (${commercialSignals.lightOfficeEligible ? `${inventoryCompleteness} office inventory` : "sparse commercial inventory"}).`);
       }
     }
@@ -109,7 +132,14 @@ export function computeVolumePlan(context: EngineContext): VolumePlan {
       missingBoxesCount = Math.ceil((parsed.totalVol * PROTOCOL.COMMERCIAL_BOX_RATIO / 5) * commercialBoxFactor);
       if (missingBoxesCount > 0) missingBoxesCount = roundUpTo(missingBoxesCount, 5);
       hiddenVolume += missingBoxesCount * 5;
-      if (missingBoxesCount > 0) notes.auditSummary.push(`Added ${missingBoxesCount} boxes (${inventoryCompleteness} commercial coverage).`);
+      if (missingBoxesCount > 0) {
+        coverageContributors.push({
+          label: "Commercial Box Coverage",
+          amount: missingBoxesCount * 5,
+          detail: `${missingBoxesCount} auto-added boxes for ${inventoryCompleteness} commercial coverage.`,
+        });
+        notes.auditSummary.push(`Added ${missingBoxesCount} boxes (${inventoryCompleteness} commercial coverage).`);
+      }
     }
   }
 
@@ -120,6 +150,11 @@ export function computeVolumePlan(context: EngineContext): VolumePlan {
         ? Math.max(50, roundUpTo(baseZoneHiddenVolume * 0.5, 25))
         : baseZoneHiddenVolume;
     hiddenVolume += zoneHiddenVolume;
+    coverageContributors.push({
+      label: "Zone Allowance",
+      amount: zoneHiddenVolume,
+      detail: inventoryCompleteness === "sparse" ? "Garage/attic zones mentioned." : `Garage/attic zones mentioned with ${inventoryCompleteness} inventory.`,
+    });
     notes.auditSummary.push(`Added +${zoneHiddenVolume} cf (${inventoryCompleteness === "sparse" ? "zones mentioned" : `zones mentioned, ${inventoryCompleteness} inventory`}).`);
   }
 
@@ -135,6 +170,11 @@ export function computeVolumePlan(context: EngineContext): VolumePlan {
         : inventoryCompleteness === "coarse" ? 200
           : 250;
     hiddenVolume += storageHeavyMixHV;
+    coverageContributors.push({
+      label: "Storage Mix Allowance",
+      amount: storageHeavyMixHV,
+      detail: "Heavy garage, gym, or storage mix increased the baseline.",
+    });
     notes.auditSummary.push(`Added +${storageHeavyMixHV} cf (heavy garage/gym/storage mix).`);
   }
 
@@ -149,6 +189,11 @@ export function computeVolumePlan(context: EngineContext): VolumePlan {
   ) {
     const cabinetContentsHV = roundUpTo(Math.min(75, storageFurnitureQty * 5), 25);
     hiddenVolume += cabinetContentsHV;
+    coverageContributors.push({
+      label: "Cabinet Contents Risk",
+      amount: cabinetContentsHV,
+      detail: "LD cabinet contents risk increased the baseline.",
+    });
     notes.auditSummary.push(`Added +${cabinetContentsHV} cf (LD cabinet contents risk).`);
   }
 
@@ -157,6 +202,11 @@ export function computeVolumePlan(context: EngineContext): VolumePlan {
     if (ldFullPackComplexityScore >= 3) ldFullPackPrepHV += 25;
     if (ldFullPackComplexityScore >= 5) ldFullPackPrepHV += 25;
     hiddenVolume += ldFullPackPrepHV;
+    coverageContributors.push({
+      label: "LD Full-Pack Prep",
+      amount: ldFullPackPrepHV,
+      detail: "Large LD full-pack prep increased the baseline.",
+    });
     notes.auditSummary.push(`Added +${ldFullPackPrepHV} cf (LD full-pack prep).`);
   }
 
@@ -196,8 +246,10 @@ export function computeVolumePlan(context: EngineContext): VolumePlan {
 
   const round25 = (num: number) => Math.round(num / 25) * 25;
   const rawVolume = parsed.totalVol + hiddenVolume;
-  const billableCF = round25(rawVolume * 1.05);
-  const truckSpaceCF = round25(billableCF * (1 + llPct));
+  const preRoundedBillable = rawVolume * 1.05;
+  const billableCF = round25(preRoundedBillable);
+  const preRoundedTruckSpace = billableCF * (1 + llPct);
+  const truckSpaceCF = round25(preRoundedTruckSpace);
 
   let finalVolume = truckSpaceCF;
   let volumeOverridden = false;
@@ -212,19 +264,31 @@ export function computeVolumePlan(context: EngineContext): VolumePlan {
   }
   if (!volumeOverridden) finalVolume = roundUpTo(finalVolume, 25);
 
+  const safetyBufferCF = Math.max(0, preRoundedBillable - rawVolume);
+  const billableRoundingCF = billableCF - preRoundedBillable;
+  const looseLoadBufferCF = Math.max(0, preRoundedTruckSpace - billableCF);
+  const truckSpaceRoundingCF = truckSpaceCF - preRoundedTruckSpace;
   const weight = Math.round(finalVolume * PROTOCOL.WEIGHT_STD);
   notes.logs.push(`Raw Inventory: ${rawVolume} cf.`);
   notes.logs.push(`Net Total (+5% broker safety, rounded to 25): ${billableCF} cf.`);
   notes.logs.push(`Actual Space (+LL gaps, rounded to 25): ${truckSpaceCF} cf.`);
 
   return {
+    inventoryVolume: parsed.totalVol,
     hiddenVolume,
     missingBoxesCount,
     llPct,
+    llBasePct,
+    llReasons,
     rawVolume,
     billableCF,
     truckSpaceCF,
     finalVolume,
     weight,
+    coverageContributors,
+    safetyBufferCF,
+    billableRoundingCF,
+    looseLoadBufferCF,
+    truckSpaceRoundingCF,
   };
 }

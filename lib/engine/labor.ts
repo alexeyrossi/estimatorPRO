@@ -32,8 +32,10 @@ export function computeLaborPlan(context: EngineContext, volumePlan: VolumePlan,
   const isOfficeLightCommercial = isCommercial && commercialSignals.lightOfficeEligible;
   const isWarehouseCommercial = isCommercial && (commercialSignals.hasWarehouseOps || commercialSignals.hasPalletizedFreight);
 
-  let speedOrigin = isCommercial ? PROTOCOL.SPEED_COMMERCIAL : PROTOCOL.SPEED_GROUND;
-  let speedDest = isCommercial ? PROTOCOL.SPEED_COMMERCIAL : PROTOCOL.SPEED_GROUND;
+  const baseSpeedOrigin = isCommercial ? PROTOCOL.SPEED_COMMERCIAL : PROTOCOL.SPEED_GROUND;
+  const baseSpeedDest = isCommercial ? PROTOCOL.SPEED_COMMERCIAL : PROTOCOL.SPEED_GROUND;
+  let speedOrigin = baseSpeedOrigin;
+  let speedDest = baseSpeedDest;
 
   if (!isCommercial) {
     if (inputs.accessOrigin === "elevator") speedOrigin = PROTOCOL.SPEED_ELEVATOR;
@@ -45,11 +47,27 @@ export function computeLaborPlan(context: EngineContext, volumePlan: VolumePlan,
   if (isLaborOnly && inputs.accessOrigin === "stairs") speedOrigin = Math.round(speedOrigin * 0.85);
   if (inputs.moveType === "LD" && finalVolume * PROTOCOL.WEIGHT_SAFETY > 10000) speedOrigin *= PROTOCOL.HEAVY_PAYLOAD_SPEED_MULT;
 
-  let movementManHours = isLaborOnly || inputs.moveType === "LD"
-    ? (finalVolume / speedOrigin)
-    : (finalVolume / speedOrigin) + (finalVolume / speedDest);
-  if (highCapRisk) movementManHours *= PROTOCOL.MULTI_TRUCK_TIME_BUFFER;
-  if (inputs.moveType === "LD") movementManHours *= PROTOCOL.LD_TIER_BUFFER;
+  const computeRouteMovementManHours = (originSpeed: number, destSpeed: number) => (
+    isLaborOnly || inputs.moveType === "LD"
+      ? (finalVolume / originSpeed)
+      : (finalVolume / originSpeed) + (finalVolume / destSpeed)
+  );
+
+  const baseRouteMovementManHours = computeRouteMovementManHours(baseSpeedOrigin, baseSpeedDest);
+  let movementManHours = computeRouteMovementManHours(speedOrigin, speedDest);
+  const accessAdjustmentManHours = Math.max(0, movementManHours - baseRouteMovementManHours);
+  let highCapRiskBufferManHours = 0;
+  if (highCapRisk) {
+    const bufferedMovementManHours = movementManHours * PROTOCOL.MULTI_TRUCK_TIME_BUFFER;
+    highCapRiskBufferManHours = bufferedMovementManHours - movementManHours;
+    movementManHours = bufferedMovementManHours;
+  }
+  let ldTierBufferManHours = 0;
+  if (inputs.moveType === "LD") {
+    const bufferedMovementManHours = movementManHours * PROTOCOL.LD_TIER_BUFFER;
+    ldTierBufferManHours = bufferedMovementManHours - movementManHours;
+    movementManHours = bufferedMovementManHours;
+  }
 
   const isWrapExcluded = (name: string) => /\b(box|bin|tote|bag|carton|dish barrel|picture box|tv box|wardrobe box|plastic bin|lamp|clock|scale|walker|vacuum|canister|stool)\b/i.test(name);
   const isChairLike = (name: string) => /chair|stool|bench|seat/i.test(name) && !/arm|reclin|sofa|couch/i.test(name);
@@ -141,7 +159,9 @@ export function computeLaborPlan(context: EngineContext, volumePlan: VolumePlan,
   const effectiveDist = (inputs.moveType === "LD" || isLaborOnly) ? 0 : distVal;
   const dockingHours = !isLaborOnly && !(isLD && trucksFinal === 1) ? (trucksFinal * PROTOCOL.MINS_DOCKING_PER_TRUCK) / 60 : 0;
   const truckLogisticsHours = (!isLaborOnly && trucksFinal >= 2) ? (trucksFinal * PROTOCOL.MINS_TRUCK_LOGISTICS) / 60 : 0;
-  const fixedTime = (effectiveDist > 0 ? (effectiveDist / 30) + 0.6 : 0) + PROTOCOL.COORDINATION_HRS + dockingHours + truckLogisticsHours + extraStopHours;
+  const distanceDurationHours = effectiveDist > 0 ? (effectiveDist / 30) + 0.6 : 0;
+  const coordinationDurationHours = PROTOCOL.COORDINATION_HRS;
+  const fixedTime = distanceDurationHours + coordinationDurationHours + dockingHours + truckLogisticsHours + extraStopHours;
   if (extraStopCount > 0) {
     notes.auditSummary.push(`Added +${extraStopMinutesTotal} min (${extraStopCount} extra stop${extraStopCount > 1 ? "s" : ""}${hasNonGroundExtraStop ? ", mixed access" : ""}).`);
   }
@@ -163,10 +183,14 @@ export function computeLaborPlan(context: EngineContext, volumePlan: VolumePlan,
   }
   crewHardCap = Math.max(crewHardCap, Math.min(PROTOCOL.MAX_CREW_SIZE, crew));
 
-  const computeDuration = (crewValue: number) => (
-    (totalManHours / (crewValue * (crewValue > 6 ? PROTOCOL.CREW_EFFICIENCY_LOW : crewValue > 4 ? PROTOCOL.CREW_EFFICIENCY_HIGH : 1.0)))
-    * (finalVolume > PROTOCOL.VOLUME_DRAG_THRESHOLD ? PROTOCOL.LARGE_VOLUME_DRAG : 1.0)
-  ) + fixedTime;
+  const getCrewEfficiency = (crewValue: number) => (
+    crewValue > 6 ? PROTOCOL.CREW_EFFICIENCY_LOW : crewValue > 4 ? PROTOCOL.CREW_EFFICIENCY_HIGH : 1.0
+  );
+  const volumeDragMultiplier = finalVolume > PROTOCOL.VOLUME_DRAG_THRESHOLD ? PROTOCOL.LARGE_VOLUME_DRAG : 1.0;
+  const convertManHoursToDuration = (manHours: number, crewValue: number) => (
+    (manHours / (crewValue * getCrewEfficiency(crewValue))) * volumeDragMultiplier
+  );
+  const computeDuration = (crewValue: number) => convertManHoursToDuration(totalManHours, crewValue) + fixedTime;
 
   const estateFiveCrewEligible =
     isLocalResidential
@@ -285,6 +309,20 @@ export function computeLaborPlan(context: EngineContext, volumePlan: VolumePlan,
   );
 
   splitRecommended = deriveSplitRecommendation(timeMax, crew);
+  const recommendedCrew = crew;
+  const recommendedCalcDuration = calcDuration;
+  const recommendedTimeMin = timeMin;
+  const recommendedTimeMax = timeMax;
+  const recommendedRangeLowHours = Math.max(0, recommendedCalcDuration - recommendedTimeMin);
+  const recommendedRangeHighHours = Math.max(0, recommendedTimeMax - recommendedCalcDuration);
+  const baseDurationHours = convertManHoursToDuration(baseRouteMovementManHours, recommendedCrew);
+  const accessAdjustmentDurationHours = convertManHoursToDuration(accessAdjustmentManHours, recommendedCrew);
+  const highCapRiskBufferDurationHours = convertManHoursToDuration(highCapRiskBufferManHours, recommendedCrew);
+  const ldTierBufferDurationHours = convertManHoursToDuration(ldTierBufferManHours, recommendedCrew);
+  const wrapDurationHours = convertManHoursToDuration(wrapMinsTotal / 60, recommendedCrew);
+  const daDurationHours = convertManHoursToDuration(daMins / 60, recommendedCrew);
+  const packingDurationHours = convertManHoursToDuration(packingAddonMH, recommendedCrew);
+  const ldFullPackPrepDurationHours = convertManHoursToDuration(ldFullPackLaborBufferMH, recommendedCrew);
 
   if (overrides.crew !== undefined && overrides.crew !== null) {
     const overriddenCrew = parseOverrideValue(overrides.crew, 2, 20);
@@ -314,6 +352,32 @@ export function computeLaborPlan(context: EngineContext, volumePlan: VolumePlan,
     wrapMinsTotal,
     daMins,
     totalManHours,
+    packingAddonMH,
+    ldFullPackLaborBufferMH,
+    baseRouteMovementManHours,
+    accessAdjustmentManHours,
+    highCapRiskBufferManHours,
+    ldTierBufferManHours,
+    baseDurationHours,
+    accessAdjustmentDurationHours,
+    highCapRiskBufferDurationHours,
+    ldTierBufferDurationHours,
+    wrapDurationHours,
+    daDurationHours,
+    packingDurationHours,
+    ldFullPackPrepDurationHours,
+    fixedTimeHours: fixedTime,
+    distanceDurationHours,
+    coordinationDurationHours,
+    dockingDurationHours: dockingHours,
+    truckLogisticsDurationHours: truckLogisticsHours,
+    extraStopDurationHours: extraStopHours,
+    recommendedCrew,
+    recommendedCalcDuration,
+    recommendedTimeMin,
+    recommendedTimeMax,
+    recommendedRangeLowHours,
+    recommendedRangeHighHours,
     crew,
     crewSuggestion,
     nextMoverTimeSavedHours,

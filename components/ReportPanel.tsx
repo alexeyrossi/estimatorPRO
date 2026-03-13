@@ -3,11 +3,12 @@ import { EstimateInputs, EstimateResult } from '@/lib/types/estimator';
 import { OVERRIDE_KEYS, sanitizeOverrides } from '@/lib/estimatePolicy';
 import { buildReportSummaryNotes } from '@/lib/reportNotes';
 import {
-    Truck, Box, List, Weight, Terminal, ChevronRight, Lock, Scale, PackageOpen, Clock, CalendarDays, Info, Users, AlertTriangle, Route, ArrowLeft, Check, Clipboard, FileText, Loader2, Settings2, RefreshCcw, Lightbulb
+    Truck, Box, List, Weight, Terminal, Lock, Clock, CalendarDays, Info, Users, AlertTriangle, Route, ArrowLeft, Check, Clipboard, FileText, Loader2, Settings2, RefreshCcw, Lightbulb
 } from 'lucide-react';
 import { GlassPanel } from './GlassPanel';
 import { MetricCard } from './MetricCard';
 import { ConfidenceDonut } from './ConfidenceDonut';
+import { CalculationPathBlock } from './CalculationPathBlock';
 
 
 
@@ -287,7 +288,7 @@ export const ReportPanel = ({
         };
     }, [activeContentNode]);
 
-    const framedReportBodyClass = "h-[calc(57dvh-3.25rem)] min-h-[338px] max-h-[468px] md:h-[492px] md:min-h-[492px] md:max-h-[492px]";
+    const framedReportBodyClass = "h-[calc(57dvh-3.25rem)] min-h-[338px] max-h-[468px] md:h-[468px] md:min-h-[468px] md:max-h-[468px]";
     const isDisplayedInventory = displayedReportView === "inventory";
     const isDisplayedDetails = displayedReportView === "details";
     const activeReportBodyClass = displayedReportView === "summary"
@@ -616,78 +617,9 @@ export const ReportPanel = ({
                             <Terminal className="w-4 h-4 text-slate-500" />
                             <span className={panelLayerTitleClass}>Calculation Path</span>
                         </div>
-                        <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-                            <div className="grid grid-cols-2 gap-x-5 gap-y-4 min-[390px]:grid-cols-3 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)] md:items-center md:gap-x-6 md:gap-y-0">
-                                <div className="min-w-0 flex flex-col">
-                                    <span className="mb-1 text-[9px] font-semibold uppercase leading-tight tracking-[0.2em] text-slate-400 min-[390px]:text-[10px] md:text-[11px] md:tracking-widest">Inventory Volume</span>
-                                    <span className="inline-flex max-w-full flex-wrap items-baseline gap-x-1 text-[16px] font-black text-slate-200 min-[390px]:text-xl">
-                                        <span>{rawInventoryVolume.toLocaleString()}</span>
-                                        <span className="text-[12px] font-medium text-slate-400">cu ft</span>
-                                    </span>
-                                </div>
-
-                                <ChevronRight className="hidden h-5 w-5 text-slate-600 md:block" />
-
-                                <div className="min-w-0 flex flex-col">
-                                    <span className="mb-1 text-[9px] font-semibold uppercase leading-tight tracking-[0.2em] text-slate-400 min-[390px]:text-[10px] md:text-[11px] md:tracking-widest">Adjusted Volume</span>
-                                    <span className="inline-flex max-w-full flex-wrap items-baseline gap-x-1 text-[16px] font-black text-slate-200 min-[390px]:text-xl">
-                                        <span>{(estimate.billableCF || estimate.finalVolume || 0).toLocaleString()}</span>
-                                        <span className="text-[12px] font-medium text-slate-400">cu ft</span>
-                                    </span>
-                                </div>
-
-                                <ChevronRight className="hidden h-5 w-5 text-slate-600 md:block" />
-
-                                <div className="col-span-2 min-[390px]:col-span-1 md:col-span-1 min-w-0 flex flex-col">
-                                    <span className="mb-1 text-[9px] font-bold uppercase leading-tight tracking-[0.2em] text-emerald-500/80 min-[390px]:text-[10px] md:text-[11px] md:tracking-widest">Truck Space</span>
-                                    <span className="inline-flex max-w-full flex-wrap items-baseline gap-x-1 text-[18px] font-black text-emerald-400 min-[390px]:text-2xl">
-                                        <span>{(estimate.truckSpaceCF || Math.round((estimate.finalVolume || 0) * 1.083)).toLocaleString()}</span>
-                                        <span className="text-[12px] font-medium text-emerald-500/50">cu ft</span>
-                                    </span>
-                                </div>
-                            </div>
-
-                            <div className="mt-6 pt-5 border-t border-gray-800/80 grid grid-cols-2 gap-y-6 gap-x-8">
-                                <div className="flex gap-3 items-start">
-                                    <Scale className="w-4 h-4 text-slate-500 mt-0.5" />
-                                    <div className="flex flex-col">
-                                        <span className="mb-1 text-[10px] uppercase tracking-widest text-slate-400">Weight Baseline</span>
-                                        <span className="text-[13px] font-bold text-slate-200">7 lbs / cu ft</span>
-                                        <span className="mt-0.5 text-[11px] text-slate-400">DOT Tariff Standard</span>
-                                    </div>
-                                </div>
-
-                                <div className="flex gap-3 items-start">
-                                    <PackageOpen className="w-4 h-4 text-slate-500 mt-0.5" />
-                                    <div className="flex flex-col">
-                                        <span className="mb-1 text-[10px] uppercase tracking-widest text-slate-400">Stacking Factor</span>
-                                        <span className="text-[13px] font-bold text-slate-200">~10% Volume Allowance</span>
-                                        <span className="mt-0.5 text-[11px] text-slate-400">Furniture is not perfectly square</span>
-                                    </div>
-                                </div>
-
-                                <div className="flex gap-3 items-start">
-                                    <Box className="w-4 h-4 text-slate-500 mt-0.5" />
-                                    <div className="flex flex-col">
-                                        <span className="mb-1 text-[10px] uppercase tracking-widest text-slate-400">Box Algorithm</span>
-                                        <span className="text-[13px] font-bold text-slate-200">Auto-Generated</span>
-                                        <span className="mt-0.5 text-[11px] text-slate-400">Min. requirement for safe transport</span>
-                                    </div>
-                                </div>
-
-                                <div className="flex gap-3 items-start">
-                                    <Clock className="w-4 h-4 text-slate-500 mt-0.5" />
-                                    <div className="flex flex-col">
-                                        <span className="mb-1 text-[10px] uppercase tracking-widest text-slate-400">Labor Algorithm</span>
-                                        <span className="text-[13px] font-bold text-slate-200">Volume + Access Factors</span>
-                                        <span className="mt-0.5 text-[11px] text-slate-400">Accounts for stairs & elevators</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        <CalculationPathBlock calculationPath={estimate.calculationPath} />
                     </div>
 
-                    {overridesApplied.length > 0 && <div className="text-[11px] font-bold text-slate-600">Overrides Applied: {overridesApplied.join(", ")}</div>}
                 </div>
             </div>
         </div>

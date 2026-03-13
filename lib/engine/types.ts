@@ -93,14 +93,22 @@ export interface EngineContext {
 }
 
 export interface VolumePlan {
+  inventoryVolume: number;
   hiddenVolume: number;
   missingBoxesCount: number;
   llPct: number;
+  llBasePct: number;
+  llReasons: string[];
   rawVolume: number;
   billableCF: number;
   truckSpaceCF: number;
   finalVolume: number;
   weight: number;
+  coverageContributors: Array<{ label: string; amount: number; detail: string }>;
+  safetyBufferCF: number;
+  billableRoundingCF: number;
+  looseLoadBufferCF: number;
+  truckSpaceRoundingCF: number;
 }
 
 export interface TruckPlan {
@@ -121,6 +129,32 @@ export interface LaborPlan {
   wrapMinsTotal: number;
   daMins: number;
   totalManHours: number;
+  packingAddonMH: number;
+  ldFullPackLaborBufferMH: number;
+  baseRouteMovementManHours: number;
+  accessAdjustmentManHours: number;
+  highCapRiskBufferManHours: number;
+  ldTierBufferManHours: number;
+  baseDurationHours: number;
+  accessAdjustmentDurationHours: number;
+  highCapRiskBufferDurationHours: number;
+  ldTierBufferDurationHours: number;
+  wrapDurationHours: number;
+  daDurationHours: number;
+  packingDurationHours: number;
+  ldFullPackPrepDurationHours: number;
+  fixedTimeHours: number;
+  distanceDurationHours: number;
+  coordinationDurationHours: number;
+  dockingDurationHours: number;
+  truckLogisticsDurationHours: number;
+  extraStopDurationHours: number;
+  recommendedCrew: number;
+  recommendedCalcDuration: number;
+  recommendedTimeMin: number;
+  recommendedTimeMax: number;
+  recommendedRangeLowHours: number;
+  recommendedRangeHighHours: number;
   crew: number;
   crewSuggestion: string | null;
   nextMoverTimeSavedHours: number | null;

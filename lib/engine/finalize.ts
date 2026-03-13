@@ -47,6 +47,32 @@ function buildConfidenceFactors({
   return factors;
 }
 
+function formatCompactNumber(value: number, maximumFractionDigits = 1) {
+  return value.toLocaleString("en-US", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits,
+  });
+}
+
+function formatSignedAmount(value: number, unit: string, maximumFractionDigits = 1) {
+  const prefix = value >= 0 ? "+" : "-";
+  return `${prefix}${formatCompactNumber(Math.abs(value), maximumFractionDigits)} ${unit}`;
+}
+
+function formatPercent(value: number) {
+  return `${Math.round(value * 100)}%`;
+}
+
+function formatRangeBuffer(lowHours: number, highHours: number) {
+  const low = Math.max(0, Math.round(lowHours * 10) / 10);
+  const high = Math.max(0, Math.round(highHours * 10) / 10);
+
+  if (low === 0 && high === 0) return "floor / ceiling";
+  if (Math.abs(low - high) <= 0.2) return `\u00b1${formatCompactNumber(Math.max(low, high))}h`;
+  if (low === 0) return `+${formatCompactNumber(high)}h`;
+  return `-${formatCompactNumber(low)} / +${formatCompactNumber(high)}h`;
+}
+
 export function buildEstimateResult(
   context: EngineContext,
   volumePlan: VolumePlan,
@@ -54,9 +80,9 @@ export function buildEstimateResult(
   laborPlan: LaborPlan
 ): EstimateResult {
   const { inputs, parsed, notes, countBy, useNormalized, isCommercial, commercialSignals, isLaborOnly, isLD, bedroomCount, scopeLabel, extraStopCount, parsed: { hasVague }, anyHeavySignal, fragileCount, estimatedRatio, syntheticBundleRatio, syntheticBundleGroups, ldFullPackLargeHome, suppressConferenceTableHeavy } = context;
-  const { hiddenVolume, missingBoxesCount, llPct, rawVolume, billableCF, truckSpaceCF, finalVolume, weight } = volumePlan;
+  const { inventoryVolume, hiddenVolume, missingBoxesCount, llPct, llBasePct, llReasons, rawVolume, billableCF, truckSpaceCF, finalVolume, weight, coverageContributors, safetyBufferCF, billableRoundingCF, looseLoadBufferCF, truckSpaceRoundingCF } = volumePlan;
   const { trucksFinal, truckSizeLabel, highCapRisk, truckFitNote, hasPallets, league, leagueItems } = truckPlan;
-  const { crew, timeMin, timeMax, splitRecommended, crewSuggestion, nextMoverTimeSavedHours, nextMoverSavingsLabel, totalManHours, daMins, boxDensity, calcDuration, safeDayLimit } = laborPlan;
+  const { crew, timeMin, timeMax, splitRecommended, crewSuggestion, nextMoverTimeSavedHours, nextMoverSavingsLabel, totalManHours, daMins, boxDensity, calcDuration, safeDayLimit, baseDurationHours, accessAdjustmentDurationHours, highCapRiskBufferDurationHours, ldTierBufferDurationHours, wrapDurationHours, daDurationHours, packingDurationHours, ldFullPackPrepDurationHours, distanceDurationHours, coordinationDurationHours, dockingDurationHours, truckLogisticsDurationHours, extraStopDurationHours, recommendedCrew, recommendedCalcDuration, recommendedTimeMin, recommendedTimeMax, recommendedRangeLowHours, recommendedRangeHighHours } = laborPlan;
 
   const baseFloor = isLaborOnly ? 10 : 20;
   const itemFloor = Math.ceil((parsed.furnitureCount || 0) / 2);
@@ -258,6 +284,247 @@ export function buildEstimateResult(
 
   const distVal = parseInt(inputs.distance, 10) || 0;
   const effectiveDist = (inputs.moveType === "LD" || isLaborOnly) ? 0 : distVal;
+  const overridesAppliedSet = new Set(notes.overridesApplied);
+
+  const volumeAdjustmentDetails = coverageContributors.map((contributor) => (
+    `${formatSignedAmount(contributor.amount, "cu ft")} ${contributor.label}: ${contributor.detail}`
+  ));
+  if (safetyBufferCF > 0) {
+    volumeAdjustmentDetails.push(`${formatSignedAmount(safetyBufferCF, "cu ft")} Broker safety allowance (+5%).`);
+  }
+  if (billableRoundingCF !== 0) {
+    volumeAdjustmentDetails.push(`${formatSignedAmount(billableRoundingCF, "cu ft")} Rounded to the nearest 25 cu ft.`);
+  }
+  if (!volumeAdjustmentDetails.length) {
+    volumeAdjustmentDetails.push("No baseline coverage or safety adjustments were required.");
+  }
+
+  const looseLoadDetails = [
+    `${formatPercent(llBasePct)} loose-load base allowance.`,
+  ];
+  if (llPct > llBasePct) {
+    looseLoadDetails.push(`${formatPercent(llPct - llBasePct)} extra loose-load allowance for ${llReasons.join(", ")}.`);
+  }
+  if (looseLoadBufferCF > 0) {
+    looseLoadDetails.push(`${formatSignedAmount(looseLoadBufferCF, "cu ft")} Applied as loose-load and stacking buffer.`);
+  }
+  if (truckSpaceRoundingCF !== 0) {
+    looseLoadDetails.push(`${formatSignedAmount(truckSpaceRoundingCF, "cu ft")} Rounded to the nearest 25 cu ft.`);
+  }
+  if (llReasons.length > 0) {
+    looseLoadDetails.push(`Reasons: ${llReasons.join(", ")}.`);
+  }
+
+  const accessContext: string[] = [];
+  if (inputs.accessOrigin !== "ground") accessContext.push(`pickup ${inputs.accessOrigin}`);
+  if (!isLaborOnly && inputs.moveType !== "LD" && inputs.accessDest !== "ground") accessContext.push(`drop-off ${inputs.accessDest}`);
+  const accessHandlingDetails: string[] = [];
+  if (accessAdjustmentDurationHours > 0) {
+    accessHandlingDetails.push(`${formatSignedAmount(accessAdjustmentDurationHours, "h")} Access slowdown${accessContext.length ? ` from ${accessContext.join(" and ")}.` : "."}`);
+  }
+  if (highCapRiskBufferDurationHours > 0) {
+    accessHandlingDetails.push(`${formatSignedAmount(highCapRiskBufferDurationHours, "h")} Multi-truck high-capacity buffer.`);
+  }
+  if (ldTierBufferDurationHours > 0) {
+    accessHandlingDetails.push(`${formatSignedAmount(ldTierBufferDurationHours, "h")} LD origin tier buffer.`);
+  }
+  if (wrapDurationHours > 0) {
+    accessHandlingDetails.push(`${formatSignedAmount(wrapDurationHours, "h")} Furniture wrapping and pad prep.`);
+  }
+  if (daDurationHours > 0) {
+    accessHandlingDetails.push(`${formatSignedAmount(daDurationHours, "h")} Disassembly and reassembly work.`);
+  }
+  if (packingDurationHours > 0) {
+    accessHandlingDetails.push(`${formatSignedAmount(packingDurationHours, "h")} Packing add-on labor.`);
+  }
+  if (ldFullPackPrepDurationHours > 0) {
+    accessHandlingDetails.push(`${formatSignedAmount(ldFullPackPrepDurationHours, "h")} Estate full-pack prep buffer.`);
+  }
+  if (distanceDurationHours > 0) {
+    accessHandlingDetails.push(`${formatSignedAmount(distanceDurationHours, "h")} Distance and route travel time.`);
+  }
+  if (coordinationDurationHours > 0) {
+    accessHandlingDetails.push(`${formatSignedAmount(coordinationDurationHours, "h")} Dispatch coordination time.`);
+  }
+  if (dockingDurationHours > 0) {
+    accessHandlingDetails.push(`${formatSignedAmount(dockingDurationHours, "h")} Docking time across ${trucksFinal} truck${trucksFinal === 1 ? "" : "s"}.`);
+  }
+  if (truckLogisticsDurationHours > 0) {
+    accessHandlingDetails.push(`${formatSignedAmount(truckLogisticsDurationHours, "h")} Multi-truck staging and logistics.`);
+  }
+  if (extraStopDurationHours > 0) {
+    accessHandlingDetails.push(`${formatSignedAmount(extraStopDurationHours, "h")} Extra-stop routing and staging.`);
+  }
+  if (!accessHandlingDetails.length) {
+    accessHandlingDetails.push("No access, handling, or routing adders were required.");
+  }
+
+  const rangeBufferDetails: string[] = [];
+  if (recommendedTimeMin === 3 && recommendedCalcDuration < 3) {
+    rangeBufferDetails.push("Low end floored to the 3h minimum dispatch block.");
+  } else {
+    rangeBufferDetails.push(`Low end rounded to ${recommendedTimeMin}h from ${formatCompactNumber(recommendedCalcDuration)}h.`);
+  }
+  rangeBufferDetails.push(`High end padded to ${recommendedTimeMax}h using the standard 10% top-end buffer.`);
+
+  const overrideBadges: EstimateResult["calculationPath"]["overrideBadges"] = [];
+  if (overridesAppliedSet.has("trucks")) {
+    overrideBadges.push({ key: "trucks", label: "Trucks", value: `${trucksFinal} truck${trucksFinal === 1 ? "" : "s"}`, tone: "amber" });
+  }
+  if (overridesAppliedSet.has("boxes")) {
+    overrideBadges.push({ key: "boxes", label: "Boxes", value: `${boxesBring}`, tone: "amber" });
+  }
+  if (overridesAppliedSet.has("blankets")) {
+    overrideBadges.push({ key: "blankets", label: "Blankets", value: `${blankets}`, tone: "amber" });
+  }
+  if (overridesAppliedSet.has("wardrobes")) {
+    overrideBadges.push({ key: "wardrobes", label: "Wardrobes", value: `${wardrobes}`, tone: "amber" });
+  }
+
+  const calculationPath: EstimateResult["calculationPath"] = {
+    overrideBadges,
+    volume: {
+      label: "Volume Path",
+      tone: "blue",
+      items: [
+        {
+          kind: "node",
+          label: "Inventory Volume",
+          value: inventoryVolume,
+          unit: "cu ft",
+          tone: "blue",
+          caption: "Parsed inventory",
+        },
+        {
+          kind: "modifier",
+          label: "Coverage / Safety",
+          displayValue: formatSignedAmount(billableCF - inventoryVolume, "cu ft"),
+          tone: "blue",
+          summary: "Coverage, packing, and safety math.",
+          details: volumeAdjustmentDetails,
+        },
+        {
+          kind: "node",
+          label: "Adjusted Volume",
+          value: billableCF,
+          unit: "cu ft",
+          tone: "blue",
+          caption: "Billable volume",
+        },
+        {
+          kind: "modifier",
+          label: "Loose-Load / Stacking",
+          displayValue: formatSignedAmount(truckSpaceCF - billableCF, "cu ft"),
+          tone: "orange",
+          summary: "Truck-space buffer for stacking and load gaps.",
+          details: looseLoadDetails,
+        },
+        {
+          kind: "node",
+          label: "Truck Space",
+          value: truckSpaceCF,
+          unit: "cu ft",
+          tone: "orange",
+          caption: "Truck footprint",
+        },
+      ],
+    },
+    labor: {
+      label: "Labor Path",
+      tone: "purple",
+      items: [
+        {
+          kind: "node",
+          label: "Base Time",
+          value: Math.round(baseDurationHours * 10) / 10,
+          unit: "h",
+          tone: "purple",
+          caption: `Crew ${recommendedCrew}`,
+        },
+        {
+          kind: "modifier",
+          label: "Access & Handling",
+          displayValue: formatSignedAmount(recommendedCalcDuration - baseDurationHours, "h"),
+          tone: "purple",
+          summary: "Access, handling, and routing adders.",
+          details: accessHandlingDetails,
+        },
+        {
+          kind: "node",
+          label: "Work Time",
+          value: Math.round(recommendedCalcDuration * 10) / 10,
+          unit: "h",
+          tone: "purple",
+          caption: `Crew ${recommendedCrew}`,
+        },
+        {
+          kind: "modifier",
+          label: "Range Buffer",
+          displayValue: formatRangeBuffer(recommendedRangeLowHours, recommendedRangeHighHours),
+          tone: "purple",
+          summary: "Dispatch floor, ceiling, and top-end buffer.",
+          details: rangeBufferDetails,
+        },
+        {
+          kind: "node",
+          label: "Est. Range",
+          value: `${recommendedTimeMin}\u2013${recommendedTimeMax}`,
+          unit: "h",
+          tone: "purple",
+          caption: `Crew ${recommendedCrew}`,
+        },
+      ],
+    },
+  };
+
+  if (overridesAppliedSet.has("volume")) {
+    calculationPath.volume.items.push(
+      {
+        kind: "modifier",
+        label: "Manual Override",
+        displayValue: `Set ${formatCompactNumber(finalVolume)} cu ft`,
+        tone: "amber",
+        summary: "Dispatcher replaced the auto volume result.",
+        details: [
+          `Auto truck-space result: ${formatCompactNumber(truckSpaceCF)} cu ft.`,
+          `Manual final volume: ${formatCompactNumber(finalVolume)} cu ft.`,
+        ],
+      },
+      {
+        kind: "node",
+        label: "Final Volume",
+        value: finalVolume,
+        unit: "cu ft",
+        tone: "amber",
+        caption: "Manual result",
+      }
+    );
+  }
+
+  if (overridesAppliedSet.has("crew")) {
+    calculationPath.labor.items.push(
+      {
+        kind: "modifier",
+        label: "Manual Override",
+        displayValue: `Crew ${crew}`,
+        tone: "amber",
+        summary: "Dispatcher replaced the recommended crew.",
+        details: [
+          `Recommended crew: ${recommendedCrew}.`,
+          `Manual crew: ${crew}.`,
+          `Recomputed range: ${timeMin}\u2013${timeMax}h.`,
+        ],
+      },
+      {
+        kind: "node",
+        label: "Final Range",
+        value: `${timeMin}\u2013${timeMax}`,
+        unit: "h",
+        tone: "amber",
+        caption: `Manual crew ${crew}`,
+      }
+    );
+  }
 
   return {
     finalVolume,
@@ -299,5 +566,6 @@ export function buildEstimateResult(
     billableCF,
     truckSpaceCF,
     extraStopCount,
+    calculationPath,
   };
 }

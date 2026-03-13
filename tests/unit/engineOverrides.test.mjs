@@ -29,4 +29,16 @@ test("wardrobes override only changes materials output", () => {
   assert.equal(overridden.timeMax, base.timeMax);
   assert.match(overridden.auditSummary.join(" | "), /Wardrobes = 25/);
   assert.ok(overridden.overridesApplied.includes("wardrobes"));
+  assert.deepEqual(
+    overridden.calculationPath.overrideBadges.map((badge) => badge.key),
+    ["wardrobes"]
+  );
+  assert.deepEqual(
+    overridden.calculationPath.volume.items.map((item) => item.label),
+    base.calculationPath.volume.items.map((item) => item.label)
+  );
+  assert.deepEqual(
+    overridden.calculationPath.labor.items.map((item) => item.label),
+    base.calculationPath.labor.items.map((item) => item.label)
+  );
 });

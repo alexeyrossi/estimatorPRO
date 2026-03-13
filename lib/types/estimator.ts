@@ -37,6 +37,47 @@ export interface RiskItem {
   level: "caution" | "critical";
 }
 
+export type CalculationPathTone = "blue" | "purple" | "orange" | "amber" | "slate";
+
+export interface CalculationPathNode {
+  kind: "node";
+  label: string;
+  value: number | string;
+  unit: string;
+  tone: CalculationPathTone;
+  caption?: string;
+}
+
+export interface CalculationPathModifier {
+  kind: "modifier";
+  label: string;
+  displayValue: string;
+  tone: CalculationPathTone;
+  summary: string;
+  details: string[];
+}
+
+export type CalculationPathItem = CalculationPathNode | CalculationPathModifier;
+
+export interface CalculationPathLane {
+  label: string;
+  tone: CalculationPathTone;
+  items: CalculationPathItem[];
+}
+
+export interface CalculationPathOverrideBadge {
+  key: string;
+  label: string;
+  value: string;
+  tone: "amber";
+}
+
+export interface CalculationPath {
+  overrideBadges: CalculationPathOverrideBadge[];
+  volume: CalculationPathLane;
+  labor: CalculationPathLane;
+}
+
 export interface ParsedItem {
   name: string;
   qty: number;
@@ -92,6 +133,7 @@ export interface EstimateResult {
   leagueItems: { l1: string[]; l2: string[] };
   boxDensity: number;
   extraStopCount: number;
+  calculationPath: CalculationPath;
 }
 
 export interface SavedEstimateState {
