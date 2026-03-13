@@ -26,6 +26,7 @@ import {
   sanitizeInventoryMode,
   sanitizeNormalizedRows,
   sanitizeOverrides,
+  sanitizeRowsSourceText,
 } from "../../lib/estimatePolicy";
 import { createClient } from "../../lib/supabase/server";
 
@@ -158,7 +159,8 @@ export async function saveEstimateAction(
   inputs: EstimateInputs,
   normalizedRows: NormalizedRow[],
   inventoryMode: InventoryMode,
-  overrides: Record<string, string>
+  overrides: Record<string, string>,
+  rowsSourceText?: string
 ) {
   try {
     const access = await getSessionAccess();
@@ -178,6 +180,7 @@ export async function saveEstimateAction(
       normalizedRows: safeRows,
       overrides: safeOverrides,
     } = buildTrustedEstimate({ ...inputs, inventoryMode }, normalizedRows, overrides);
+    const safeRowsSourceText = sanitizeRowsSourceText(rowsSourceText);
     const {
       homeSize, moveType, distance, packingLevel,
       accessOrigin, accessDest,
@@ -197,6 +200,7 @@ export async function saveEstimateAction(
       normalizedRows: safeRows,
       inventoryMode: safeInputs.inventoryMode ?? "raw",
       overrides: safeOverrides,
+      rowsSourceText: safeRowsSourceText,
     };
 
     const payload = {

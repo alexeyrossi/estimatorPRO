@@ -42,6 +42,7 @@ Optional:
   Backward-compatible primary override. When set without `GEMINI_MODEL_CHAIN`, it becomes the first model in the fallback chain.
 
 Runtime env validation now fails fast if required keys are missing.
+Vercel deploys also fail before `next build` when either public Supabase env is missing from the build context.
 
 ## Local run
 

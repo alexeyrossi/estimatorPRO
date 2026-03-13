@@ -29,6 +29,7 @@ type UseDashboardSaveAndExportOptions = {
   inventoryMode: InventoryMode;
   normalizedRows: NormalizedRow[];
   overrides: Record<string, string>;
+  rowsSourceText?: string;
   rawInventoryVolume: number;
   setHistoryItems: React.Dispatch<React.SetStateAction<EstimateHistoryItem[]>>;
   setShowHistory: React.Dispatch<React.SetStateAction<boolean>>;
@@ -44,6 +45,7 @@ export function useDashboardSaveAndExport({
   inventoryMode,
   normalizedRows,
   overrides,
+  rowsSourceText,
   rawInventoryVolume,
   setHistoryItems,
   setShowHistory,
@@ -102,7 +104,8 @@ export function useDashboardSaveAndExport({
         inputs,
         normalizedRows,
         inventoryMode,
-        overrides
+        overrides,
+        rowsSourceText
       );
 
       if (result.success) {
@@ -148,6 +151,7 @@ export function useDashboardSaveAndExport({
     inventoryMode,
     normalizedRows,
     overrides,
+    rowsSourceText,
     setHistoryItems,
     setShowHistory,
     showHistory,

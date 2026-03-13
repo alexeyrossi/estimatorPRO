@@ -91,3 +91,39 @@ test("getGeminiEnv throws when GEMINI_API_KEY is missing", async () => {
     assert.throws(() => getGeminiEnv(), /Missing required environment variable: GEMINI_API_KEY/);
   });
 });
+
+test("getSupabaseEnv returns both public Supabase keys", async () => {
+  await withEnv({
+    NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co",
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: "anon-key",
+  }, async () => {
+    const { getSupabaseEnv } = loadFreshEnvModule();
+
+    assert.deepEqual(getSupabaseEnv(), {
+      url: "https://example.supabase.co",
+      anonKey: "anon-key",
+    });
+  });
+});
+
+test("getSupabaseEnv throws when NEXT_PUBLIC_SUPABASE_URL is missing", async () => {
+  await withEnv({
+    NEXT_PUBLIC_SUPABASE_URL: "",
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: "anon-key",
+  }, async () => {
+    const { getSupabaseEnv } = loadFreshEnvModule();
+
+    assert.throws(() => getSupabaseEnv(), /Missing required environment variable: NEXT_PUBLIC_SUPABASE_URL/);
+  });
+});
+
+test("getSupabaseEnv throws when NEXT_PUBLIC_SUPABASE_ANON_KEY is missing", async () => {
+  await withEnv({
+    NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co",
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: "   ",
+  }, async () => {
+    const { getSupabaseEnv } = loadFreshEnvModule();
+
+    assert.throws(() => getSupabaseEnv(), /Missing required environment variable: NEXT_PUBLIC_SUPABASE_ANON_KEY/);
+  });
+});

@@ -83,16 +83,43 @@ export function buildRawTextFromRows(rows: NormalizedRow[]) {
   return serializeRoomInventoryToText(buildRoomInventoryGroupsFromRows(rows));
 }
 
+export function normalizeComparableInventoryText(value: string | null | undefined) {
+  return String(value ?? "").replace(/\r\n?/g, "\n").trim();
+}
+
+export function sanitizeRowsSourceText(rowsSourceText: unknown) {
+  if (typeof rowsSourceText !== "string") return undefined;
+
+  const safeRowsSourceText = rowsSourceText.slice(0, MAX_INVENTORY_CHARS);
+  return safeRowsSourceText.length > 0 ? safeRowsSourceText : undefined;
+}
+
+export function hasFreshNormalizedRows(
+  inventoryText: string,
+  normalizedRows: NormalizedRow[],
+  rowsSourceText?: string
+) {
+  if (!normalizedRows.length) return false;
+
+  const comparableInventoryText = normalizeComparableInventoryText(inventoryText);
+  if (sanitizeRowsSourceText(rowsSourceText) != null) {
+    return normalizeComparableInventoryText(rowsSourceText) === comparableInventoryText;
+  }
+
+  return normalizeComparableInventoryText(buildRawTextFromRows(normalizedRows)) === comparableInventoryText;
+}
+
 export function deriveRowsStatus(
   inventoryMode: InventoryMode,
   inventoryText: string,
   normalizedRows: NormalizedRow[],
+  rowsSourceText?: string,
   requestedStatus?: RowsStatus
 ): RowsStatus {
   if (!normalizedRows.length) return "empty";
   if (inventoryMode === "normalized") return "fresh";
-  if (requestedStatus === "stale") return "stale";
-  return buildRawTextFromRows(normalizedRows).trim() === inventoryText.trim() ? "fresh" : "stale";
+  if (hasFreshNormalizedRows(inventoryText, normalizedRows, rowsSourceText)) return "fresh";
+  return requestedStatus === "stale" ? "stale" : "stale";
 }
 
 export function sanitizeNormalizedRows(rows: unknown, options: SanitizeNormalizedRowsOptions = {}): NormalizedRow[] {
@@ -188,15 +215,18 @@ export function buildDraftState(
   inputs: Partial<EstimateInputs>,
   inventoryMode: unknown,
   normalizedRows: unknown,
-  rowsStatus?: unknown
+  rowsStatus?: unknown,
+  rowsSourceText?: unknown
 ): DraftState {
   const safeInventoryMode = sanitizeInventoryMode(inventoryMode);
   const safeInputs = normalizeDraftInputs(inputs);
   const safeRows = sanitizeNormalizedRows(normalizedRows, { allowEmptyNumericFields: true });
+  const safeRowsSourceText = sanitizeRowsSourceText(rowsSourceText);
   const safeRowsStatus = deriveRowsStatus(
     safeInventoryMode,
     safeInputs.inventoryText,
     safeRows,
+    safeRowsSourceText,
     sanitizeRowsStatus(rowsStatus)
   );
 
@@ -204,6 +234,7 @@ export function buildDraftState(
     inputs: safeInputs,
     inventoryMode: safeInventoryMode,
     normalizedRows: safeRowsStatus === "empty" ? [] : safeRows,
+    rowsSourceText: safeRowsStatus === "empty" ? undefined : safeRowsSourceText,
     rowsStatus: safeRowsStatus,
   };
 }
@@ -216,7 +247,13 @@ export function hydrateEstimateDraftState(
     inputs: state.inputs,
     inventoryMode: state.inventoryMode,
     normalizedRows: state.normalizedRows,
-    rowsStatus: state.rowsStatus ?? deriveRowsStatus(state.inventoryMode, state.inputs.inventoryText, state.normalizedRows),
+    rowsSourceText: state.rowsSourceText,
+    rowsStatus: state.rowsStatus ?? deriveRowsStatus(
+      state.inventoryMode,
+      state.inputs.inventoryText,
+      state.normalizedRows,
+      state.rowsSourceText
+    ),
     overrides,
   };
 }

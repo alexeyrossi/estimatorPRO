@@ -29,6 +29,6 @@ export function createDraftStateFromSavedEstimate(savedState?: SavedEstimateStat
     },
     inventoryMode,
     normalizedRows,
-    rowsStatus: inventoryMode === "raw" && normalizedRows.length > 0 ? "stale" : undefined,
+    rowsSourceText: savedState.rowsSourceText,
   });
 }

@@ -8,6 +8,7 @@ import { ReportPanel } from "@/components/ReportPanel";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { HistoryPanel } from "@/components/dashboard/HistoryPanel";
 import { useDashboardBootstrap } from "@/hooks/useDashboardBootstrap";
+import { useDebounce } from "@/hooks/useDebounce";
 import { useDashboardDraft } from "@/hooks/useDashboardDraft";
 import { useDashboardSaveAndExport } from "@/hooks/useDashboardSaveAndExport";
 import { useEstimateHistory } from "@/hooks/useEstimateHistory";
@@ -15,7 +16,8 @@ import { useEstimateRunner } from "@/hooks/useEstimateRunner";
 import { useInventorySuggestions } from "@/hooks/useInventorySuggestions";
 import { clearDraft } from "@/lib/draftStorage";
 import { canReuseNormalizedRows } from "@/lib/estimateDraftReducer";
-import { buildRawTextFromRows } from "@/lib/estimatePolicy";
+import { mergeRowsPreservingManualHeavyFlags } from "@/lib/inventorySync";
+import { buildRawTextFromRows, normalizeComparableInventoryText } from "@/lib/estimatePolicy";
 import { createDraftStateFromSavedEstimate } from "@/lib/estimateSavedState";
 import { createClient } from "@/lib/supabase/client";
 import type {
@@ -25,6 +27,8 @@ import type {
 } from "@/lib/types/estimator";
 
 type HistoryPresencePhase = "collapsed" | "entering" | "idle" | "leaving";
+type InventorySyncMode = "background" | "openItems";
+type InventorySyncResult = "synced" | "superseded" | "error";
 
 const measureElementHeight = (node: HTMLDivElement | null) => {
   if (!node) return null;
@@ -37,6 +41,7 @@ export function DashboardClient() {
   const [reportView, setReportView] = useState<"summary" | "inventory" | "details">("summary");
   const [clientName, setClientName] = useState("");
   const [isNormalizing, setIsNormalizing] = useState(false);
+  const [isInventorySyncing, setIsInventorySyncing] = useState(false);
   const [isCleaningTranscript, setIsCleaningTranscript] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [addRowInput, setAddRowInput] = useState("");
@@ -52,6 +57,9 @@ export function DashboardClient() {
   const historySettleFrameRef = useRef<number | null>(null);
   const historyUnmountTimerRef = useRef<number | null>(null);
   const historyResizeFrameRef = useRef<number | null>(null);
+  const inventorySyncRequestVersionRef = useRef(0);
+  const inventorySyncPromiseRef = useRef<Promise<InventorySyncResult> | null>(null);
+  const pendingInventorySyncTextRef = useRef<string | null>(null);
 
   const {
     clearOverrides,
@@ -64,16 +72,28 @@ export function DashboardClient() {
     normalizedRows,
     overrides,
     persistDraftState,
-    rowsStatus,
+    rowsSourceText,
     setInputs,
     setNormalizedRows,
     setOverrides,
+    syncRawRows,
   } = useDashboardDraft({ autosaveEnabled: hasMounted });
+  const debouncedRawInventoryText = useDebounce(inputs.inventoryText, 900);
+  const draftStateRef = useRef(draftState);
+  const normalizedRowsRef = useRef(normalizedRows);
 
   const applySavedRecord = useCallback((record: SavedEstimateRecord) => {
     setClientName(record.client_name || "");
     persistDraftState(createDraftStateFromSavedEstimate(record.inputs_state));
   }, [persistDraftState]);
+
+  useEffect(() => {
+    draftStateRef.current = draftState;
+  }, [draftState]);
+
+  useEffect(() => {
+    normalizedRowsRef.current = normalizedRows;
+  }, [normalizedRows]);
 
   const {
     historyItems,
@@ -133,6 +153,7 @@ export function DashboardClient() {
     inventoryMode,
     normalizedRows,
     overrides,
+    rowsSourceText,
     rawInventoryVolume,
     setHistoryItems,
     setShowHistory,
@@ -161,28 +182,65 @@ export function DashboardClient() {
     }
   };
 
-  const handleNormalize = async () => {
-    setIsNormalizing(true);
-    try {
-      const rows = await normalizeInventoryAction(inputs.inventoryText);
-      const mergedRows = rows.map((newRow) => {
-        const existing = normalizedRows.find(
-          (row) => row.name.toLowerCase() === newRow.name.toLowerCase()
-            && (row.room || "").toLowerCase() === (newRow.room || "").toLowerCase()
-        );
-        if (existing?.flags) {
-          return { ...newRow, flags: { ...newRow.flags, ...existing.flags } };
-        }
-        return newRow;
-      });
-      dispatchDraft({ type: "normalizeSuccess", normalizedRows: mergedRows });
-    } catch (error: unknown) {
-      console.error(error);
-      toast.error("Failed to parse inventory. Please try again.");
-    } finally {
-      setIsNormalizing(false);
+  const syncInventoryRows = useCallback(async (
+    sourceText: string,
+    mode: InventorySyncMode
+  ): Promise<InventorySyncResult> => {
+    const requestVersion = inventorySyncRequestVersionRef.current + 1;
+    inventorySyncRequestVersionRef.current = requestVersion;
+    pendingInventorySyncTextRef.current = sourceText;
+    inventorySyncPromiseRef.current = null;
+    setIsInventorySyncing(true);
+
+    if (mode === "openItems") {
+      setIsNormalizing(true);
     }
-  };
+
+    const syncPromise = (async () => {
+      try {
+        const rows = await normalizeInventoryAction(sourceText);
+
+        if (requestVersion !== inventorySyncRequestVersionRef.current) {
+          return "superseded";
+        }
+
+        const mergedRows = mergeRowsPreservingManualHeavyFlags(normalizedRowsRef.current, rows);
+        if (mode === "openItems") {
+          dispatchDraft({
+            type: "normalizeSuccess",
+            normalizedRows: mergedRows,
+            rowsSourceText: sourceText,
+          });
+        } else {
+          syncRawRows(mergedRows, sourceText);
+        }
+
+        return "synced";
+      } catch (error: unknown) {
+        if (requestVersion !== inventorySyncRequestVersionRef.current) {
+          return "superseded";
+        }
+
+        console.error(error);
+        if (mode === "openItems") {
+          toast.error("Failed to parse inventory. Please try again.");
+        }
+        return "error";
+      } finally {
+        if (requestVersion === inventorySyncRequestVersionRef.current) {
+          pendingInventorySyncTextRef.current = null;
+          inventorySyncPromiseRef.current = null;
+          setIsInventorySyncing(false);
+          if (mode === "openItems") {
+            setIsNormalizing(false);
+          }
+        }
+      }
+    })();
+
+    inventorySyncPromiseRef.current = syncPromise;
+    return syncPromise;
+  }, [dispatchDraft, syncRawRows]);
 
   const handleCleanTranscript = async () => {
     const rawText = inputs.inventoryText;
@@ -220,7 +278,16 @@ export function DashboardClient() {
       return;
     }
 
-    await handleNormalize();
+    if (inventorySyncPromiseRef.current) {
+      await inventorySyncPromiseRef.current;
+
+      if (canReuseNormalizedRows(draftStateRef.current)) {
+        dispatchDraft({ type: "setInventoryMode", inventoryMode: "normalized" });
+        return;
+      }
+    }
+
+    await syncInventoryRows(inputs.inventoryText, "openItems");
   };
 
   const handleRawInventoryChange = (inventoryText: string) => {
@@ -268,6 +335,37 @@ export function DashboardClient() {
       setClientName("");
     }
   }, [handleSaveEstimateBase]);
+
+  useEffect(() => {
+    if (!hasMounted || inventoryMode !== "raw") return;
+
+    const comparableInventoryText = normalizeComparableInventoryText(debouncedRawInventoryText);
+    const comparableLiveInventoryText = normalizeComparableInventoryText(inputs.inventoryText);
+    const pendingComparableText = normalizeComparableInventoryText(pendingInventorySyncTextRef.current);
+
+    if (comparableInventoryText !== comparableLiveInventoryText) return;
+
+    if (!comparableInventoryText) {
+      if (normalizedRows.length > 0 || rowsSourceText) {
+        syncRawRows([], undefined);
+      }
+      return;
+    }
+
+    if (canReuseNormalizedRows(draftStateRef.current)) return;
+    if (pendingComparableText === comparableInventoryText) return;
+
+    void syncInventoryRows(debouncedRawInventoryText, "background");
+  }, [
+    debouncedRawInventoryText,
+    hasMounted,
+    inventoryMode,
+    inputs.inventoryText,
+    normalizedRows.length,
+    rowsSourceText,
+    syncInventoryRows,
+    syncRawRows,
+  ]);
 
   const clearHistoryPresenceTimers = useCallback(() => {
     if (historyMountFrameRef.current !== null) {
@@ -524,8 +622,9 @@ export function DashboardClient() {
             isConfigTabActive={activeTab === "config"}
             inventoryMode={inventoryMode}
             normalizedRows={normalizedRows}
+            rowsSourceText={rowsSourceText}
             setNormalizedRows={setNormalizedRows}
-            rowsStatus={rowsStatus}
+            syncRawRows={syncRawRows}
             inventoryClipped={inventoryClipped}
             setInventoryClipped={setInventoryClipped}
             addRowInput={addRowInput}
@@ -537,6 +636,7 @@ export function DashboardClient() {
             handleAddRow={handleAddRow}
             handleRowQtyChange={handleRowQtyChange}
             isCleaningTranscript={isCleaningTranscript}
+            isInventorySyncing={isInventorySyncing}
             estimate={estimate}
           />
         </div>

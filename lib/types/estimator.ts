@@ -141,12 +141,14 @@ export interface SavedEstimateState {
   normalizedRows: NormalizedRow[];
   inventoryMode: InventoryMode;
   overrides: Record<string, string>;
+  rowsSourceText?: string;
 }
 
 export interface EstimateDraftState {
   inputs: EstimateInputs;
   inventoryMode: InventoryMode;
   normalizedRows: NormalizedRow[];
+  rowsSourceText?: string;
   rowsStatus: RowsStatus;
   overrides: Record<string, string>;
 }
@@ -178,6 +180,7 @@ export interface DraftEnvelope {
   inputs: EstimateInputs;
   inventoryMode: InventoryMode;
   normalizedRows: NormalizedRow[];
+  rowsSourceText?: string;
   rowsStatus: RowsStatus;
 }
 
@@ -185,6 +188,7 @@ export interface DraftState {
   inputs: EstimateInputs;
   inventoryMode: InventoryMode;
   normalizedRows: NormalizedRow[];
+  rowsSourceText?: string;
   rowsStatus: RowsStatus;
 }
 

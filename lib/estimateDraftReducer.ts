@@ -5,10 +5,10 @@ import {
   NormalizedRow,
 } from "./types/estimator";
 import {
-  buildRawTextFromRows,
   DEFAULT_ESTIMATE_INPUTS,
   deriveRowsStatus,
   DraftHydrationState,
+  hasFreshNormalizedRows,
   hydrateEstimateDraftState,
 } from "./estimatePolicy";
 
@@ -20,8 +20,9 @@ export type EstimateDraftAction =
   | { type: "setRawText"; inventoryText: string }
   | { type: "setInventoryMode"; inventoryMode: InventoryMode }
   | { type: "switchToRawFromRows"; inventoryText: string }
+  | { type: "syncRawRows"; normalizedRows: NormalizedRow[]; rowsSourceText?: string }
   | { type: "setNormalizedRows"; normalizedRows: NormalizedRow[] }
-  | { type: "normalizeSuccess"; normalizedRows: NormalizedRow[] }
+  | { type: "normalizeSuccess"; normalizedRows: NormalizedRow[]; rowsSourceText?: string }
   | { type: "setOverrides"; overrides: Record<string, string> }
   | { type: "clearOverrides" };
 
@@ -36,6 +37,7 @@ export function createInitialEstimateDraftState(): EstimateDraftState {
     inputs: { ...DEFAULT_ESTIMATE_INPUTS },
     inventoryMode: "raw",
     normalizedRows: [],
+    rowsSourceText: undefined,
     rowsStatus: "empty",
     overrides: {},
   };
@@ -49,11 +51,13 @@ export function buildEstimateRequest(state: EstimateDraftState): EstimateDraftRe
   };
 }
 
-export function canReuseNormalizedRows(state: Pick<EstimateDraftState, "inputs" | "normalizedRows" | "rowsStatus">): boolean {
+export function canReuseNormalizedRows(
+  state: Pick<EstimateDraftState, "inputs" | "normalizedRows" | "rowsSourceText" | "rowsStatus">
+): boolean {
   return (
     state.rowsStatus === "fresh" &&
     state.normalizedRows.length > 0 &&
-    buildRawTextFromRows(state.normalizedRows).trim() === state.inputs.inventoryText.trim()
+    hasFreshNormalizedRows(state.inputs.inventoryText, state.normalizedRows, state.rowsSourceText)
   );
 }
 
@@ -77,7 +81,7 @@ export function estimateDraftReducer(state: EstimateDraftState, action: Estimate
         ...state,
         inputs: nextInputs,
         rowsStatus: inventoryTextChanged && state.inventoryMode === "raw"
-          ? deriveRowsStatus("raw", nextInputs.inventoryText, state.normalizedRows)
+          ? deriveRowsStatus("raw", nextInputs.inventoryText, state.normalizedRows, state.rowsSourceText)
           : state.rowsStatus,
       };
     }
@@ -86,14 +90,19 @@ export function estimateDraftReducer(state: EstimateDraftState, action: Estimate
       return {
         ...state,
         inputs: { ...state.inputs, inventoryText: action.inventoryText },
-        rowsStatus: deriveRowsStatus("raw", action.inventoryText, state.normalizedRows),
+        rowsStatus: deriveRowsStatus("raw", action.inventoryText, state.normalizedRows, state.rowsSourceText),
       };
 
     case "setInventoryMode":
       return {
         ...state,
         inventoryMode: action.inventoryMode,
-        rowsStatus: deriveRowsStatus(action.inventoryMode, state.inputs.inventoryText, state.normalizedRows),
+        rowsStatus: deriveRowsStatus(
+          action.inventoryMode,
+          state.inputs.inventoryText,
+          state.normalizedRows,
+          state.rowsSourceText
+        ),
       };
 
     case "switchToRawFromRows":
@@ -101,22 +110,50 @@ export function estimateDraftReducer(state: EstimateDraftState, action: Estimate
         ...state,
         inventoryMode: "raw",
         inputs: { ...state.inputs, inventoryText: action.inventoryText },
-        rowsStatus: deriveRowsStatus("raw", action.inventoryText, state.normalizedRows),
+        rowsSourceText: action.inventoryText,
+        rowsStatus: deriveRowsStatus("raw", action.inventoryText, state.normalizedRows, action.inventoryText),
       };
 
-    case "setNormalizedRows":
+    case "syncRawRows":
       return {
         ...state,
         normalizedRows: action.normalizedRows,
-        rowsStatus: deriveRowsStatus(state.inventoryMode, state.inputs.inventoryText, action.normalizedRows),
+        rowsSourceText: action.normalizedRows.length > 0 ? action.rowsSourceText : undefined,
+        rowsStatus: deriveRowsStatus(
+          state.inventoryMode,
+          state.inputs.inventoryText,
+          action.normalizedRows,
+          action.rowsSourceText
+        ),
       };
+
+    case "setNormalizedRows": {
+      const nextRowsSourceText = action.normalizedRows.length > 0 ? state.rowsSourceText : undefined;
+      return {
+        ...state,
+        normalizedRows: action.normalizedRows,
+        rowsSourceText: nextRowsSourceText,
+        rowsStatus: deriveRowsStatus(
+          state.inventoryMode,
+          state.inputs.inventoryText,
+          action.normalizedRows,
+          nextRowsSourceText
+        ),
+      };
+    }
 
     case "normalizeSuccess":
       return {
         ...state,
         inventoryMode: "normalized",
         normalizedRows: action.normalizedRows,
-        rowsStatus: deriveRowsStatus("normalized", state.inputs.inventoryText, action.normalizedRows),
+        rowsSourceText: action.normalizedRows.length > 0 ? action.rowsSourceText : undefined,
+        rowsStatus: deriveRowsStatus(
+          "normalized",
+          state.inputs.inventoryText,
+          action.normalizedRows,
+          action.rowsSourceText
+        ),
       };
 
     case "setOverrides":

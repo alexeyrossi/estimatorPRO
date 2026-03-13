@@ -32,7 +32,7 @@ import {
     type ConfigPanelViewPhase,
 } from '@/lib/configPanelView';
 import { copyTextToClipboard } from '@/lib/clipboard';
-import { EstimateInputs, EstimateResult, NormalizedRow, RowsStatus } from '@/lib/types/estimator';
+import { EstimateInputs, EstimateResult, NormalizedRow } from '@/lib/types/estimator';
 import { MAX_EXTRA_STOPS } from '@/lib/estimatePolicy';
 import { AccessSegmented } from './AccessSegmented';
 import { GlassPanel } from './GlassPanel';
@@ -146,7 +146,7 @@ const isDomNode = (target: EventTarget | null): target is Node => target instanc
 
 const getInventoryModeToggleMeta = (
     inventoryMode: 'raw' | 'normalized',
-    rowsStatus: RowsStatus
+    isInventorySyncing: boolean
 ) => {
     if (inventoryMode === 'normalized') {
         return {
@@ -154,15 +154,17 @@ const getInventoryModeToggleMeta = (
             mobileLabel: 'Text',
             title: 'Switch to text view',
             Icon: AlignLeft,
+            spinIcon: false,
         };
     }
 
-    if (rowsStatus === 'stale') {
+    if (isInventorySyncing) {
         return {
-            label: 'Re-sync Items',
-            mobileLabel: 'Sync',
-            title: 'Re-sync detected items',
+            label: 'Edit',
+            mobileLabel: 'Edit',
+            title: 'Preparing detected items',
             Icon: RefreshCcw,
+            spinIcon: true,
         };
     }
 
@@ -171,6 +173,7 @@ const getInventoryModeToggleMeta = (
         mobileLabel: 'Edit',
         title: 'Switch to edit view',
         Icon: Pencil,
+        spinIcon: false,
     };
 };
 
@@ -183,6 +186,7 @@ const SubviewActionButton = ({
     showDesktopLabel = true,
     title,
     disabled = false,
+    spinIcon = false,
 }: {
     active?: boolean;
     Icon: LucideIcon;
@@ -192,6 +196,7 @@ const SubviewActionButton = ({
     showDesktopLabel?: boolean;
     title?: string;
     disabled?: boolean;
+    spinIcon?: boolean;
 }) => {
     const hasMobileLabel = Boolean(mobileLabel);
     const hasVisibleLabel = hasMobileLabel || showDesktopLabel;
@@ -206,7 +211,7 @@ const SubviewActionButton = ({
             className={`group relative flex h-9 shrink-0 items-center justify-center rounded-xl text-slate-500 ${disabled ? 'cursor-not-allowed opacity-50' : 'active:scale-[0.98]'} ${active ? 'bg-slate-100 text-slate-900' : disabled ? '' : 'hover:bg-slate-100 hover:text-slate-900'} ${hasVisibleLabel ? (hasMobileLabel ? 'gap-1.5 px-2.5 md:gap-2 md:px-3.5' : 'w-9 md:w-auto md:gap-2 md:px-3.5') : 'w-9'}`}
             style={softActionButtonTransition}
         >
-            <Icon className="h-4 w-4 shrink-0" strokeWidth={2} />
+            <Icon className={`h-4 w-4 shrink-0 ${spinIcon ? 'animate-spin' : ''}`} strokeWidth={2} />
             {hasMobileLabel && (
                 <span className="text-[10px] font-bold leading-none md:hidden">
                     {mobileLabel}
@@ -534,8 +539,9 @@ interface ConfigPanelProps {
     isConfigTabActive: boolean;
     inventoryMode: 'raw' | 'normalized';
     normalizedRows: NormalizedRow[];
+    rowsSourceText?: string;
     setNormalizedRows: React.Dispatch<React.SetStateAction<NormalizedRow[]>>;
-    rowsStatus: RowsStatus;
+    syncRawRows: (rows: NormalizedRow[], rowsSourceText?: string) => void;
     inventoryClipped: boolean;
     setInventoryClipped: (v: boolean) => void;
     addRowInput: string;
@@ -547,6 +553,7 @@ interface ConfigPanelProps {
     handleAddRow: () => void;
     handleRowQtyChange: (id: string, value: string, blur?: boolean) => void;
     isCleaningTranscript: boolean;
+    isInventorySyncing: boolean;
     estimate: EstimateResult | Partial<EstimateResult>;
 }
 
@@ -556,8 +563,9 @@ export const ConfigPanel = ({
     isConfigTabActive,
     inventoryMode,
     normalizedRows,
+    rowsSourceText,
     setNormalizedRows,
-    rowsStatus,
+    syncRawRows,
     inventoryClipped,
     setInventoryClipped,
     addRowInput,
@@ -569,10 +577,11 @@ export const ConfigPanel = ({
     handleAddRow,
     handleRowQtyChange,
     isCleaningTranscript,
+    isInventorySyncing,
     estimate,
 }: ConfigPanelProps) => {
     const isLabor = inputs.moveType === 'Labor';
-    const inventoryModeToggle = getInventoryModeToggleMeta(inventoryMode, rowsStatus);
+    const inventoryModeToggle = getInventoryModeToggleMeta(inventoryMode, isInventorySyncing);
     const detectedQtyTotal = (estimate as EstimateResult)?.detectedQtyTotal ?? 0;
     const inventoryViewport = useSyncExternalStore(
         subscribeToInventoryViewport,
@@ -581,7 +590,7 @@ export const ConfigPanel = ({
     );
     const expandedMetrics = getInventoryExpandedMetrics(inventoryViewport);
 
-    const [undoCache, setUndoCache] = useState<{ text: string; rows: NormalizedRow[] } | null>(null);
+    const [undoCache, setUndoCache] = useState<{ text: string; rows: NormalizedRow[]; rowsSourceText?: string } | null>(null);
     const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
     const [configView, setConfigView] = useState<ConfigPanelView>('parameters');
     const [displayedConfigView, setDisplayedConfigView] = useState<ConfigPanelView>('parameters');
@@ -629,10 +638,10 @@ export const ConfigPanel = ({
     }, []);
 
     const handleClearInventory = () => {
-        setUndoCache({ text: inputs.inventoryText, rows: [...normalizedRows] });
+        setUndoCache({ text: inputs.inventoryText, rows: [...normalizedRows], rowsSourceText });
         setInventoryCopyStatus('idle');
         setInputs((prev) => ({ ...prev, inventoryText: '' }));
-        setNormalizedRows([]);
+        syncRawRows([], undefined);
 
         if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
         undoTimerRef.current = setTimeout(() => setUndoCache(null), 10000);
@@ -642,7 +651,7 @@ export const ConfigPanel = ({
         if (!undoCache) return;
 
         setInputs((prev) => ({ ...prev, inventoryText: undoCache.text }));
-        setNormalizedRows(undoCache.rows);
+        syncRawRows(undoCache.rows, undoCache.rowsSourceText);
         setUndoCache(null);
 
         if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
@@ -987,6 +996,7 @@ export const ConfigPanel = ({
             label={inventoryModeToggle.label}
             mobileLabel={inventoryModeToggle.mobileLabel}
             onClick={() => void handleInventoryModeToggle()}
+            spinIcon={inventoryModeToggle.spinIcon}
             title={inventoryModeToggle.title}
         />
     );
@@ -1095,11 +1105,6 @@ export const ConfigPanel = ({
                     aria-label="Raw inventory text input"
                 />
             </div>
-            {rowsStatus === 'stale' && (
-                <div className="mt-2 px-1 text-[10px] font-bold text-amber-600">
-                    Rows stale. Re-normalize to sync.
-                </div>
-            )}
         </div>
     );
 

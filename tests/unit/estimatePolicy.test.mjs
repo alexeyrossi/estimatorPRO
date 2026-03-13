@@ -77,6 +77,71 @@ test("buildDraftState preserves editable blank numeric fields and stale state", 
   assert.equal(buildRawTextFromRows(state.normalizedRows), "Living Room:\n1 sofa");
 });
 
+test("buildDraftState treats rowsSourceText as the raw freshness contract", () => {
+  const rawInventoryText = "Sales note: sofa plus dresser already reviewed";
+  const state = buildDraftState(
+    {
+      homeSize: "2",
+      moveType: "Local",
+      distance: "15",
+      packingLevel: "None",
+      accessOrigin: "ground",
+      accessDest: "ground",
+      inventoryText: rawInventoryText,
+      extraStops: [],
+    },
+    "raw",
+    [
+      {
+        id: "row_1",
+        name: "sofa",
+        qty: 1,
+        cfUnit: 45,
+        raw: "sofa",
+        room: "Living Room",
+        flags: { heavy: false, heavyWeight: false },
+      },
+    ],
+    undefined,
+    rawInventoryText
+  );
+
+  assert.equal(state.rowsStatus, "fresh");
+  assert.equal(state.rowsSourceText, rawInventoryText);
+});
+
+test("buildDraftState falls back to canonical row text for legacy raw rows", () => {
+  const rows = [
+    {
+      id: "row_1",
+      name: "sofa",
+      qty: 1,
+      cfUnit: 45,
+      raw: "sofa",
+      room: "Living Room",
+      flags: { heavy: false, heavyWeight: false },
+    },
+  ];
+
+  const state = buildDraftState(
+    {
+      homeSize: "2",
+      moveType: "Local",
+      distance: "15",
+      packingLevel: "None",
+      accessOrigin: "ground",
+      accessDest: "ground",
+      inventoryText: "Living Room:\n1 sofa",
+      extraStops: [],
+    },
+    "raw",
+    rows
+  );
+
+  assert.equal(state.rowsStatus, "fresh");
+  assert.equal(state.rowsSourceText, undefined);
+});
+
 test("buildRawTextFromRows formats named rooms first and General last", () => {
   const formatted = buildRawTextFromRows([
     {

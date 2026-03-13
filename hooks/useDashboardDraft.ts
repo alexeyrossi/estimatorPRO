@@ -24,7 +24,7 @@ export function useDashboardDraft({ autosaveEnabled }: UseDashboardDraftOptions)
     undefined,
     createInitialEstimateDraftState
   );
-  const { inputs, inventoryMode, normalizedRows, rowsStatus, overrides } = draftState;
+  const { inputs, inventoryMode, normalizedRows, rowsSourceText, rowsStatus, overrides } = draftState;
 
   const setInputs: React.Dispatch<React.SetStateAction<EstimateInputs>> = (value) => {
     const nextInputs = typeof value === "function" ? value(inputs) : value;
@@ -35,6 +35,14 @@ export function useDashboardDraft({ autosaveEnabled }: UseDashboardDraftOptions)
     const nextRows = typeof value === "function" ? value(normalizedRows) : value;
     dispatchDraft({ type: "setNormalizedRows", normalizedRows: nextRows });
   };
+
+  const syncRawRows = useCallback((nextRows: NormalizedRow[], nextRowsSourceText?: string) => {
+    dispatchDraft({
+      type: "syncRawRows",
+      normalizedRows: nextRows,
+      rowsSourceText: nextRowsSourceText,
+    });
+  }, []);
 
   const setOverrides: React.Dispatch<React.SetStateAction<Record<string, string>>> = (value) => {
     const nextOverrides = typeof value === "function" ? value(overrides) : value;
@@ -51,7 +59,8 @@ export function useDashboardDraft({ autosaveEnabled }: UseDashboardDraftOptions)
       nextDraft.inputs,
       nextDraft.inventoryMode,
       nextDraft.normalizedRows,
-      nextDraft.rowsStatus
+      nextDraft.rowsStatus,
+      nextDraft.rowsSourceText
     );
   }, []);
 
@@ -60,8 +69,8 @@ export function useDashboardDraft({ autosaveEnabled }: UseDashboardDraftOptions)
   }, []);
 
   const autosaveDraftState = useMemo(
-    () => ({ inputs, inventoryMode, normalizedRows, rowsStatus }),
-    [inputs, inventoryMode, normalizedRows, rowsStatus]
+    () => ({ inputs, inventoryMode, normalizedRows, rowsSourceText, rowsStatus }),
+    [inputs, inventoryMode, normalizedRows, rowsSourceText, rowsStatus]
   );
   const debouncedDraftState = useDebounce(autosaveDraftState, 900);
   const estimateRequest = useMemo(() => buildEstimateRequest(draftState), [draftState]);
@@ -72,7 +81,8 @@ export function useDashboardDraft({ autosaveEnabled }: UseDashboardDraftOptions)
       debouncedDraftState.inputs,
       debouncedDraftState.inventoryMode,
       debouncedDraftState.normalizedRows,
-      debouncedDraftState.rowsStatus
+      debouncedDraftState.rowsStatus,
+      debouncedDraftState.rowsSourceText
     );
   }, [autosaveEnabled, debouncedDraftState]);
 
@@ -88,9 +98,11 @@ export function useDashboardDraft({ autosaveEnabled }: UseDashboardDraftOptions)
     normalizedRows,
     overrides,
     persistDraftState,
+    rowsSourceText,
     rowsStatus,
     setInputs,
     setNormalizedRows,
     setOverrides,
+    syncRawRows,
   };
 }

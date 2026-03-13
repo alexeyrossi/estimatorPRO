@@ -34,11 +34,12 @@ export function saveDraft(
   inputs: Partial<EstimateInputs>,
   inventoryMode: unknown,
   normalizedRows: unknown,
-  rowsStatus?: unknown
+  rowsStatus?: unknown,
+  rowsSourceText?: unknown
 ) {
   if (!hasStorage()) return;
 
-  const state = buildDraftState(inputs, inventoryMode, normalizedRows, rowsStatus);
+  const state = buildDraftState(inputs, inventoryMode, normalizedRows, rowsStatus, rowsSourceText);
   const savedAt = new Date().toISOString();
   const envelope: DraftEnvelope = {
     version: DRAFT_VERSION,
@@ -47,6 +48,7 @@ export function saveDraft(
     inputs: state.inputs,
     inventoryMode: state.inventoryMode,
     normalizedRows: state.normalizedRows,
+    rowsSourceText: state.rowsSourceText,
     rowsStatus: state.rowsStatus,
   };
 
@@ -84,7 +86,13 @@ export function loadDraft(): DraftLoadResult {
     }
 
     return {
-      state: buildDraftState(envelope.inputs, envelope.inventoryMode, envelope.normalizedRows, envelope.rowsStatus),
+      state: buildDraftState(
+        envelope.inputs,
+        envelope.inventoryMode,
+        envelope.normalizedRows,
+        envelope.rowsStatus,
+        envelope.rowsSourceText
+      ),
       status: "loaded",
     };
   } catch {
@@ -116,9 +124,10 @@ export function migrateLegacyDraft(): DraftState | null {
       },
       legacyInventoryMode,
       legacyRows,
-      legacyInventoryMode === "raw" && legacyRows.length > 0 ? "stale" : parsedManager?.rowsStatus
+      legacyInventoryMode === "raw" && legacyRows.length > 0 ? "stale" : parsedManager?.rowsStatus,
+      parsedManager?.rowsSourceText
     );
-    saveDraft(state.inputs, state.inventoryMode, state.normalizedRows, state.rowsStatus);
+    saveDraft(state.inputs, state.inventoryMode, state.normalizedRows, state.rowsStatus, state.rowsSourceText);
     return state;
   } catch {
     clearDraft();

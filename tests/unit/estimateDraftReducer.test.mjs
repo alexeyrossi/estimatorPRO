@@ -50,6 +50,7 @@ test("raw edit marks rows stale", () => {
     },
     inventoryMode: "raw",
     normalizedRows: sampleRows,
+    rowsSourceText: rawText,
     rowsStatus: "fresh",
   });
 
@@ -76,6 +77,7 @@ test("buildEstimateRequest omits rows in raw mode", () => {
     },
     inventoryMode: "raw",
     normalizedRows: sampleRows,
+    rowsSourceText: buildRawTextFromRows(sampleRows),
     rowsStatus: "fresh",
   });
 
@@ -88,12 +90,14 @@ test("normalize success switches to normalized fresh rows", () => {
   const state = createInitialEstimateDraftState();
   const next = estimateDraftReducer(state, {
     type: "normalizeSuccess",
-    normalizedRows: sampleRows,
+      normalizedRows: sampleRows,
+      rowsSourceText: "Broker note: sofa and dresser",
   });
 
   assert.equal(next.inventoryMode, "normalized");
   assert.equal(next.rowsStatus, "fresh");
   assert.deepEqual(next.normalizedRows, sampleRows);
+  assert.equal(next.rowsSourceText, "Broker note: sofa and dresser");
 });
 
 test("normalized to raw uses generated text from rows", () => {
@@ -111,6 +115,24 @@ test("normalized to raw uses generated text from rows", () => {
   assert.equal(next.inventoryMode, "raw");
   assert.equal(rawText, "Living Room:\n1 sofa\n\nBedroom:\n1 dresser");
   assert.equal(next.inputs.inventoryText, rawText);
+  assert.equal(next.rowsSourceText, rawText);
+  assert.equal(next.rowsStatus, "fresh");
+});
+
+test("syncRawRows refreshes rowsSourceText without switching modes", () => {
+  const rawText = "Sales note: sofa plus dresser reviewed";
+  const state = estimateDraftReducer(createInitialEstimateDraftState(), {
+    type: "setRawText",
+    inventoryText: rawText,
+  });
+  const next = estimateDraftReducer(state, {
+    type: "syncRawRows",
+    normalizedRows: sampleRows,
+    rowsSourceText: rawText,
+  });
+
+  assert.equal(next.inventoryMode, "raw");
+  assert.equal(next.rowsSourceText, rawText);
   assert.equal(next.rowsStatus, "fresh");
 });
 
@@ -135,6 +157,28 @@ test("stale raw state never qualifies for normalized row reuse", () => {
   assert.equal(canReuseNormalizedRows(state), false);
 });
 
+test("rowsSourceText allows row reuse for non-canonical raw text", () => {
+  const rawText = "Sales note: sofa plus dresser already reviewed";
+  const state = hydrateDraftState({
+    inputs: {
+      homeSize: "2",
+      moveType: "Local",
+      distance: "15",
+      packingLevel: "None",
+      accessOrigin: "ground",
+      accessDest: "ground",
+      inventoryText: rawText,
+      extraStops: [],
+    },
+    inventoryMode: "raw",
+    normalizedRows: sampleRows,
+    rowsSourceText: rawText,
+    rowsStatus: "fresh",
+  });
+
+  assert.equal(canReuseNormalizedRows(state), true);
+});
+
 test("saved estimate load resets persisted overrides", () => {
   const hydrated = createDraftStateFromSavedEstimate({
     inputs: {
@@ -153,6 +197,29 @@ test("saved estimate load resets persisted overrides", () => {
   });
 
   assert.deepEqual(hydrated.overrides, {});
+});
+
+test("saved raw estimate load reuses rowsSourceText freshness", () => {
+  const rawText = "Sales note: sofa plus dresser already reviewed";
+  const hydrated = createDraftStateFromSavedEstimate({
+    inputs: {
+      homeSize: "2",
+      moveType: "Local",
+      distance: "15",
+      packingLevel: "None",
+      accessOrigin: "ground",
+      accessDest: "ground",
+      inventoryText: rawText,
+      extraStops: [],
+    },
+    inventoryMode: "raw",
+    normalizedRows: sampleRows,
+    overrides: {},
+    rowsSourceText: rawText,
+  });
+
+  assert.equal(hydrated.rowsStatus, "fresh");
+  assert.equal(hydrated.rowsSourceText, rawText);
 });
 
 test("legacy raw draft rows hydrate as stale", () => {
