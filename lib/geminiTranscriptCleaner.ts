@@ -7,6 +7,31 @@ import {
   type RoomInventoryDraft,
 } from "./roomInventory";
 
+export type TranscriptCleanerErrorCode =
+  | "env_missing"
+  | "timeout"
+  | "upstream_request"
+  | "malformed_response"
+  | "unknown";
+
+export class TranscriptCleanerError extends Error {
+  readonly code: TranscriptCleanerErrorCode;
+
+  constructor(code: TranscriptCleanerErrorCode, message: string, options?: { cause?: unknown }) {
+    super(message);
+    this.name = "TranscriptCleanerError";
+    this.code = code;
+    if (options && "cause" in options) {
+      Object.defineProperty(this, "cause", {
+        configurable: true,
+        enumerable: false,
+        value: options.cause,
+        writable: true,
+      });
+    }
+  }
+}
+
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta";
 const GEMINI_TIMEOUT_MS = 15_000;
 const GEMINI_TEMPERATURE = 0.1;
@@ -220,6 +245,22 @@ function getErrorMessage(error: unknown) {
   return "Unknown error";
 }
 
+function createTranscriptCleanerError(
+  code: TranscriptCleanerErrorCode,
+  message: string,
+  cause?: unknown
+): TranscriptCleanerError {
+  return new TranscriptCleanerError(code, message, { cause });
+}
+
+export function getTranscriptCleanerErrorCode(error: unknown): TranscriptCleanerErrorCode | null {
+  if (error instanceof TranscriptCleanerError) {
+    return error.code;
+  }
+
+  return null;
+}
+
 function extractGeminiText(payload: unknown): string {
   const parts = (payload as {
     candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
@@ -280,7 +321,15 @@ function parseRoomInventory(text: string): RoomInventoryDraft {
 }
 
 export async function cleanTranscriptToRoomInventory(transcript: string): Promise<RoomInventoryDraft> {
-  const { apiKey, model } = getGeminiEnv();
+  let apiKey: string;
+  let model: string;
+
+  try {
+    ({ apiKey, model } = getGeminiEnv());
+  } catch (error) {
+    throw createTranscriptCleanerError("env_missing", getErrorMessage(error), error);
+  }
+
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), GEMINI_TIMEOUT_MS);
 
@@ -324,10 +373,14 @@ export async function cleanTranscriptToRoomInventory(transcript: string): Promis
     });
   } catch (error) {
     if (isAbortError(error)) {
-      throw new Error("Gemini transcript cleaner timed out.");
+      throw createTranscriptCleanerError("timeout", "Gemini transcript cleaner timed out.", error);
     }
 
-    throw new Error(`Gemini transcript cleaner failed: ${getErrorMessage(error)}`);
+    throw createTranscriptCleanerError(
+      "unknown",
+      `Gemini transcript cleaner failed: ${getErrorMessage(error)}`,
+      error
+    );
   } finally {
     clearTimeout(timeoutId);
   }
@@ -335,7 +388,10 @@ export async function cleanTranscriptToRoomInventory(transcript: string): Promis
   if (!response.ok) {
     const detail = await response.text().catch(() => "");
     const suffix = detail ? `: ${detail.slice(0, 200)}` : "";
-    throw new Error(`Gemini transcript cleaner request failed (${response.status})${suffix}`);
+    throw createTranscriptCleanerError(
+      "upstream_request",
+      `Gemini transcript cleaner request failed (${response.status})${suffix}`
+    );
   }
 
   let result: unknown;
@@ -343,10 +399,21 @@ export async function cleanTranscriptToRoomInventory(transcript: string): Promis
   try {
     result = await response.json();
   } catch {
-    throw new Error("Gemini transcript cleaner returned invalid API JSON.");
+    throw createTranscriptCleanerError(
+      "malformed_response",
+      "Gemini transcript cleaner returned invalid API JSON."
+    );
   }
 
-  return parseRoomInventory(extractGeminiText(result));
+  try {
+    return parseRoomInventory(extractGeminiText(result));
+  } catch (error) {
+    if (error instanceof TranscriptCleanerError) {
+      throw error;
+    }
+
+    throw createTranscriptCleanerError("malformed_response", getErrorMessage(error), error);
+  }
 }
 
 export async function cleanTranscriptToInventoryText(transcript: string): Promise<string> {

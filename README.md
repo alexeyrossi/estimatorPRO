@@ -32,8 +32,14 @@ Required:
 
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `GEMINI_API_KEY`
 
-Runtime env validation now fails fast if either is missing.
+Optional:
+
+- `GEMINI_MODEL`
+  Defaults to `gemini-2.5-flash-lite` when unset.
+
+Runtime env validation now fails fast if required keys are missing.
 
 ## Local run
 

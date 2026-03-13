@@ -58,6 +58,15 @@ async function withImmediateTimeout(fn) {
   }
 }
 
+async function captureError(fn) {
+  try {
+    await fn();
+    assert.fail("Expected promise to reject");
+  } catch (error) {
+    return error;
+  }
+}
+
 test("cleanTranscriptToRoomInventory sends the expected Gemini request payload", async () => {
   let requestUrl = "";
   let requestOptions = null;
@@ -200,11 +209,10 @@ test("cleanTranscriptToRoomInventory rejects non-OK Gemini responses", async () 
   }, async () => {
     await withFetchMock(async () => new Response("backend exploded", { status: 503 }), async () => {
       const { cleanTranscriptToRoomInventory } = loadFreshCleanerModule();
+      const error = await captureError(() => cleanTranscriptToRoomInventory("one couch"));
 
-      await assert.rejects(
-        () => cleanTranscriptToRoomInventory("one couch"),
-        /Gemini transcript cleaner request failed \(503\): backend exploded/
-      );
+      assert.match(error.message, /Gemini transcript cleaner request failed \(503\): backend exploded/);
+      assert.equal(error.code, "upstream_request");
     });
   });
 });
@@ -228,13 +236,12 @@ test("cleanTranscriptToRoomInventory rejects malformed candidate JSON", async ()
           },
         },
       ],
-    }), { status: 200 }), async () => {
+  }), { status: 200 }), async () => {
       const { cleanTranscriptToRoomInventory } = loadFreshCleanerModule();
+      const error = await captureError(() => cleanTranscriptToRoomInventory("one couch"));
 
-      await assert.rejects(
-        () => cleanTranscriptToRoomInventory("one couch"),
-        /Gemini transcript cleaner returned malformed JSON/
-      );
+      assert.match(error.message, /Gemini transcript cleaner returned malformed JSON/);
+      assert.equal(error.code, "malformed_response");
     });
   });
 });
@@ -258,13 +265,12 @@ test("cleanTranscriptToRoomInventory rejects missing rooms output", async () => 
           },
         },
       ],
-    }), { status: 200 }), async () => {
+  }), { status: 200 }), async () => {
       const { cleanTranscriptToRoomInventory } = loadFreshCleanerModule();
+      const error = await captureError(() => cleanTranscriptToRoomInventory("one couch"));
 
-      await assert.rejects(
-        () => cleanTranscriptToRoomInventory("one couch"),
-        /Gemini transcript cleaner response missing rooms/
-      );
+      assert.match(error.message, /Gemini transcript cleaner response missing rooms/);
+      assert.equal(error.code, "malformed_response");
     });
   });
 });
@@ -288,13 +294,12 @@ test("cleanTranscriptToRoomInventory rejects malformed room entries", async () =
           },
         },
       ],
-    }), { status: 200 }), async () => {
+  }), { status: 200 }), async () => {
       const { cleanTranscriptToRoomInventory } = loadFreshCleanerModule();
+      const error = await captureError(() => cleanTranscriptToRoomInventory("one couch"));
 
-      await assert.rejects(
-        () => cleanTranscriptToRoomInventory("one couch"),
-        /Gemini transcript cleaner returned malformed room inventory/
-      );
+      assert.match(error.message, /Gemini transcript cleaner returned malformed room inventory/);
+      assert.equal(error.code, "malformed_response");
     });
   });
 });
@@ -317,12 +322,25 @@ test("cleanTranscriptToRoomInventory rejects Gemini timeouts", async () => {
         return new Promise(() => {});
       }, async () => {
         const { cleanTranscriptToRoomInventory } = loadFreshCleanerModule();
+        const error = await captureError(() => cleanTranscriptToRoomInventory("one couch"));
 
-        await assert.rejects(
-          () => cleanTranscriptToRoomInventory("one couch"),
-          /Gemini transcript cleaner timed out/
-        );
+        assert.match(error.message, /Gemini transcript cleaner timed out/);
+        assert.equal(error.code, "timeout");
       });
     });
+  });
+});
+
+test("cleanTranscriptToRoomInventory classifies missing Gemini env", async () => {
+  await withMockedModule("../../lib/env.ts", {
+    getGeminiEnv: () => {
+      throw new Error("Missing required environment variable: GEMINI_API_KEY");
+    },
+  }, async () => {
+    const { cleanTranscriptToRoomInventory } = loadFreshCleanerModule();
+    const error = await captureError(() => cleanTranscriptToRoomInventory("one couch"));
+
+    assert.match(error.message, /Missing required environment variable: GEMINI_API_KEY/);
+    assert.equal(error.code, "env_missing");
   });
 });

@@ -191,6 +191,11 @@ export function DashboardClient() {
     setIsCleaningTranscript(true);
     try {
       const cleanedResult = await cleanTranscriptAction(rawText);
+      if (!cleanedResult.success) {
+        toast.error(cleanedResult.message);
+        return;
+      }
+
       setInventoryClipped(false);
       dispatchDraft({ type: "setRawText", inventoryText: cleanedResult.inventoryText });
     } catch (error: unknown) {

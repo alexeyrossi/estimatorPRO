@@ -11,7 +11,11 @@ import {
 } from "../../lib/types/estimator";
 import { getSessionAccess, requireAuthenticatedAccess } from "../../lib/auth/access";
 import { buildEstimate } from "../../lib/engine";
-import { cleanTranscriptToRoomInventory } from "../../lib/geminiTranscriptCleaner";
+import {
+  cleanTranscriptToRoomInventory,
+  getTranscriptCleanerErrorCode,
+  type TranscriptCleanerErrorCode,
+} from "../../lib/geminiTranscriptCleaner";
 import { applyAliasesRegex, normalizeRowsFromText } from "../../lib/parser";
 import { SORTED_KEYS, KEY_REGEX, VOLUME_TABLE, TRUE_HEAVY_ITEMS } from "../../lib/dictionaries";
 import { serializeRoomInventoryToText, type RoomInventoryGroup } from "../../lib/roomInventory";
@@ -43,6 +47,59 @@ function buildTrustedEstimate(
   return { estimate, inputs: safeInputs, normalizedRows: safeRows, overrides: safeOverrides };
 }
 
+type CleanTranscriptActionErrorCode = "unauthorized" | TranscriptCleanerErrorCode;
+
+export type CleanTranscriptActionResult =
+  | { success: true; rooms: RoomInventoryGroup[]; inventoryText: string }
+  | { success: false; errorCode: CleanTranscriptActionErrorCode; message: string };
+
+function isUnauthorizedError(error: unknown) {
+  return error instanceof Error && error.message === "Unauthorized";
+}
+
+function getTranscriptActionFailure(error: unknown): {
+  errorCode: CleanTranscriptActionErrorCode;
+  message: string;
+} {
+  if (isUnauthorizedError(error)) {
+    return {
+      errorCode: "unauthorized",
+      message: "Your session expired. Please sign in again.",
+    };
+  }
+
+  const errorCode = getTranscriptCleanerErrorCode(error);
+
+  switch (errorCode) {
+    case "env_missing":
+      return {
+        errorCode,
+        message: "AI transcript is not configured on the server. Add the Gemini API key and redeploy.",
+      };
+    case "timeout":
+      return {
+        errorCode,
+        message: "AI transcript timed out. Please try again.",
+      };
+    case "upstream_request":
+      return {
+        errorCode,
+        message: "AI transcript service is temporarily unavailable. Please try again.",
+      };
+    case "malformed_response":
+      return {
+        errorCode,
+        message: "AI transcript returned an invalid response. Please try again.",
+      };
+    case "unknown":
+    default:
+      return {
+        errorCode: "unknown",
+        message: "AI transcript failed. Please try again.",
+      };
+  }
+}
+
 export async function getEstimate(inputs: EstimateInputs, normalizedRows?: NormalizedRow[], overrides?: Record<string, string>): Promise<EstimateResult> {
   await requireAuthenticatedAccess();
   return buildTrustedEstimate(inputs, normalizedRows, overrides).estimate;
@@ -54,14 +111,29 @@ export async function normalizeInventoryAction(text: string): Promise<Normalized
   return result.rows as NormalizedRow[];
 }
 
-export async function cleanTranscriptAction(text: string): Promise<{ rooms: RoomInventoryGroup[]; inventoryText: string }> {
-  await requireAuthenticatedAccess();
-  const cleanedInventory = await cleanTranscriptToRoomInventory(String(text ?? "").slice(0, MAX_INVENTORY_CHARS));
+export async function cleanTranscriptAction(text: string): Promise<CleanTranscriptActionResult> {
+  try {
+    await requireAuthenticatedAccess();
+    const cleanedInventory = await cleanTranscriptToRoomInventory(String(text ?? "").slice(0, MAX_INVENTORY_CHARS));
 
-  return {
-    rooms: cleanedInventory.rooms,
-    inventoryText: serializeRoomInventoryToText(cleanedInventory.rooms),
-  };
+    return {
+      success: true,
+      rooms: cleanedInventory.rooms,
+      inventoryText: serializeRoomInventoryToText(cleanedInventory.rooms),
+    };
+  } catch (error) {
+    const failure = getTranscriptActionFailure(error);
+    console.error("cleanTranscriptAction failed", {
+      errorCode: failure.errorCode,
+      errorMessage: error instanceof Error ? error.message : String(error),
+    });
+
+    return {
+      success: false,
+      errorCode: failure.errorCode,
+      message: failure.message,
+    };
+  }
 }
 
 export async function resolveItemAction(name: string): Promise<{ resolvedName: string; cfUnit: number; isHeavy: boolean }> {
