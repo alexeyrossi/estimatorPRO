@@ -47,9 +47,10 @@ test("read-only estimate actions reject unauthenticated access", async () => {
     },
     getSessionAccess: async () => ({ isAuthenticated: false, userId: null }),
   }, async () => {
-    const { getEstimate, normalizeInventoryAction, resolveItemAction, suggestItemsAction } = loadFreshEstimateActions();
+    const { cleanTranscriptAction, getEstimate, normalizeInventoryAction, resolveItemAction, suggestItemsAction } = loadFreshEstimateActions();
 
     await assert.rejects(() => getEstimate(sampleInputs), /Unauthorized/);
+    await assert.rejects(() => cleanTranscriptAction("customer said one couch"), /Unauthorized/);
     await assert.rejects(() => normalizeInventoryAction("sofa"), /Unauthorized/);
     await assert.rejects(() => resolveItemAction("piano"), /Unauthorized/);
     await assert.rejects(() => suggestItemsAction("pi"), /Unauthorized/);

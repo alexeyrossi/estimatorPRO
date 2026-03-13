@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { normalizeInventoryAction, resolveItemAction } from "@/app/actions/estimate";
+import { cleanTranscriptAction, normalizeInventoryAction, resolveItemAction } from "@/app/actions/estimate";
 import { ConfigPanel } from "@/components/ConfigPanel";
 import { ReportPanel } from "@/components/ReportPanel";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
@@ -37,6 +37,7 @@ export function DashboardClient() {
   const [reportView, setReportView] = useState<"summary" | "inventory" | "details">("summary");
   const [clientName, setClientName] = useState("");
   const [isNormalizing, setIsNormalizing] = useState(false);
+  const [isCleaningTranscript, setIsCleaningTranscript] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [addRowInput, setAddRowInput] = useState("");
   const [inventoryClipped, setInventoryClipped] = useState(false);
@@ -180,6 +181,23 @@ export function DashboardClient() {
       toast.error("Failed to parse inventory. Please try again.");
     } finally {
       setIsNormalizing(false);
+    }
+  };
+
+  const handleCleanTranscript = async () => {
+    const rawText = inputs.inventoryText;
+    if (!rawText.trim()) return;
+
+    setIsCleaningTranscript(true);
+    try {
+      const cleanedText = await cleanTranscriptAction(rawText);
+      setInventoryClipped(false);
+      dispatchDraft({ type: "setRawText", inventoryText: cleanedText });
+    } catch (error: unknown) {
+      console.error(error);
+      toast.error("Failed to clean transcript. Please try again.");
+    } finally {
+      setIsCleaningTranscript(false);
     }
   };
 
@@ -508,10 +526,12 @@ export function DashboardClient() {
             addRowInput={addRowInput}
             setAddRowInput={setAddRowInput}
             suggestedItems={suggestedItems}
+            handleCleanTranscript={handleCleanTranscript}
             handleInventoryModeToggle={handleInventoryModeToggle}
             handleRawInventoryChange={handleRawInventoryChange}
             handleAddRow={handleAddRow}
             handleRowQtyChange={handleRowQtyChange}
+            isCleaningTranscript={isCleaningTranscript}
             estimate={estimate}
           />
         </div>

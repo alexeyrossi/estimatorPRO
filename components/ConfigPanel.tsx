@@ -8,6 +8,7 @@ import {
     Pencil,
     Plus,
     RefreshCcw,
+    Sparkles,
     Settings,
     Trash2,
     Undo2,
@@ -167,6 +168,7 @@ const SubviewActionButton = ({
     onClick,
     showDesktopLabel = true,
     title,
+    disabled = false,
 }: {
     active?: boolean;
     Icon: LucideIcon;
@@ -175,6 +177,7 @@ const SubviewActionButton = ({
     onClick: () => void;
     showDesktopLabel?: boolean;
     title?: string;
+    disabled?: boolean;
 }) => {
     const hasMobileLabel = Boolean(mobileLabel);
     const hasVisibleLabel = hasMobileLabel || showDesktopLabel;
@@ -185,7 +188,8 @@ const SubviewActionButton = ({
             onClick={onClick}
             title={title ?? label}
             aria-label={title ?? label}
-            className={`group relative flex h-9 shrink-0 items-center justify-center rounded-xl text-slate-500 active:scale-[0.98] ${active ? 'bg-slate-100 text-slate-900' : 'hover:bg-slate-100 hover:text-slate-900'} ${hasVisibleLabel ? (hasMobileLabel ? 'gap-1.5 px-2.5 md:gap-2 md:px-3.5' : 'w-9 md:w-auto md:gap-2 md:px-3.5') : 'w-9'}`}
+            disabled={disabled}
+            className={`group relative flex h-9 shrink-0 items-center justify-center rounded-xl text-slate-500 ${disabled ? 'cursor-not-allowed opacity-50' : 'active:scale-[0.98]'} ${active ? 'bg-slate-100 text-slate-900' : disabled ? '' : 'hover:bg-slate-100 hover:text-slate-900'} ${hasVisibleLabel ? (hasMobileLabel ? 'gap-1.5 px-2.5 md:gap-2 md:px-3.5' : 'w-9 md:w-auto md:gap-2 md:px-3.5') : 'w-9'}`}
             style={softActionButtonTransition}
         >
             <Icon className="h-4 w-4 shrink-0" strokeWidth={2} />
@@ -238,10 +242,12 @@ interface ConfigPanelProps {
     addRowInput: string;
     setAddRowInput: (v: string) => void;
     suggestedItems: string[];
+    handleCleanTranscript: () => void | Promise<void>;
     handleInventoryModeToggle: () => void | Promise<void>;
     handleRawInventoryChange: (text: string) => void;
     handleAddRow: () => void;
     handleRowQtyChange: (id: string, value: string, blur?: boolean) => void;
+    isCleaningTranscript: boolean;
     estimate: EstimateResult | Partial<EstimateResult>;
 }
 
@@ -258,10 +264,12 @@ export const ConfigPanel = ({
     addRowInput,
     setAddRowInput,
     suggestedItems,
+    handleCleanTranscript,
     handleInventoryModeToggle,
     handleRawInventoryChange,
     handleAddRow,
     handleRowQtyChange,
+    isCleaningTranscript,
     estimate,
 }: ConfigPanelProps) => {
     const isLabor = inputs.moveType === 'Labor';
@@ -680,6 +688,19 @@ export const ConfigPanel = ({
         />
     );
 
+    const renderTranscriptCleanAction = () => (
+        inventoryMode === 'raw' ? (
+            <SubviewActionButton
+                Icon={Sparkles}
+                label={isCleaningTranscript ? 'Cleaning' : 'Clean'}
+                mobileLabel={isCleaningTranscript ? '...' : 'Clean'}
+                onClick={() => void handleCleanTranscript()}
+                title="Clean transcript into raw inventory items"
+                disabled={isCleaningTranscript || !inputs.inventoryText.trim()}
+            />
+        ) : null
+    );
+
     const renderInventoryExpandAction = (expanded: boolean) => (
         expanded ? (
             <SurfaceIconButton
@@ -716,7 +737,7 @@ export const ConfigPanel = ({
                     className={`inventory-scrollbar-hidden block w-full resize-none font-mono leading-relaxed text-slate-800 outline-none transition-colors placeholder:text-slate-500 ${expanded
                         ? 'h-full min-h-0 border-0 bg-white px-4 py-4 pr-10 text-[14px] md:px-5 md:py-5 md:pr-10'
                         : 'min-h-[96px] rounded-2xl border border-slate-200 bg-white px-4 py-3.5 pr-10 text-base sm:p-5 sm:pr-10 md:min-h-[224px] md:pr-10 md:text-[14px]'}`}
-                    placeholder="Paste inventory..."
+                    placeholder="Paste inventory or transcript..."
                     style={{
                         WebkitOverflowScrolling: 'touch',
                         scrollMarginBottom: INVENTORY_SCROLL_MARGIN_BOTTOM,
@@ -872,6 +893,7 @@ export const ConfigPanel = ({
 
             <div className="ml-auto flex min-w-0 items-center gap-1.5">
                 {renderInventoryUtilityActions()}
+                {renderTranscriptCleanAction()}
                 {renderInventoryModeAction()}
             </div>
         </div>
