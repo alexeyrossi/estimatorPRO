@@ -22,7 +22,7 @@ async function withEnv(overrides, fn) {
   }
 }
 
-test("getGeminiEnv returns configured key and custom model", async () => {
+test("getGeminiEnv prepends GEMINI_MODEL and preserves fallback defaults", async () => {
   await withEnv({
     GEMINI_API_KEY: "gemini-key",
     GEMINI_MODEL: "gemini-2.5-pro",
@@ -31,21 +31,52 @@ test("getGeminiEnv returns configured key and custom model", async () => {
 
     assert.deepEqual(getGeminiEnv(), {
       apiKey: "gemini-key",
-      model: "gemini-2.5-pro",
+      modelChain: [
+        "gemini-2.5-pro",
+        "gemini-3.1-flash-lite-preview",
+        "gemini-2.5-flash-lite",
+        "gemini-2.5-flash",
+        "gemini-3-flash",
+      ],
     });
   });
 });
 
-test("getGeminiEnv falls back to flash-lite model", async () => {
+test("getGeminiEnv prefers GEMINI_MODEL_CHAIN when configured", async () => {
   await withEnv({
     GEMINI_API_KEY: "gemini-key",
-    GEMINI_MODEL: "",
+    GEMINI_MODEL: "gemini-2.5-pro",
+    GEMINI_MODEL_CHAIN: " gemini-3.1-flash-lite-preview , , gemini-2.5-flash-lite , gemini-2.5-flash-lite , gemini-3-flash ",
   }, async () => {
     const { getGeminiEnv } = loadFreshEnvModule();
 
     assert.deepEqual(getGeminiEnv(), {
       apiKey: "gemini-key",
-      model: "gemini-2.5-flash-lite",
+      modelChain: [
+        "gemini-3.1-flash-lite-preview",
+        "gemini-2.5-flash-lite",
+        "gemini-3-flash",
+      ],
+    });
+  });
+});
+
+test("getGeminiEnv falls back to the default Gemini model chain", async () => {
+  await withEnv({
+    GEMINI_API_KEY: "gemini-key",
+    GEMINI_MODEL: "",
+    GEMINI_MODEL_CHAIN: "",
+  }, async () => {
+    const { getGeminiEnv } = loadFreshEnvModule();
+
+    assert.deepEqual(getGeminiEnv(), {
+      apiKey: "gemini-key",
+      modelChain: [
+        "gemini-3.1-flash-lite-preview",
+        "gemini-2.5-flash-lite",
+        "gemini-2.5-flash",
+        "gemini-3-flash",
+      ],
     });
   });
 });

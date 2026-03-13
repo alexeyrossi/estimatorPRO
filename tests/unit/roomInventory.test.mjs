@@ -5,6 +5,7 @@ import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
 const {
+  buildRoomInventoryGroupsFromRows,
   normalizeRoomInventoryResponse,
   serializeRoomInventoryToText,
 } = require("../../lib/roomInventory.ts");
@@ -92,4 +93,90 @@ test("serializeRoomInventoryToText keeps rough labels intact at the helper layer
 
   assert.match(serialized, /1 TV box/);
   assert.match(serialized, /1 misc garage items/);
+});
+
+test("buildRoomInventoryGroupsFromRows preserves room order, sorts items, and keeps General last", () => {
+  const groups = buildRoomInventoryGroupsFromRows([
+    {
+      id: "row_1",
+      name: "lamp",
+      qty: 2,
+      cfUnit: 5,
+      raw: "lamp",
+      room: "Living Room",
+      flags: { heavy: false, heavyWeight: false },
+    },
+    {
+      id: "row_2",
+      name: "box",
+      qty: 10,
+      cfUnit: 3,
+      raw: "box",
+      room: "",
+      flags: { heavy: false, heavyWeight: false },
+    },
+    {
+      id: "row_3",
+      name: "armchair",
+      qty: 1,
+      cfUnit: 20,
+      raw: "armchair",
+      room: "Living Room",
+      flags: { heavy: false, heavyWeight: false },
+    },
+    {
+      id: "row_4",
+      name: "bed",
+      qty: 1,
+      cfUnit: 40,
+      raw: "bed",
+      room: "Bedroom",
+      flags: { heavy: false, heavyWeight: false },
+    },
+  ]);
+
+  assert.deepEqual(groups, [
+    {
+      room_name: "Living Room",
+      items: ["1 armchair", "2 lamp"],
+    },
+    {
+      room_name: "Bedroom",
+      items: ["1 bed"],
+    },
+    {
+      room_name: "General",
+      items: ["10 box"],
+    },
+  ]);
+});
+
+test("buildRoomInventoryGroupsFromRows does not merge duplicate lines", () => {
+  const groups = buildRoomInventoryGroupsFromRows([
+    {
+      id: "row_1",
+      name: "chair",
+      qty: 1,
+      cfUnit: 10,
+      raw: "chair",
+      room: "Office",
+      flags: { heavy: false, heavyWeight: false },
+    },
+    {
+      id: "row_2",
+      name: "chair",
+      qty: 1,
+      cfUnit: 10,
+      raw: "chair",
+      room: "Office",
+      flags: { heavy: false, heavyWeight: false },
+    },
+  ]);
+
+  assert.deepEqual(groups, [
+    {
+      room_name: "Office",
+      items: ["1 chair", "1 chair"],
+    },
+  ]);
 });

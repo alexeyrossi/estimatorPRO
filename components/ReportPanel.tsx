@@ -512,8 +512,8 @@ export const ReportPanel = ({
                         <>
                             <div className="border-t border-slate-100" />
                             <div className="py-3">
-                                <div className="mb-2 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest text-slate-600">
-                                    <Lightbulb className="h-4 w-4 text-slate-500" /> Dispatch Notes
+                                <div className="mb-2 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest text-yellow-700">
+                                    <Lightbulb className="h-4 w-4 text-yellow-600" /> Dispatch Notes
                                 </div>
                                 <div className="space-y-1.5">
                                     {actionableAdvice.map((x, i) => (

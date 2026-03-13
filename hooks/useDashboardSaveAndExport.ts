@@ -3,7 +3,8 @@
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { saveEstimateAction } from "@/app/actions/estimate";
-import { copyEstimateReportText, formatEstimateReportText } from "@/lib/estimateReport";
+import { copyTextToClipboard } from "@/lib/clipboard";
+import { formatEstimateReportText } from "@/lib/estimateReport";
 import { generateEstimatePdf } from "@/lib/estimatePdf";
 import type {
   EstimateHistoryItem,
@@ -57,7 +58,7 @@ export function useDashboardSaveAndExport({
   const handleCopy = useCallback(async () => {
     if (!hasUsableEstimate) return;
     try {
-      await copyEstimateReportText(
+      await copyTextToClipboard(
         formatEstimateReportText(
           debouncedEstimateRequest.inputs,
           estimate as EstimateResult

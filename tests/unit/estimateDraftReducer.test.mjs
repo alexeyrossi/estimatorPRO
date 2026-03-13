@@ -109,6 +109,7 @@ test("normalized to raw uses generated text from rows", () => {
   });
 
   assert.equal(next.inventoryMode, "raw");
+  assert.equal(rawText, "Living Room:\n1 sofa\n\nBedroom:\n1 dresser");
   assert.equal(next.inputs.inventoryText, rawText);
   assert.equal(next.rowsStatus, "fresh");
 });

@@ -74,7 +74,53 @@ test("buildDraftState preserves editable blank numeric fields and stale state", 
   assert.equal(state.rowsStatus, "stale");
   assert.equal(state.normalizedRows[0].qty, "");
   assert.equal(state.normalizedRows[0].cfUnit, "");
-  assert.equal(buildRawTextFromRows(state.normalizedRows), "Living Room: 1 sofa");
+  assert.equal(buildRawTextFromRows(state.normalizedRows), "Living Room:\n1 sofa");
+});
+
+test("buildRawTextFromRows formats named rooms first and General last", () => {
+  const formatted = buildRawTextFromRows([
+    {
+      id: "row_1",
+      name: "lamp",
+      qty: 2,
+      cfUnit: 5,
+      raw: "lamp",
+      room: "Living Room",
+      flags: { heavy: false, heavyWeight: false },
+    },
+    {
+      id: "row_2",
+      name: "box",
+      qty: 10,
+      cfUnit: 3,
+      raw: "box",
+      room: "",
+      flags: { heavy: false, heavyWeight: false },
+    },
+    {
+      id: "row_3",
+      name: "armchair",
+      qty: 1,
+      cfUnit: 20,
+      raw: "armchair",
+      room: "Living Room",
+      flags: { heavy: false, heavyWeight: false },
+    },
+    {
+      id: "row_4",
+      name: "bed",
+      qty: 1,
+      cfUnit: 40,
+      raw: "bed",
+      room: "Bedroom",
+      flags: { heavy: false, heavyWeight: false },
+    },
+  ]);
+
+  assert.equal(
+    formatted,
+    "Living Room:\n1 armchair\n2 lamp\n\nBedroom:\n1 bed\n\n10 box"
+  );
 });
 
 test("override contract keeps product-approved keys only", () => {

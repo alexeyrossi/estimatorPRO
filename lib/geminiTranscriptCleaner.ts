@@ -35,6 +35,13 @@ export class TranscriptCleanerError extends Error {
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta";
 const GEMINI_TIMEOUT_MS = 15_000;
 const GEMINI_TEMPERATURE = 0.1;
+const RETRYABLE_GEMINI_ERROR_PATTERNS = [
+  { pattern: /\bquota\b/i, reason: "quota" },
+  { pattern: /rate[\s_-]*limit/i, reason: "rate_limit" },
+  { pattern: /resource[\s_-]*exhausted/i, reason: "resource_exhausted" },
+  { pattern: /temporar(?:ily|y)\s+unavailable/i, reason: "temporarily_unavailable" },
+  { pattern: /model\s+unavailable/i, reason: "model_unavailable" },
+] as const;
 
 const TRANSCRIPT_CLEANER_SYSTEM_PROMPT = `You are an AI transcript cleaner for a moving estimator.
 
@@ -223,10 +230,13 @@ Rules:
 - preserve room and area labels whenever present or clearly implied
 - do not flatten everything into one list
 - include all clearly mentioned physical inventory items
+- keep each item as one compact parser-friendly line
 - keep rough labels when the item is clearly present but loosely named
 - do not merge items across different rooms
+- do not invent items or guess hidden furniture
 - exclude uncertain items, chatter, pricing, scheduling, contact info, logistics, access notes, packing, stairs, elevator, long carry, fragile handling, storage stops, and unrelated conversation
 - if no room grouping is present, use one room named "General"
+- output valid JSON only
 - do not explain
 
 Transcript:
@@ -256,6 +266,25 @@ function createTranscriptCleanerError(
 export function getTranscriptCleanerErrorCode(error: unknown): TranscriptCleanerErrorCode | null {
   if (error instanceof TranscriptCleanerError) {
     return error.code;
+  }
+
+  return null;
+}
+
+function buildUpstreamRequestMessage(status: number, detail: string) {
+  const suffix = detail ? `: ${detail.slice(0, 200)}` : "";
+  return `Gemini transcript cleaner request failed (${status})${suffix}`;
+}
+
+function getFallbackTriggerReason(status: number, detail: string) {
+  if (status === 429) {
+    return "http_429";
+  }
+
+  for (const candidate of RETRYABLE_GEMINI_ERROR_PATTERNS) {
+    if (candidate.pattern.test(detail)) {
+      return candidate.reason;
+    }
   }
 
   return null;
@@ -320,16 +349,113 @@ function parseRoomInventory(text: string): RoomInventoryDraft {
   return normalizeRoomInventoryResponse(parsed);
 }
 
-export async function cleanTranscriptToRoomInventory(transcript: string): Promise<RoomInventoryDraft> {
-  let apiKey: string;
-  let model: string;
+function summarizeRoomInventory(roomInventory: RoomInventoryDraft) {
+  return {
+    responseRoomCount: roomInventory.rooms.length,
+    totalExtractedItemCount: roomInventory.rooms.reduce((sum, room) => sum + room.items.length, 0),
+  };
+}
+
+type GeminiModelAttemptResult =
+  | {
+      ok: true;
+      roomInventory: RoomInventoryDraft;
+    }
+  | {
+      ok: false;
+      status: number;
+      detail: string;
+      fallbackTriggerReason: string;
+    };
+
+async function requestRoomInventoryFromGemini(params: {
+  apiKey: string;
+  model: string;
+  payload: unknown;
+  signal: AbortSignal;
+}) {
+  const { apiKey, model, payload, signal } = params;
+
+  let response: Response;
 
   try {
-    ({ apiKey, model } = getGeminiEnv());
+    response = await fetch(`${GEMINI_API_BASE}/models/${model}:generateContent`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": apiKey,
+      },
+      body: JSON.stringify(payload),
+      signal,
+      cache: "no-store",
+    });
+  } catch (error) {
+    if (isAbortError(error)) {
+      throw createTranscriptCleanerError("timeout", "Gemini transcript cleaner timed out.", error);
+    }
+
+    throw createTranscriptCleanerError(
+      "unknown",
+      `Gemini transcript cleaner failed: ${getErrorMessage(error)}`,
+      error
+    );
+  }
+
+  if (!response.ok) {
+    const detail = await response.text().catch(() => "");
+    const fallbackTriggerReason = getFallbackTriggerReason(response.status, detail);
+
+    if (fallbackTriggerReason) {
+      return {
+        ok: false,
+        status: response.status,
+        detail,
+        fallbackTriggerReason,
+      } satisfies GeminiModelAttemptResult;
+    }
+
+    throw createTranscriptCleanerError(
+      "upstream_request",
+      buildUpstreamRequestMessage(response.status, detail)
+    );
+  }
+
+  let result: unknown;
+
+  try {
+    result = await response.json();
+  } catch {
+    throw createTranscriptCleanerError(
+      "malformed_response",
+      "Gemini transcript cleaner returned invalid API JSON."
+    );
+  }
+
+  try {
+    return {
+      ok: true,
+      roomInventory: parseRoomInventory(extractGeminiText(result)),
+    } satisfies GeminiModelAttemptResult;
+  } catch (error) {
+    if (error instanceof TranscriptCleanerError) {
+      throw error;
+    }
+
+    throw createTranscriptCleanerError("malformed_response", getErrorMessage(error), error);
+  }
+}
+
+export async function cleanTranscriptToRoomInventory(transcript: string): Promise<RoomInventoryDraft> {
+  let apiKey: string;
+  let modelChain: string[];
+
+  try {
+    ({ apiKey, modelChain } = getGeminiEnv());
   } catch (error) {
     throw createTranscriptCleanerError("env_missing", getErrorMessage(error), error);
   }
 
+  const startedAt = Date.now();
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), GEMINI_TIMEOUT_MS);
 
@@ -357,62 +483,83 @@ export async function cleanTranscriptToRoomInventory(transcript: string): Promis
       responseJsonSchema: ROOM_INVENTORY_JSON_SCHEMA,
     },
   };
-
-  let response: Response;
+  let lastRequestedModel: string | null = null;
 
   try {
-    response = await fetch(`${GEMINI_API_BASE}/models/${model}:generateContent`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-goog-api-key": apiKey,
-      },
-      body: JSON.stringify(payload),
-      signal: controller.signal,
-      cache: "no-store",
-    });
-  } catch (error) {
-    if (isAbortError(error)) {
-      throw createTranscriptCleanerError("timeout", "Gemini transcript cleaner timed out.", error);
+    for (let index = 0; index < modelChain.length; index += 1) {
+      const model = modelChain[index];
+      lastRequestedModel = model;
+
+      console.info("Gemini transcript cleaner requesting model", {
+        requestedModel: model,
+        transcriptLength: transcript.length,
+      });
+
+      const result = await requestRoomInventoryFromGemini({
+        apiKey,
+        model,
+        payload,
+        signal: controller.signal,
+      });
+
+      if (result.ok) {
+        const { responseRoomCount, totalExtractedItemCount } = summarizeRoomInventory(result.roomInventory);
+
+        console.info("Gemini transcript cleaner succeeded", {
+          requestedModel: modelChain[0],
+          finalModelUsed: model,
+          transcriptLength: transcript.length,
+          responseRoomCount,
+          totalExtractedItemCount,
+          elapsedMs: Date.now() - startedAt,
+        });
+
+        return result.roomInventory;
+      }
+
+      const fallbackTargetModel = modelChain[index + 1];
+      if (!fallbackTargetModel) {
+        throw createTranscriptCleanerError(
+          "upstream_request",
+          buildUpstreamRequestMessage(result.status, result.detail)
+        );
+      }
+
+      console.warn("Gemini transcript cleaner fallback triggered", {
+        requestedModel: model,
+        fallbackTriggerReason: result.fallbackTriggerReason,
+        fallbackTargetModel,
+        transcriptLength: transcript.length,
+        elapsedMs: Date.now() - startedAt,
+      });
     }
 
-    throw createTranscriptCleanerError(
-      "unknown",
-      `Gemini transcript cleaner failed: ${getErrorMessage(error)}`,
-      error
-    );
-  } finally {
-    clearTimeout(timeoutId);
-  }
-
-  if (!response.ok) {
-    const detail = await response.text().catch(() => "");
-    const suffix = detail ? `: ${detail.slice(0, 200)}` : "";
     throw createTranscriptCleanerError(
       "upstream_request",
-      `Gemini transcript cleaner request failed (${response.status})${suffix}`
+      "Gemini transcript cleaner request failed (500): missing Gemini model chain."
     );
-  }
-
-  let result: unknown;
-
-  try {
-    result = await response.json();
-  } catch {
-    throw createTranscriptCleanerError(
-      "malformed_response",
-      "Gemini transcript cleaner returned invalid API JSON."
-    );
-  }
-
-  try {
-    return parseRoomInventory(extractGeminiText(result));
   } catch (error) {
-    if (error instanceof TranscriptCleanerError) {
-      throw error;
-    }
+    const transcriptCleanerError =
+      error instanceof TranscriptCleanerError
+        ? error
+        : createTranscriptCleanerError(
+            "unknown",
+            `Gemini transcript cleaner failed: ${getErrorMessage(error)}`,
+            error
+          );
 
-    throw createTranscriptCleanerError("malformed_response", getErrorMessage(error), error);
+    console.error("Gemini transcript cleaner failed", {
+      requestedModel: modelChain[0] ?? null,
+      finalModelUsed: lastRequestedModel,
+      transcriptLength: transcript.length,
+      elapsedMs: Date.now() - startedAt,
+      errorCode: transcriptCleanerError.code,
+      errorMessage: transcriptCleanerError.message,
+    });
+
+    throw transcriptCleanerError;
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 

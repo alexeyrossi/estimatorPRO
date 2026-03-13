@@ -1,3 +1,5 @@
+import type { NormalizedRow } from "./types/estimator";
+
 export type RoomInventoryGroup = {
   room_name: string;
   items: string[];
@@ -11,6 +13,10 @@ const GENERAL_ROOM_NAME = "General";
 
 function normalizeInlineText(value: string) {
   return value.replace(/\r\n?/g, "\n").split("\n").map((part) => part.trim()).filter(Boolean).join(" ");
+}
+
+function compareInventoryLines(a: string, b: string) {
+  return a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" });
 }
 
 export function normalizeRoomInventoryResponse(payload: unknown): RoomInventoryDraft {
@@ -64,4 +70,44 @@ export function serializeRoomInventoryToText(rooms: RoomInventoryGroup[]) {
     .filter(Boolean)
     .join("\n\n")
     .trim();
+}
+
+export function buildRoomInventoryGroupsFromRows(rows: NormalizedRow[]) {
+  const rooms = new Map<string, string[]>();
+  const roomOrder: string[] = [];
+  const generalItems: string[] = [];
+
+  rows.forEach((row) => {
+    const itemLine = normalizeInlineText(`${row.qty === "" ? 1 : row.qty} ${row.name}`);
+    if (!itemLine) return;
+
+    const roomName = normalizeInlineText(row.room || "");
+    const isGeneralRoom = !roomName || roomName.localeCompare(GENERAL_ROOM_NAME, undefined, { sensitivity: "base" }) === 0;
+
+    if (isGeneralRoom) {
+      generalItems.push(itemLine);
+      return;
+    }
+
+    if (!rooms.has(roomName)) {
+      rooms.set(roomName, []);
+      roomOrder.push(roomName);
+    }
+
+    rooms.get(roomName)!.push(itemLine);
+  });
+
+  const namedRooms = roomOrder.map((roomName) => ({
+    room_name: roomName,
+    items: [...(rooms.get(roomName) || [])].sort(compareInventoryLines),
+  }));
+
+  if (generalItems.length > 0) {
+    namedRooms.push({
+      room_name: GENERAL_ROOM_NAME,
+      items: [...generalItems].sort(compareInventoryLines),
+    });
+  }
+
+  return namedRooms;
 }

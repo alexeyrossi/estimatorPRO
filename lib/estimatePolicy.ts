@@ -6,6 +6,7 @@ import type {
   NormalizedRow,
   RowsStatus,
 } from "@/lib/types/estimator";
+import { buildRoomInventoryGroupsFromRows, serializeRoomInventoryToText } from "./roomInventory";
 
 export const HOME_SIZE_OPTIONS = ["1", "2", "3", "4", "5", "Commercial"] as const;
 export const MOVE_TYPE_OPTIONS = ["Local", "LD", "Labor"] as const;
@@ -79,16 +80,7 @@ export function sanitizeExtraStops(extraStops: unknown): EstimateInputs["extraSt
 }
 
 export function buildRawTextFromRows(rows: NormalizedRow[]) {
-  const grouped = rows.reduce((acc, row) => {
-    const room = row.room || "General";
-    if (!acc.has(room)) acc.set(room, []);
-    acc.get(room)!.push(`${row.qty === "" ? 1 : row.qty} ${row.name}`);
-    return acc;
-  }, new Map<string, string[]>());
-
-  return Array.from(grouped.entries())
-    .map(([room, items]) => (room === "General" ? items.join(", ") : `${room}: ${items.join(", ")}`))
-    .join("\n");
+  return serializeRoomInventoryToText(buildRoomInventoryGroupsFromRows(rows));
 }
 
 export function deriveRowsStatus(

@@ -16,7 +16,7 @@ type HistoryPanelProps = {
 };
 
 type HistoryContentState = "loading" | "empty" | "list";
-const DEFAULT_VISIBLE_HISTORY_COUNT = 11;
+const DEFAULT_VISIBLE_HISTORY_COUNT = 10;
 
 const getHistoryContentState = (historyLoading: boolean, itemCount: number): HistoryContentState => {
   if (historyLoading) return "loading";

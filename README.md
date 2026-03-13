@@ -36,8 +36,10 @@ Required:
 
 Optional:
 
+- `GEMINI_MODEL_CHAIN`
+  Defaults to `gemini-3.1-flash-lite-preview,gemini-2.5-flash-lite,gemini-2.5-flash,gemini-3-flash` when unset.
 - `GEMINI_MODEL`
-  Defaults to `gemini-2.5-flash-lite` when unset.
+  Backward-compatible primary override. When set without `GEMINI_MODEL_CHAIN`, it becomes the first model in the fallback chain.
 
 Runtime env validation now fails fast if required keys are missing.
 

@@ -1,8 +1,11 @@
 import React, { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { createPortal } from 'react-dom';
+import { toast } from 'sonner';
 import {
     AlignLeft,
+    Check,
+    Copy,
     MapPin,
     Maximize2,
     Minimize2,
@@ -28,6 +31,7 @@ import {
     type ConfigPanelView,
     type ConfigPanelViewPhase,
 } from '@/lib/configPanelView';
+import { copyTextToClipboard } from '@/lib/clipboard';
 import { EstimateInputs, EstimateResult, NormalizedRow, RowsStatus } from '@/lib/types/estimator';
 import { MAX_EXTRA_STOPS } from '@/lib/estimatePolicy';
 import { AccessSegmented } from './AccessSegmented';
@@ -475,15 +479,15 @@ const CleanTooltipButton = ({
                             if (!isInteractive) return;
                             onClick();
                         }}
-                        className={`clean-hover-button group relative flex h-9 shrink-0 items-center justify-center rounded-xl px-2.5 md:gap-2 md:px-3.5 ${isInteractive ? 'clean-hover-button--ready text-slate-500' : 'cursor-not-allowed text-slate-400'} ${isCleaning ? 'opacity-60' : ''}`}
+                        className={`clean-hover-button group relative flex h-9 w-[74px] shrink-0 items-center justify-center rounded-xl px-2.5 md:w-[96px] md:gap-2 md:px-3.5 ${isInteractive ? 'clean-hover-button--ready text-slate-500' : 'cursor-not-allowed text-slate-400'} ${isCleaning ? 'opacity-60' : ''}`}
                     >
                         <span aria-hidden="true" className="clean-hover-aura absolute inset-0 rounded-[inherit]" />
                         <span className="relative z-[1] flex items-center gap-1.5">
                             <Sparkles className="clean-hover-icon h-4 w-4 shrink-0" strokeWidth={2} />
-                            <span className="text-[10px] font-bold leading-none md:hidden">
+                            <span className="clean-hover-label text-[10px] font-semibold leading-none md:hidden">
                                 {isCleaning ? '...' : 'Clean'}
                             </span>
-                            <span className="hidden text-[11px] font-bold leading-none md:inline">
+                            <span className="clean-hover-label hidden text-[11px] font-semibold leading-none md:inline">
                                 {isCleaning ? 'Cleaning' : 'Clean'}
                             </span>
                         </span>
@@ -497,23 +501,30 @@ const CleanTooltipButton = ({
 
 const SurfaceIconButton = ({
     Icon,
+    ariaLabel,
     className = '',
+    disabled = false,
+    iconClassName = '',
     onClick,
     title,
 }: {
     Icon: LucideIcon;
+    ariaLabel?: string;
     className?: string;
+    disabled?: boolean;
+    iconClassName?: string;
     onClick: () => void;
-    title: string;
+    title?: string;
 }) => (
     <button
         type="button"
         onClick={onClick}
+        disabled={disabled}
         title={title}
-        aria-label={title}
-        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-900 ${className}`}
+        aria-label={ariaLabel ?? title}
+        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors ${disabled ? 'cursor-not-allowed text-slate-300 opacity-60' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'} ${className}`}
     >
-        <Icon className="h-3.5 w-3.5 shrink-0" strokeWidth={2} />
+        <Icon className={`h-3.5 w-3.5 shrink-0 ${iconClassName}`} strokeWidth={2} />
     </button>
 );
 
@@ -578,8 +589,10 @@ export const ConfigPanel = ({
     const [contentViewportHeight, setContentViewportHeight] = useState<number | null>(null);
     const [mobileExpandedViewportHeight, setMobileExpandedViewportHeight] = useState<number | null>(null);
     const [activeContentNode, setActiveContentNode] = useState<HTMLDivElement | null>(null);
+    const [inventoryCopyStatus, setInventoryCopyStatus] = useState<'idle' | 'success'>('idle');
 
     const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const inventoryCopyTimerRef = useRef<number | null>(null);
     const swapTimerRef = useRef<number | null>(null);
     const enterFrameRef = useRef<number | null>(null);
     const resizeFrameRef = useRef<number | null>(null);
@@ -617,6 +630,7 @@ export const ConfigPanel = ({
 
     const handleClearInventory = () => {
         setUndoCache({ text: inputs.inventoryText, rows: [...normalizedRows] });
+        setInventoryCopyStatus('idle');
         setInputs((prev) => ({ ...prev, inventoryText: '' }));
         setNormalizedRows([]);
 
@@ -684,6 +698,7 @@ export const ConfigPanel = ({
     useEffect(() => {
         return () => {
             if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+            if (inventoryCopyTimerRef.current !== null) window.clearTimeout(inventoryCopyTimerRef.current);
             clearViewTimers();
         };
     }, [clearViewTimers]);
@@ -1002,11 +1017,55 @@ export const ConfigPanel = ({
         )
     );
 
+    const handleInventoryCopy = useCallback(async () => {
+        const text = inputs.inventoryText.trim();
+        if (!text) return;
+
+        if (inventoryCopyTimerRef.current !== null) {
+            window.clearTimeout(inventoryCopyTimerRef.current);
+            inventoryCopyTimerRef.current = null;
+        }
+
+        try {
+            await copyTextToClipboard(inputs.inventoryText);
+            setInventoryCopyStatus('success');
+            inventoryCopyTimerRef.current = window.setTimeout(() => {
+                setInventoryCopyStatus('idle');
+                inventoryCopyTimerRef.current = null;
+            }, 2000);
+        } catch (error) {
+            console.error('Inventory copy failed', error);
+            setInventoryCopyStatus('idle');
+            toast.error('Failed to copy inventory text. Please try again.');
+        }
+    }, [inputs.inventoryText]);
+
+    const renderInventoryCopyAction = () => {
+        if (!inputs.inventoryText.trim()) return null;
+
+        return (
+            <SurfaceIconButton
+                Icon={inventoryCopyStatus === 'success' ? Check : Copy}
+                onClick={() => void handleInventoryCopy()}
+                ariaLabel={inventoryCopyStatus === 'success' ? 'Copied' : 'Copy inventory text'}
+                title={undefined}
+                className={inventoryCopyStatus === 'success'
+                    ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700'
+                    : ''}
+            />
+        );
+    };
+
     const renderRawInventoryComposer = (expanded: boolean) => (
         <div className={`flex ${expanded ? 'h-full min-h-0 flex-col' : 'flex-col'}`}>
             <div className={`relative ${expanded ? 'flex-1 min-h-0 overflow-hidden rounded-2xl border border-slate-200 bg-white' : ''}`}>
-                <div className="absolute right-2 top-2 z-10">
-                    {renderInventoryExpandAction(expanded)}
+                <div className="pointer-events-none absolute inset-y-2 right-2 z-10 flex flex-col justify-between">
+                    <div className="pointer-events-auto">
+                        {renderInventoryExpandAction(expanded)}
+                    </div>
+                    <div className="pointer-events-auto">
+                        {renderInventoryCopyAction()}
+                    </div>
                 </div>
                 <textarea
                     ref={rawTextareaRef}
@@ -1014,14 +1073,15 @@ export const ConfigPanel = ({
                     onChange={(event) => {
                         const raw = event.target.value;
                         const limited = limitInventoryText(raw);
+                        if (inventoryCopyStatus !== 'idle') setInventoryCopyStatus('idle');
                         setInventoryClipped(limited.length !== raw.length);
                         handleRawInventoryChange(limited);
                     }}
                     onFocus={handleRawInventoryFocus}
                     onScroll={handleRawInventoryScroll}
                     className={`inventory-scrollbar-hidden block w-full resize-none font-mono leading-relaxed text-slate-800 outline-none transition-colors placeholder:text-slate-500 ${expanded
-                        ? 'h-full min-h-0 border-0 bg-white px-4 py-4 pr-10 text-[14px] md:px-5 md:py-5 md:pr-10'
-                        : 'min-h-[96px] rounded-2xl border border-slate-200 bg-white px-4 py-3.5 pr-10 text-base sm:p-5 sm:pr-10 md:min-h-[224px] md:pr-10 md:text-[14px]'}`}
+                        ? 'h-full min-h-0 border-0 bg-white px-4 py-4 pr-10 pb-11 text-[14px] md:px-5 md:py-5 md:pr-10 md:pb-12'
+                        : 'min-h-[96px] rounded-2xl border border-slate-200 bg-white px-4 py-3.5 pr-10 pb-11 text-base sm:p-5 sm:pr-10 sm:pb-12 md:min-h-[224px] md:pr-10 md:text-[14px]'}`}
                     placeholder="Paste inventory or transcript..."
                     style={{
                         WebkitOverflowScrolling: 'touch',
