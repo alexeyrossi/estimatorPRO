@@ -651,6 +651,15 @@ function RailConnector({
   );
 }
 
+function getFormulaRailColumnWidth(item: CalculationPathItem, condensed: boolean) {
+  if (item.kind === 'modifier') {
+    if (condensed && item.label === 'Range Buffer') return '72px';
+    return condensed ? '54px' : '122px';
+  }
+
+  return condensed ? '60px' : '118px';
+}
+
 function FormulaRail({
   lane,
   theme,
@@ -671,9 +680,7 @@ function FormulaRail({
 
   const columns = steps.map((step) => {
     if (step.type === 'connector') return condensed ? '3px' : '7px';
-    if (condensed) return step.item.kind === 'modifier' ? '54px' : '60px';
-    if (step.item.kind === 'modifier') return '122px';
-    return '118px';
+    return getFormulaRailColumnWidth(step.item, condensed);
   }).join(' ');
 
   return (
@@ -734,12 +741,24 @@ function ResultChip({
       style={getDelayStyle(isReady, 4)}
     >
       <div className="relative inline-flex w-fit max-w-full flex-col items-center px-3 py-1 text-center sm:min-w-[214px]">
-        <div className={`pointer-events-none absolute left-1/2 top-1/2 h-28 w-72 -translate-x-1/2 -translate-y-1/2 rounded-full blur-[42px] ${theme.aura}`} />
-        <div className={`pointer-events-none absolute left-1/2 top-1/2 h-20 w-44 -translate-x-1/2 -translate-y-1/2 rounded-full blur-[24px] ${theme.glow}`} />
-        <div className={`text-[10px] font-bold uppercase tracking-[0.18em] ${theme.label}`}>
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 isolate overflow-visible transform-gpu"
+          style={{ transform: 'translate3d(0, 0, 0)', willChange: 'transform' }}
+        >
+          <div
+            className={`absolute left-1/2 top-1/2 h-28 w-72 -translate-x-1/2 -translate-y-1/2 rounded-full blur-[42px] transform-gpu ${theme.aura}`}
+            style={{ willChange: 'transform, opacity' }}
+          />
+          <div
+            className={`absolute left-1/2 top-1/2 h-20 w-44 -translate-x-1/2 -translate-y-1/2 rounded-full blur-[24px] transform-gpu ${theme.glow}`}
+            style={{ willChange: 'transform, opacity' }}
+          />
+        </div>
+        <div className={`relative z-10 text-[10px] font-bold uppercase tracking-[0.18em] ${theme.label}`}>
           {node.label}
         </div>
-        <div className="mt-2 flex items-baseline justify-center gap-1.5">
+        <div className="relative z-10 mt-2 flex items-baseline justify-center gap-1.5">
           <span className={`text-[28px] font-black leading-none sm:text-[32px] ${theme.value} ${theme.valueGlow}`}>
             {value}
           </span>
@@ -747,7 +766,7 @@ function ResultChip({
             {node.unit}
           </span>
         </div>
-        <div className={`mt-1 text-[10px] font-medium ${theme.caption}`}>
+        <div className={`relative z-10 mt-1 text-[10px] font-medium ${theme.caption}`}>
           Computed Result
         </div>
       </div>
