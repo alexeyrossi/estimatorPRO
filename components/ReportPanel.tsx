@@ -288,7 +288,7 @@ export const ReportPanel = ({
         };
     }, [activeContentNode]);
 
-    const framedReportBodyClass = "h-[calc(57dvh-3.25rem)] min-h-[338px] max-h-[468px] md:h-[468px] md:min-h-[468px] md:max-h-[468px]";
+    const framedReportBodyClass = "h-[calc(57dvh-3.25rem)] min-h-[338px] max-h-[460px] md:h-[460px] md:min-h-[460px] md:max-h-[460px]";
     const isDisplayedInventory = displayedReportView === "inventory";
     const isDisplayedDetails = displayedReportView === "details";
     const activeReportBodyClass = displayedReportView === "summary"
@@ -593,19 +593,27 @@ export const ReportPanel = ({
         <div className="flex h-full min-h-0 flex-col overflow-hidden">
             <div className="h-0 min-h-0 flex-1 overflow-y-auto pr-1 md:pr-2">
                 <div className="flex min-h-full flex-col gap-5">
-                    <div className="bg-gray-900 rounded-[2rem] p-6 shadow-lg">
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    <div className="relative overflow-hidden rounded-[2rem] border border-white/[0.07] bg-[linear-gradient(180deg,rgba(9,20,38,0.98),rgba(5,12,25,0.98))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] md:p-5">
+                        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_18%,rgba(59,130,246,0.14),transparent_24%),radial-gradient(ellipse_at_54%_72%,rgba(14,165,233,0.10),transparent_44%),radial-gradient(circle_at_84%_16%,rgba(96,165,250,0.08),transparent_20%)]" />
+                        <div className="pointer-events-none absolute inset-x-[12%] top-[-24%] h-28 rounded-full bg-sky-400/[0.08] blur-3xl md:inset-x-[18%] md:top-[-18%] md:h-32" />
+                        <div className="pointer-events-none absolute inset-x-[22%] bottom-[-18%] h-24 rounded-full bg-blue-500/[0.08] blur-3xl md:inset-x-[28%]" />
+                        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-white/10" />
+                        <div className="relative grid grid-cols-2 gap-3 md:grid-cols-3">
                             {OVERRIDE_KEYS.map((key) => {
                                 const autoValue = overrideAutoValues[key];
                                 const label = key.charAt(0).toUpperCase() + key.slice(1);
                                 const placeholder = autoValue != null ? `${label} (Auto: ${autoValue})` : `${label} (Auto)`;
+                                const value = overrides[key as keyof typeof overrides] || "";
+                                const hasValue = value.trim().length > 0;
                                 return (
                                     <input
                                         key={key}
                                         placeholder={placeholder}
-                                        value={overrides[key as keyof typeof overrides] || ""}
+                                        value={value}
                                         onChange={e => setOverrides({ ...overrides, [key]: e.target.value })}
-                                        className="min-w-0 w-full text-base md:text-[11px] font-bold px-3 py-3.5 md:p-3.5 rounded-xl bg-gray-800 text-white border border-transparent outline-none focus:bg-gray-700 placeholder:text-slate-500 transition-colors"
+                                        className={`min-w-0 w-full rounded-[1rem] border px-2.5 py-3 text-[11px] leading-[1.15] font-bold tracking-[-0.01em] text-slate-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] outline-none transition-[border-color,background-color,box-shadow] duration-200 placeholder:text-[11px] placeholder:font-bold placeholder:tracking-[-0.01em] md:px-3.5 md:py-3.5 md:text-[13px] md:placeholder:text-[13px] ${hasValue
+                                            ? "border-sky-300/18 bg-white/[0.06] placeholder:text-slate-500"
+                                            : "border-white/7 bg-white/[0.04] placeholder:text-slate-400/90"} focus:border-sky-300/28 focus:bg-white/[0.065] focus:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_0_0_1px_rgba(125,211,252,0.06)]`}
                                     />
                                 );
                             })}
