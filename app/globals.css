@@ -30,6 +30,34 @@ body {
   color: var(--foreground);
 }
 
+@keyframes clean-hover-icon-pulse {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+    filter: drop-shadow(0 0 0 rgba(56, 189, 248, 0));
+  }
+
+  50% {
+    transform: translateY(-0.45px) scale(1.024);
+    filter:
+      drop-shadow(0 0 6px rgba(103, 232, 249, 0.14))
+      drop-shadow(0 0 10px rgba(129, 140, 248, 0.1));
+  }
+}
+
+@keyframes clean-hover-aura-drift {
+  0%,
+  100% {
+    background-position: 0% 48%;
+    transform: scale(1.01);
+  }
+
+  50% {
+    background-position: 100% 52%;
+    transform: scale(1.035);
+  }
+}
+
 @layer utilities {
   button {
     touch-action: manipulation;
@@ -48,6 +76,88 @@ body {
     display: none;
     width: 0;
     height: 0;
+  }
+
+  .clean-hover-button {
+    overflow: hidden;
+    isolation: isolate;
+    appearance: none;
+    -webkit-appearance: none;
+    border: 0;
+    outline: none;
+    background: transparent;
+    will-change: box-shadow;
+    box-shadow: none;
+    transition:
+      color 180ms ease,
+      box-shadow 220ms ease,
+      background-color 220ms ease,
+      opacity 180ms ease;
+  }
+
+  .clean-hover-aura {
+    opacity: 0;
+    will-change: opacity, background-position, transform;
+    background:
+      radial-gradient(circle at 16% 24%, rgba(103, 232, 249, 0.92), transparent 34%),
+      radial-gradient(circle at 82% 22%, rgba(147, 197, 253, 0.44), transparent 32%),
+      linear-gradient(
+        125deg,
+        rgba(45, 212, 191, 0.82) 0%,
+        rgba(56, 189, 248, 0.88) 34%,
+        rgba(96, 165, 250, 0.84) 66%,
+        rgba(196, 181, 253, 0.82) 100%
+      );
+    background-size: 180% 180%;
+    transition:
+      opacity 180ms ease,
+      filter 220ms ease,
+      background-color 220ms ease;
+    filter: saturate(108%) brightness(1.02);
+  }
+
+  .clean-hover-icon {
+    will-change: transform, color;
+    transition:
+      transform 180ms ease,
+      color 180ms ease,
+      filter 180ms ease;
+  }
+
+  .clean-hover-trigger[data-clean-active="true"] .clean-hover-button,
+  .clean-hover-trigger[data-clean-hoverable="true"]:hover .clean-hover-button,
+  .clean-hover-trigger[data-clean-hoverable="true"]:focus-within .clean-hover-button {
+    color: #ffffff;
+    box-shadow:
+      0 6px 16px rgba(96, 165, 250, 0.08),
+      0 8px 18px rgba(129, 140, 248, 0.06);
+  }
+
+  .clean-hover-trigger[data-clean-active="true"] .clean-hover-aura,
+  .clean-hover-trigger[data-clean-hoverable="true"]:hover .clean-hover-aura,
+  .clean-hover-trigger[data-clean-hoverable="true"]:focus-within .clean-hover-aura {
+    opacity: 0.96;
+    animation: clean-hover-aura-drift 3.8s ease-in-out infinite;
+  }
+
+  .clean-hover-trigger[data-clean-active="true"] .clean-hover-icon,
+  .clean-hover-trigger[data-clean-hoverable="true"]:hover .clean-hover-icon,
+  .clean-hover-trigger[data-clean-hoverable="true"]:focus-within .clean-hover-icon {
+    color: #ffffff;
+    animation: clean-hover-icon-pulse 2.15s ease-in-out infinite;
+  }
+
+  .clean-hover-tooltip {
+    background: linear-gradient(135deg, rgba(103, 232, 249, 0.92), rgba(96, 165, 250, 0.9), rgba(196, 181, 253, 0.88));
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+  }
+
+  .clean-hover-tooltip-shell {
+    background: linear-gradient(180deg, rgba(2, 6, 23, 0.985), rgba(3, 7, 18, 0.985));
+    color: #f8fafc;
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.05) inset,
+      0 0 0 1px rgba(30, 41, 59, 0.44) inset;
   }
 }
 
@@ -75,5 +185,19 @@ body {
   .history-content-motion,
   .history-item-motion {
     transform: none !important;
+  }
+
+  .clean-hover-button,
+  .clean-hover-aura,
+  .clean-hover-icon {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+
+  .clean-hover-trigger[data-clean-active="true"] .clean-hover-aura,
+  .clean-hover-trigger[data-clean-hoverable="true"]:hover .clean-hover-aura,
+  .clean-hover-trigger[data-clean-hoverable="true"]:focus-within .clean-hover-aura {
+    opacity: 1;
   }
 }

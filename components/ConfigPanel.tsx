@@ -1,5 +1,6 @@
-import React, { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import React, { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
 import type { LucideIcon } from 'lucide-react';
+import { createPortal } from 'react-dom';
 import {
     AlignLeft,
     MapPin,
@@ -54,6 +55,13 @@ const softActionButtonTransition = {
     transitionTimingFunction: 'ease-out',
 } as const;
 const MOBILE_EXPANDED_VIEWPORT_MIN_HEIGHT = 368;
+const CLEAN_TOOLTIP_GAP = 10;
+const CLEAN_TOOLTIP_VIEWPORT_PADDING = 16;
+
+type TooltipPosition = {
+    top: number;
+    left: number;
+};
 
 let inventoryViewportSnapshot: InventoryViewportSnapshot = DESKTOP_INVENTORY_VIEWPORT_SNAPSHOT;
 
@@ -130,6 +138,8 @@ const getInventoryViewportSnapshot = () => {
 
 const getInventoryViewportServerSnapshot = () => DESKTOP_INVENTORY_VIEWPORT_SNAPSHOT;
 
+const isDomNode = (target: EventTarget | null): target is Node => target instanceof Node;
+
 const getInventoryModeToggleMeta = (
     inventoryMode: 'raw' | 'normalized',
     rowsStatus: RowsStatus
@@ -204,6 +214,284 @@ const SubviewActionButton = ({
                 </span>
             )}
         </button>
+    );
+};
+
+const CleanTooltipButton = ({
+    disabled,
+    isCleaning,
+    onClick,
+}: {
+    disabled: boolean;
+    isCleaning: boolean;
+    onClick: () => void;
+}) => {
+    const [tooltipOpen, setTooltipOpen] = useState(false);
+    const [isVisualActive, setIsVisualActive] = useState(false);
+    const [supportsHover, setSupportsHover] = useState(false);
+    const [tooltipPosition, setTooltipPosition] = useState<TooltipPosition | null>(null);
+    const rootRef = useRef<HTMLDivElement | null>(null);
+    const triggerRef = useRef<HTMLDivElement | null>(null);
+    const tooltipRef = useRef<HTMLDivElement | null>(null);
+    const touchHoldTimerRef = useRef<number | null>(null);
+    const longPressTriggeredRef = useRef(false);
+    const tooltipId = useId();
+    const isInteractive = !disabled && !isCleaning;
+    const isHoverable = isInteractive;
+    const isAriaDisabled = disabled || isCleaning;
+    const shouldShowHoverVisual = isInteractive && isVisualActive;
+
+    const clearTouchHold = useCallback(() => {
+        if (touchHoldTimerRef.current !== null) {
+            window.clearTimeout(touchHoldTimerRef.current);
+            touchHoldTimerRef.current = null;
+        }
+    }, []);
+
+    const updateTooltipPosition = useCallback(() => {
+        if (typeof window === 'undefined' || !triggerRef.current) return;
+
+        const triggerRect = triggerRef.current.getBoundingClientRect();
+        const maxWidth = Math.max(0, window.innerWidth - CLEAN_TOOLTIP_VIEWPORT_PADDING * 2);
+        const measuredWidth = tooltipRef.current
+            ? Math.ceil(tooltipRef.current.getBoundingClientRect().width)
+            : 0;
+        const width = Math.min(measuredWidth || 0, maxWidth);
+        const height = tooltipRef.current?.getBoundingClientRect().height ?? 0;
+        const centeredLeft = triggerRect.left + triggerRect.width / 2 - width / 2;
+        const maxLeft = Math.max(CLEAN_TOOLTIP_VIEWPORT_PADDING, window.innerWidth - CLEAN_TOOLTIP_VIEWPORT_PADDING - width);
+        const left = Math.min(Math.max(CLEAN_TOOLTIP_VIEWPORT_PADDING, centeredLeft), maxLeft);
+        const belowTop = triggerRect.bottom + CLEAN_TOOLTIP_GAP;
+        const aboveTop = triggerRect.top - CLEAN_TOOLTIP_GAP - height;
+        const minTop = CLEAN_TOOLTIP_VIEWPORT_PADDING;
+        const maxTop = Math.max(minTop, window.innerHeight - CLEAN_TOOLTIP_VIEWPORT_PADDING - height);
+        let top = aboveTop;
+
+        if (height > 0 && aboveTop < CLEAN_TOOLTIP_VIEWPORT_PADDING) {
+            const belowFits = belowTop + height <= window.innerHeight - CLEAN_TOOLTIP_VIEWPORT_PADDING;
+            top = belowFits ? belowTop : Math.min(Math.max(minTop, belowTop), maxTop);
+        } else if (height > 0) {
+            top = Math.min(Math.max(minTop, aboveTop), maxTop);
+        }
+
+        setTooltipPosition((current) => (
+            current && current.top === top && current.left === left
+                ? current
+                : { top, left }
+        ));
+    }, []);
+
+    useEffect(() => {
+        if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+
+        const mediaQuery = window.matchMedia('(hover: hover) and (pointer: fine)');
+        const syncSupport = () => setSupportsHover(mediaQuery.matches);
+
+        syncSupport();
+
+        if (typeof mediaQuery.addEventListener === 'function') {
+            mediaQuery.addEventListener('change', syncSupport);
+            return () => mediaQuery.removeEventListener('change', syncSupport);
+        }
+
+        mediaQuery.addListener(syncSupport);
+        return () => mediaQuery.removeListener(syncSupport);
+    }, []);
+
+    useLayoutEffect(() => {
+        if (!tooltipOpen) return;
+        updateTooltipPosition();
+    }, [tooltipOpen, updateTooltipPosition]);
+
+    useEffect(() => {
+        if (!tooltipOpen) return;
+
+        const handlePointerDown = (event: PointerEvent) => {
+            const target = isDomNode(event.target) ? event.target : null;
+            if (target && !rootRef.current?.contains(target) && !tooltipRef.current?.contains(target)) {
+                setIsVisualActive(false);
+                setTooltipOpen(false);
+            }
+        };
+
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                setIsVisualActive(false);
+                setTooltipOpen(false);
+            }
+        };
+
+        const handlePositionChange = () => {
+            updateTooltipPosition();
+        };
+
+        document.addEventListener('pointerdown', handlePointerDown);
+        document.addEventListener('keydown', handleKeyDown);
+        window.addEventListener('resize', handlePositionChange);
+        window.addEventListener('scroll', handlePositionChange, true);
+        window.visualViewport?.addEventListener('resize', handlePositionChange);
+
+        return () => {
+            document.removeEventListener('pointerdown', handlePointerDown);
+            document.removeEventListener('keydown', handleKeyDown);
+            window.removeEventListener('resize', handlePositionChange);
+            window.removeEventListener('scroll', handlePositionChange, true);
+            window.visualViewport?.removeEventListener('resize', handlePositionChange);
+        };
+    }, [tooltipOpen, updateTooltipPosition]);
+
+    useEffect(() => {
+        return () => {
+            clearTouchHold();
+        };
+    }, [clearTouchHold]);
+
+    const tooltip = tooltipOpen && typeof document !== 'undefined'
+        ? createPortal(
+            <div
+                ref={tooltipRef}
+                id={tooltipId}
+                role="tooltip"
+                className="clean-hover-tooltip pointer-events-auto fixed z-[90] overflow-hidden rounded-[0.95rem] p-px"
+                style={tooltipPosition
+                    ? {
+                        top: tooltipPosition.top,
+                        left: tooltipPosition.left,
+                        maxWidth: Math.max(0, window.innerWidth - CLEAN_TOOLTIP_VIEWPORT_PADDING * 2),
+                        background: 'linear-gradient(135deg, rgba(103, 232, 249, 0.92), rgba(96, 165, 250, 0.9), rgba(196, 181, 253, 0.88))',
+                        boxShadow: '0 10px 24px rgba(15, 23, 42, 0.12)',
+                    }
+                    : {
+                        top: 0,
+                        left: 0,
+                        maxWidth: Math.max(0, window.innerWidth - CLEAN_TOOLTIP_VIEWPORT_PADDING * 2),
+                        visibility: 'hidden',
+                        background: 'linear-gradient(135deg, rgba(103, 232, 249, 0.92), rgba(96, 165, 250, 0.9), rgba(196, 181, 253, 0.88))',
+                    }}
+                onMouseEnter={() => {
+                    if (supportsHover) setTooltipOpen(true);
+                }}
+                onMouseLeave={(event) => {
+                    const nextTarget = isDomNode(event.relatedTarget) ? event.relatedTarget : null;
+                    if (supportsHover && !rootRef.current?.contains(nextTarget)) {
+                        setIsVisualActive(false);
+                        setTooltipOpen(false);
+                    }
+                }}
+            >
+                <div
+                    className="clean-hover-tooltip-shell relative inline-flex overflow-hidden rounded-full px-3 py-1.5"
+                    style={{
+                        background: 'linear-gradient(180deg, rgba(2, 6, 23, 0.985), rgba(3, 10, 24, 0.985))',
+                        border: '1px solid rgba(15, 23, 42, 0.82)',
+                        boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.05), inset 0 0 0 1px rgba(67, 56, 202, 0.24)',
+                        color: '#f8fafc',
+                        backdropFilter: 'blur(14px)',
+                        WebkitBackdropFilter: 'blur(14px)',
+                    }}
+                >
+                    <div className="relative whitespace-nowrap text-[11px] font-black leading-none text-slate-50">
+                        AI Transcript
+                    </div>
+                </div>
+            </div>,
+            document.body
+        )
+        : null;
+
+    return (
+        <>
+            <div
+                ref={rootRef}
+                className="clean-hover-trigger relative shrink-0"
+                data-clean-hoverable={isHoverable ? 'true' : 'false'}
+                data-clean-active={shouldShowHoverVisual ? 'true' : 'false'}
+                data-clean-disabled={disabled ? 'true' : 'false'}
+                onMouseEnter={() => {
+                    setIsVisualActive(true);
+                    if (supportsHover) setTooltipOpen(true);
+                }}
+                onMouseLeave={(event) => {
+                    const nextTarget = isDomNode(event.relatedTarget) ? event.relatedTarget : null;
+                    if (!tooltipRef.current?.contains(nextTarget)) {
+                        setIsVisualActive(false);
+                    }
+                    if (supportsHover && !tooltipRef.current?.contains(nextTarget)) {
+                        setTooltipOpen(false);
+                    }
+                }}
+                onBlur={(event) => {
+                    const nextTarget = isDomNode(event.relatedTarget) ? event.relatedTarget : null;
+                    if (!event.currentTarget.contains(nextTarget) && !tooltipRef.current?.contains(nextTarget)) {
+                        setIsVisualActive(false);
+                        setTooltipOpen(false);
+                    }
+                }}
+                onTouchStart={() => {
+                    if (supportsHover) return;
+
+                    clearTouchHold();
+                    setIsVisualActive(true);
+                    touchHoldTimerRef.current = window.setTimeout(() => {
+                        longPressTriggeredRef.current = true;
+                        setTooltipOpen(true);
+                        touchHoldTimerRef.current = null;
+                    }, 420);
+                }}
+                onTouchEnd={() => {
+                    clearTouchHold();
+                    setIsVisualActive(false);
+                }}
+                onTouchCancel={() => {
+                    clearTouchHold();
+                    setIsVisualActive(false);
+                }}
+            >
+                <div ref={triggerRef} className="relative">
+                    <button
+                        type="button"
+                        aria-label="AI Clean"
+                        aria-describedby={tooltipOpen ? tooltipId : undefined}
+                        aria-expanded={tooltipOpen}
+                        aria-disabled={isAriaDisabled}
+                        aria-busy={isCleaning || undefined}
+                        tabIndex={isCleaning ? -1 : 0}
+                        onFocus={() => {
+                            setIsVisualActive(true);
+                            if (supportsHover) setTooltipOpen(true);
+                        }}
+                        onKeyDown={(event) => {
+                            if (event.key !== 'Enter' && event.key !== ' ') return;
+                            event.preventDefault();
+                            if (!isInteractive) return;
+                            onClick();
+                        }}
+                        onClick={() => {
+                            if (!supportsHover && longPressTriggeredRef.current) {
+                                longPressTriggeredRef.current = false;
+                                return;
+                            }
+
+                            if (!isInteractive) return;
+                            onClick();
+                        }}
+                        className={`clean-hover-button group relative flex h-9 shrink-0 items-center justify-center rounded-xl px-2.5 md:gap-2 md:px-3.5 ${isInteractive ? 'clean-hover-button--ready text-slate-500' : 'cursor-not-allowed text-slate-400'} ${isCleaning ? 'opacity-60' : ''}`}
+                    >
+                        <span aria-hidden="true" className="clean-hover-aura absolute inset-0 rounded-[inherit]" />
+                        <span className="relative z-[1] flex items-center gap-1.5">
+                            <Sparkles className="clean-hover-icon h-4 w-4 shrink-0" strokeWidth={2} />
+                            <span className="text-[10px] font-bold leading-none md:hidden">
+                                {isCleaning ? '...' : 'Clean'}
+                            </span>
+                            <span className="hidden text-[11px] font-bold leading-none md:inline">
+                                {isCleaning ? 'Cleaning' : 'Clean'}
+                            </span>
+                        </span>
+                    </button>
+                </div>
+            </div>
+            {tooltip}
+        </>
     );
 };
 
@@ -690,12 +978,9 @@ export const ConfigPanel = ({
 
     const renderTranscriptCleanAction = () => (
         inventoryMode === 'raw' ? (
-            <SubviewActionButton
-                Icon={Sparkles}
-                label={isCleaningTranscript ? 'Cleaning' : 'Clean'}
-                mobileLabel={isCleaningTranscript ? '...' : 'Clean'}
+            <CleanTooltipButton
                 onClick={() => void handleCleanTranscript()}
-                title="Clean transcript into raw inventory items"
+                isCleaning={isCleaningTranscript}
                 disabled={isCleaningTranscript || !inputs.inventoryText.trim()}
             />
         ) : null
