@@ -40,10 +40,34 @@ export const ConfidenceDonut = ({
     const tooltipId = useId();
 
     const colors = label === "High"
-        ? { ring: "#34D399", text: "text-emerald-700", bg: "bg-emerald-50" }
+        ? {
+            ring: "#34D399",
+            text: "text-emerald-700",
+            bg: "bg-emerald-50",
+            headingText: "text-emerald-700",
+            iconText: "text-emerald-600",
+            iconHoverBg: "hover:bg-emerald-50 focus:bg-emerald-50",
+            iconHoverText: "hover:text-emerald-700 focus:text-emerald-700",
+        }
         : label === "Medium"
-            ? { ring: "#FBBF24", text: "text-amber-700", bg: "bg-amber-50" }
-            : { ring: "#F87171", text: "text-red-700", bg: "bg-red-50" };
+            ? {
+                ring: "#FBBF24",
+                text: "text-amber-700",
+                bg: "bg-amber-50",
+                headingText: "text-amber-700",
+                iconText: "text-amber-600",
+                iconHoverBg: "hover:bg-amber-50 focus:bg-amber-50",
+                iconHoverText: "hover:text-amber-700 focus:text-amber-700",
+            }
+            : {
+                ring: "#F87171",
+                text: "text-red-700",
+                bg: "bg-red-50",
+                headingText: "text-red-700",
+                iconText: "text-red-600",
+                iconHoverBg: "hover:bg-red-50 focus:bg-red-50",
+                iconHoverText: "hover:text-red-700 focus:text-red-700",
+            };
     const tooltipSummary = label === "High"
         ? "Mostly direct inventory matches."
         : label === "Medium"
@@ -192,7 +216,7 @@ export const ConfidenceDonut = ({
                 ref={tooltipCardRef}
                 id={tooltipId}
                 role="tooltip"
-                className="fixed z-[80] rounded-2xl border border-gray-200 bg-white p-3 shadow-lg"
+                className="fixed z-[80] rounded-2xl border border-slate-200 bg-white p-3 shadow-lg"
                 style={tooltipPosition
                     ? {
                         top: tooltipPosition.top,
@@ -217,12 +241,12 @@ export const ConfidenceDonut = ({
                     }
                 }}
             >
-                <div className="text-[11px] font-bold text-gray-800">
+                <div className="text-[11px] font-bold text-slate-800">
                     {tooltipSummary}
                 </div>
                 <div className="mt-2 space-y-1.5">
                     {tooltipFactors.map((factor) => (
-                        <div key={factor} className="text-[11px] font-medium leading-relaxed text-gray-500">
+                        <div key={factor} className="text-[11px] font-medium leading-relaxed text-slate-600">
                             {factor}
                         </div>
                     ))}
@@ -265,7 +289,7 @@ export const ConfidenceDonut = ({
                     </svg>
                     {/* Center number */}
                     <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="text-[15px] font-black text-gray-800 tabular-nums sm:text-[16px]">
+                        <span className="text-[15px] font-black text-slate-900 tabular-nums sm:text-[16px]">
                             {displayScore}
                         </span>
                     </div>
@@ -295,7 +319,7 @@ export const ConfidenceDonut = ({
                             }
                         }}
                     >
-                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                        <span className={`text-[10px] font-semibold uppercase tracking-widest ${colors.headingText}`}>
                             Confidence
                         </span>
                         <button
@@ -304,7 +328,7 @@ export const ConfidenceDonut = ({
                             aria-label="Why this confidence score"
                             aria-describedby={tooltipOpen ? tooltipId : undefined}
                             aria-expanded={tooltipOpen}
-                            className="flex h-4 w-4 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 focus:bg-gray-100 focus:text-gray-600 focus:outline-none"
+                            className={`flex h-4 w-4 items-center justify-center rounded-full transition-colors focus:outline-none ${colors.iconText} ${colors.iconHoverBg} ${colors.iconHoverText}`}
                             onFocus={() => {
                                 if (supportsHover) setTooltipOpen(true);
                             }}

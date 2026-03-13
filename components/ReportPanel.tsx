@@ -3,7 +3,7 @@ import { EstimateInputs, EstimateResult } from '@/lib/types/estimator';
 import { OVERRIDE_KEYS, sanitizeOverrides } from '@/lib/estimatePolicy';
 import { buildReportSummaryNotes } from '@/lib/reportNotes';
 import {
-    Truck, Box, List, Weight, Terminal, ChevronRight, Lock, Scale, PackageOpen, Clock, CalendarDays, Info, Users, AlertTriangle, Route, ArrowLeft, Check, Clipboard, FileText, Loader2, Settings2, RefreshCcw
+    Truck, Box, List, Weight, Terminal, ChevronRight, Lock, Scale, PackageOpen, Clock, CalendarDays, Info, Users, AlertTriangle, Route, ArrowLeft, Check, Clipboard, FileText, Loader2, Settings2, RefreshCcw, Lightbulb
 } from 'lucide-react';
 import { GlassPanel } from './GlassPanel';
 import { MetricCard } from './MetricCard';
@@ -133,7 +133,7 @@ export const ReportPanel = ({
     const formatMetric = (val: React.ReactNode | number, unit: string) => (
         <span className="tabular-nums inline-flex max-w-full flex-wrap items-baseline gap-x-1.5 gap-y-0.5 sm:flex-nowrap">
             <span>{typeof val === 'number' ? val.toLocaleString() : (val || 0)}</span>
-            <span className="text-[12px] sm:text-[13px] font-bold text-gray-400 lowercase tracking-normal">
+            <span className="text-[12px] sm:text-[13px] font-semibold text-slate-500 lowercase tracking-normal">
                 {unit}
             </span>
         </span>
@@ -351,7 +351,7 @@ export const ReportPanel = ({
         </button>
     );
     const panelLayerLabelClass = "flex items-center gap-2";
-    const panelLayerTitleClass = "text-[10px] font-bold text-gray-800 uppercase tracking-widest";
+    const panelLayerTitleClass = "text-[10px] font-semibold text-slate-600 uppercase tracking-widest";
     const clearOverridesButton = (
         <button
             onClick={clearOverrides}
@@ -384,7 +384,7 @@ export const ReportPanel = ({
     );
     const reportShellHeaderLabel = (
         <div className={panelLayerLabelClass}>
-            <shellHeaderMeta.Icon className="w-4 h-4 text-gray-800" />
+            <shellHeaderMeta.Icon className="w-4 h-4 text-slate-500" />
             <span className={panelLayerTitleClass}>{shellHeaderMeta.title}</span>
         </div>
     );
@@ -415,12 +415,12 @@ export const ReportPanel = ({
                     <div className="flex w-full justify-center px-1 py-1 sm:block">
                         <div className="flex w-full max-w-full flex-col items-center text-center sm:items-start sm:text-left">
                             <div className="mb-2 flex items-center justify-center gap-2 sm:justify-start">
-                            <Weight className="w-4 h-4 shrink-0" strokeWidth={2.5} color="#f43f5e" />
-                            <span className="text-[10px] font-bold text-rose-600 uppercase tracking-widest">Heavy Items ({heavyItems.length})</span>
+                            <Weight className="w-4 h-4 shrink-0 text-rose-600" strokeWidth={2.5} />
+                            <span className="text-[10px] font-semibold text-rose-700 uppercase tracking-widest">Heavy Items ({heavyItems.length})</span>
                             </div>
                             <div className="flex max-w-full flex-wrap justify-center gap-1.5 sm:justify-start">
                                 {heavyItems.map((name, i) => (
-                                    <span key={`${name}-${i}`} className="rounded-lg bg-rose-50 px-2.5 py-1 text-[10px] font-semibold text-rose-600">
+                                    <span key={`${name}-${i}`} className="rounded-lg bg-rose-50 px-2.5 py-1 text-[10px] font-semibold text-rose-700">
                                         {name}
                                     </span>
                                 ))}
@@ -433,13 +433,13 @@ export const ReportPanel = ({
                 <div className="flex flex-col">
                     {estimate.unrecognizedDetails?.length > 0 && (
                         <>
-                            <div className="border-t border-gray-100" />
+                            <div className="border-t border-slate-100" />
                             <div className="py-4">
                                 <div className="flex items-center gap-2 mb-2">
-                                    <AlertTriangle className="w-4 h-4 text-amber-500" />
-                                    <span className="text-[10px] font-bold text-amber-600 uppercase tracking-widest">Estimated Items ({estimate.unrecognizedDetails.length})</span>
+                                    <AlertTriangle className="w-4 h-4 text-amber-600" />
+                                    <span className="text-[10px] font-semibold text-amber-700 uppercase tracking-widest">Estimated Items ({estimate.unrecognizedDetails.length})</span>
                                 </div>
-                                <p className="text-[11px] text-gray-500 font-medium mb-2">These items weren&apos;t recognized. Smart Fallback applied.</p>
+                                <p className="mb-2 text-[11px] font-medium text-slate-600">These items weren&apos;t recognized. Smart Fallback applied.</p>
                                 <div className="flex flex-wrap gap-1.5">
                                     {estimate.unrecognizedDetails.map((name, i) => (
                                         <span key={i} className="text-[10px] font-semibold text-amber-700 bg-amber-50 px-2.5 py-1 rounded-lg">{name}</span>
@@ -451,10 +451,10 @@ export const ReportPanel = ({
 
                     {compactAuditSummary.length > 0 && (
                         <>
-                            <div className="border-t border-gray-100" />
+                            <div className="border-t border-slate-100" />
                             <div className="py-3 space-y-1.5">
                                 {compactAuditSummary.map((x, i) => (
-                                    <div key={i} className="text-[12px] text-gray-400 font-medium leading-relaxed">
+                                    <div key={i} className="text-[12px] text-slate-600 font-medium leading-relaxed">
                                         {x}
                                     </div>
                                 ))}
@@ -464,59 +464,59 @@ export const ReportPanel = ({
 
                     {inputs.moveType === "LD" && estimate.billableCF != null && estimate.billableCF > 0 && (
                         <>
-                            <div className="border-t border-gray-100" />
+                            <div className="border-t border-slate-100" />
                             <div className="py-4">
-                                <div className="text-[10px] font-bold text-blue-500 uppercase tracking-widest mb-3 flex items-center gap-2">
-                                    <Route className="w-4 h-4" /> Long Distance Breakdown
+                                <div className="mb-3 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-widest text-blue-700">
+                                    <Route className="w-4 h-4 text-blue-600" /> Long Distance Breakdown
                                 </div>
                                 <div className="grid grid-cols-3 gap-2.5 sm:gap-6">
                                     <div className="min-w-0 text-center">
-                                        <div className="text-[9px] sm:text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Inventory Volume</div>
-                                        <div className="text-lg min-[375px]:text-xl sm:text-2xl font-black text-gray-900 tabular-nums leading-tight">{formatMetric(<AnimatedNumber value={rawInventoryVolume} />, "cu ft")}</div>
-                                        <div className="text-[10px] sm:text-[11px] font-semibold text-gray-400 mt-1 leading-tight sm:truncate">Items Only</div>
+                                        <div className="mb-1 text-[9px] font-semibold uppercase tracking-wide text-slate-500 sm:text-[10px]">Inventory Volume</div>
+                                        <div className="text-lg min-[375px]:text-xl sm:text-2xl font-black text-slate-900 tabular-nums leading-tight">{formatMetric(<AnimatedNumber value={rawInventoryVolume} />, "cu ft")}</div>
+                                        <div className="mt-1 text-[10px] font-semibold leading-tight text-slate-500 sm:text-[11px] sm:truncate">Items Only</div>
                                     </div>
                                     <div className="min-w-0 text-center">
-                                        <div className="text-[9px] sm:text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Truck Load</div>
-                                        <div className="text-lg min-[375px]:text-xl sm:text-2xl font-black text-gray-900 tabular-nums leading-tight">{formatMetric(<AnimatedNumber value={estimate.truckSpaceCF || 0} prefix="~" />, "cu ft")}</div>
-                                        <div className="text-[10px] sm:text-[11px] font-semibold text-gray-400 mt-1 leading-tight sm:truncate">Actual Space Needed</div>
+                                        <div className="mb-1 text-[9px] font-semibold uppercase tracking-wide text-slate-500 sm:text-[10px]">Truck Load</div>
+                                        <div className="text-lg min-[375px]:text-xl sm:text-2xl font-black text-slate-900 tabular-nums leading-tight">{formatMetric(<AnimatedNumber value={estimate.truckSpaceCF || 0} prefix="~" />, "cu ft")}</div>
+                                        <div className="mt-1 text-[10px] font-semibold leading-tight text-slate-500 sm:text-[11px] sm:truncate">Actual Space Needed</div>
                                     </div>
                                     <div className="min-w-0 text-center">
-                                        <div className="text-[9px] sm:text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Est. Weight</div>
-                                        <div className="text-lg min-[375px]:text-xl sm:text-2xl font-black text-gray-900 tabular-nums leading-tight">{formatMetric(<AnimatedNumber value={estimate.weight || 0} />, "lbs")}</div>
+                                        <div className="mb-1 text-[9px] font-semibold uppercase tracking-wide text-slate-500 sm:text-[10px]">Est. Weight</div>
+                                        <div className="text-lg min-[375px]:text-xl sm:text-2xl font-black text-slate-900 tabular-nums leading-tight">{formatMetric(<AnimatedNumber value={estimate.weight || 0} />, "lbs")}</div>
                                     </div>
                                 </div>
                             </div>
                         </>
                     )}
 
-                    <div className="border-t border-gray-100" />
+                    <div className="border-t border-slate-100" />
                     <div className="py-4">
                         <div className="grid grid-cols-3 gap-2.5 sm:gap-6">
                             <div className="min-w-0 text-center">
-                                <div className="text-[9px] sm:text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Blankets</div>
-                                <div className="text-lg min-[375px]:text-xl sm:text-2xl font-black text-gray-900 tabular-nums leading-tight">{estimate.materials?.blankets || 0}</div>
+                                <div className="mb-1 text-[9px] font-semibold uppercase tracking-wide text-slate-500 sm:text-[10px]">Blankets</div>
+                                <div className="text-lg min-[375px]:text-xl sm:text-2xl font-black text-slate-900 tabular-nums leading-tight">{estimate.materials?.blankets || 0}</div>
                             </div>
                             <div className="min-w-0 text-center">
-                                <div className="text-[9px] sm:text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Boxes</div>
-                                <div className="text-lg min-[375px]:text-xl sm:text-2xl font-black text-gray-900 tabular-nums leading-tight">~{estimate.materials?.boxes || 0}</div>
+                                <div className="mb-1 text-[9px] font-semibold uppercase tracking-wide text-slate-500 sm:text-[10px]">Boxes</div>
+                                <div className="text-lg min-[375px]:text-xl sm:text-2xl font-black text-slate-900 tabular-nums leading-tight">~{estimate.materials?.boxes || 0}</div>
                             </div>
                             <div className="min-w-0 text-center">
-                                <div className="text-[9px] sm:text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Wardrobes</div>
-                                <div className="text-lg min-[375px]:text-xl sm:text-2xl font-black text-gray-900 tabular-nums leading-tight">{estimate.materials?.wardrobes || 0}</div>
+                                <div className="mb-1 text-[9px] font-semibold uppercase tracking-wide text-slate-500 sm:text-[10px]">Wardrobes</div>
+                                <div className="text-lg min-[375px]:text-xl sm:text-2xl font-black text-slate-900 tabular-nums leading-tight">{estimate.materials?.wardrobes || 0}</div>
                             </div>
                         </div>
                     </div>
 
                     {actionableAdvice.length > 0 && (
                         <>
-                            <div className="border-t border-gray-100" />
+                            <div className="border-t border-slate-100" />
                             <div className="py-3">
-                                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
-                                    <span>💡</span> Dispatch Notes
+                                <div className="mb-2 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest text-slate-600">
+                                    <Lightbulb className="h-4 w-4 text-slate-500" /> Dispatch Notes
                                 </div>
                                 <div className="space-y-1.5">
                                     {actionableAdvice.map((x, i) => (
-                                        <div key={i} className="text-[12px] text-gray-400 font-medium leading-relaxed">
+                                        <div key={i} className="text-[12px] text-slate-600 font-medium leading-relaxed">
                                             {x}
                                         </div>
                                     ))}
@@ -527,12 +527,12 @@ export const ReportPanel = ({
 
                     {estimate.risks?.length > 0 && (
                         <>
-                            <div className="border-t border-gray-100" />
+                            <div className="border-t border-slate-100" />
                             <div className="py-3">
-                                <div className="flex items-center gap-2 mb-2"><AlertTriangle className="w-4 h-4 text-red-500" /><span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Risk Factors</span></div>
+                                <div className="mb-2 flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-red-600" /><span className="text-[10px] font-semibold text-red-700 uppercase tracking-widest">Risk Factors</span></div>
                                 <div className="space-y-1.5">
                                     {estimate.risks.map((r, i) => (
-                                        <div key={i} className={`text-[12px] font-medium leading-relaxed ${r.level === 'critical' ? 'text-red-600' : 'text-amber-600'}`}>
+                                        <div key={i} className={`text-[12px] font-medium leading-relaxed ${r.level === 'critical' ? 'text-red-700' : 'text-amber-700'}`}>
                                             {r.text}
                                         </div>
                                     ))}
@@ -547,29 +547,29 @@ export const ReportPanel = ({
 
     const inventoryContent = (
         <div className="flex h-full min-h-0 flex-col overflow-hidden">
-            <div className="h-full min-h-0 flex-1 overflow-hidden rounded-[1.75rem] border border-gray-100 bg-gray-50/60 p-3 md:p-4">
+            <div className="h-full min-h-0 flex-1 overflow-hidden rounded-[1.75rem] border border-slate-100 bg-slate-50/60 p-3 md:p-4">
                 {detectedItemCount > 0 ? (
                     <div className="h-full min-h-0 overflow-y-auto pr-1 md:pr-2">
                         <div className="grid grid-cols-1 gap-3 pb-1 md:grid-cols-2">
                             {estimate.parsedItems?.map((item, i) => (
-                                <div key={i} className="flex justify-between items-center bg-white border border-gray-100 px-4 py-3 rounded-[1rem] shadow-[0_2px_8px_rgba(0,0,0,0.02)] hover:border-gray-200 transition-colors">
-                                    <span className="font-bold text-gray-700 text-[11px] truncate mr-2">
+                                <div key={i} className="flex justify-between items-center bg-white border border-slate-100 px-4 py-3 rounded-[1rem] shadow-[0_2px_8px_rgba(0,0,0,0.02)] transition-colors hover:border-slate-200">
+                                    <span className="mr-2 truncate text-[11px] font-bold text-slate-900">
                                         {item.name}
-                                        {item.room && <span className="text-gray-400 ml-1 font-semibold text-[9px]">[{item.room}]</span>}
+                                        {item.room && <span className="ml-1 text-[9px] font-semibold text-slate-500">[{item.room}]</span>}
                                         {item.sourceCount && item.sourceCount > 1 && (
-                                            <span className="text-gray-400 ml-1 font-semibold text-[9px]">({item.sourceCount} lines)</span>
+                                            <span className="ml-1 text-[9px] font-semibold text-slate-500">({item.sourceCount} lines)</span>
                                         )}
                                         {item.isSynthetic && (
-                                            <span className="text-amber-600 ml-1 font-semibold text-[9px]">(bundle)</span>
+                                            <span className="ml-1 text-[9px] font-semibold text-amber-700">(bundle)</span>
                                         )}
                                         {item.flags?.heavy && (
                                             <Weight className="w-3 h-3 text-red-500 ml-1 inline-block" strokeWidth={2.5} />
                                         )}
                                     </span>
-                                    <span className="text-gray-500 whitespace-nowrap text-[11px] font-medium flex items-center gap-2" style={{ fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, monospace' }}>
+                                    <span className="flex items-center gap-2 whitespace-nowrap text-[11px] font-medium text-slate-500" style={{ fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, monospace' }}>
                                         <span>x{item.qty}</span>
-                                        <span className="text-gray-200">|</span>
-                                        <span className="font-bold text-gray-600">{item.cf}cf</span>
+                                        <span className="text-slate-200">|</span>
+                                        <span className="font-semibold text-slate-600">{item.cf}cf</span>
                                     </span>
                                 </div>
                             ))}
@@ -577,9 +577,9 @@ export const ReportPanel = ({
                     </div>
                 ) : (
                     <div className="flex h-full flex-col items-center justify-center px-6 text-center">
-                        <List className="mb-3 h-6 w-6 text-gray-300" />
-                        <div className="text-sm font-bold text-gray-700">No detected items yet</div>
-                        <div className="mt-1 max-w-xs text-[12px] font-medium leading-relaxed text-gray-400">
+                        <List className="mb-3 h-6 w-6 text-slate-300" />
+                        <div className="text-sm font-bold text-slate-800">No detected items yet</div>
+                        <div className="mt-1 max-w-xs text-[12px] font-medium leading-relaxed text-slate-600">
                             Add or parse inventory in Parameters. Detected items will show here.
                         </div>
                     </div>
@@ -604,7 +604,7 @@ export const ReportPanel = ({
                                         placeholder={placeholder}
                                         value={overrides[key as keyof typeof overrides] || ""}
                                         onChange={e => setOverrides({ ...overrides, [key]: e.target.value })}
-                                        className="min-w-0 w-full text-base md:text-[11px] font-bold px-3 py-3.5 md:p-3.5 rounded-xl bg-gray-800 text-white border border-transparent outline-none focus:bg-gray-700 placeholder:text-gray-500 transition-colors"
+                                        className="min-w-0 w-full text-base md:text-[11px] font-bold px-3 py-3.5 md:p-3.5 rounded-xl bg-gray-800 text-white border border-transparent outline-none focus:bg-gray-700 placeholder:text-slate-500 transition-colors"
                                     />
                                 );
                             })}
@@ -613,30 +613,30 @@ export const ReportPanel = ({
 
                     <div className="space-y-3">
                         <div className={panelLayerLabelClass}>
-                            <Terminal className="w-4 h-4 text-gray-800" />
+                            <Terminal className="w-4 h-4 text-slate-500" />
                             <span className={panelLayerTitleClass}>Calculation Path</span>
                         </div>
                         <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
                             <div className="grid grid-cols-2 gap-x-5 gap-y-4 min-[390px]:grid-cols-3 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)] md:items-center md:gap-x-6 md:gap-y-0">
                                 <div className="min-w-0 flex flex-col">
-                                    <span className="mb-1 text-[9px] font-bold uppercase leading-tight tracking-[0.2em] text-gray-500 min-[390px]:text-[10px] md:text-[11px] md:tracking-widest">Inventory Volume</span>
-                                    <span className="inline-flex max-w-full flex-wrap items-baseline gap-x-1 text-[16px] font-black text-gray-300 min-[390px]:text-xl">
+                                    <span className="mb-1 text-[9px] font-semibold uppercase leading-tight tracking-[0.2em] text-slate-400 min-[390px]:text-[10px] md:text-[11px] md:tracking-widest">Inventory Volume</span>
+                                    <span className="inline-flex max-w-full flex-wrap items-baseline gap-x-1 text-[16px] font-black text-slate-200 min-[390px]:text-xl">
                                         <span>{rawInventoryVolume.toLocaleString()}</span>
-                                        <span className="text-[12px] font-medium text-gray-500">cu ft</span>
+                                        <span className="text-[12px] font-medium text-slate-400">cu ft</span>
                                     </span>
                                 </div>
 
-                                <ChevronRight className="hidden h-5 w-5 text-gray-700 md:block" />
+                                <ChevronRight className="hidden h-5 w-5 text-slate-600 md:block" />
 
                                 <div className="min-w-0 flex flex-col">
-                                    <span className="mb-1 text-[9px] font-bold uppercase leading-tight tracking-[0.2em] text-gray-500 min-[390px]:text-[10px] md:text-[11px] md:tracking-widest">Adjusted Volume</span>
-                                    <span className="inline-flex max-w-full flex-wrap items-baseline gap-x-1 text-[16px] font-black text-gray-300 min-[390px]:text-xl">
+                                    <span className="mb-1 text-[9px] font-semibold uppercase leading-tight tracking-[0.2em] text-slate-400 min-[390px]:text-[10px] md:text-[11px] md:tracking-widest">Adjusted Volume</span>
+                                    <span className="inline-flex max-w-full flex-wrap items-baseline gap-x-1 text-[16px] font-black text-slate-200 min-[390px]:text-xl">
                                         <span>{(estimate.billableCF || estimate.finalVolume || 0).toLocaleString()}</span>
-                                        <span className="text-[12px] font-medium text-gray-500">cu ft</span>
+                                        <span className="text-[12px] font-medium text-slate-400">cu ft</span>
                                     </span>
                                 </div>
 
-                                <ChevronRight className="hidden h-5 w-5 text-gray-700 md:block" />
+                                <ChevronRight className="hidden h-5 w-5 text-slate-600 md:block" />
 
                                 <div className="col-span-2 min-[390px]:col-span-1 md:col-span-1 min-w-0 flex flex-col">
                                     <span className="mb-1 text-[9px] font-bold uppercase leading-tight tracking-[0.2em] text-emerald-500/80 min-[390px]:text-[10px] md:text-[11px] md:tracking-widest">Truck Space</span>
@@ -649,45 +649,45 @@ export const ReportPanel = ({
 
                             <div className="mt-6 pt-5 border-t border-gray-800/80 grid grid-cols-2 gap-y-6 gap-x-8">
                                 <div className="flex gap-3 items-start">
-                                    <Scale className="w-4 h-4 text-gray-600 mt-0.5" />
+                                    <Scale className="w-4 h-4 text-slate-500 mt-0.5" />
                                     <div className="flex flex-col">
-                                        <span className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Weight Baseline</span>
-                                        <span className="text-[13px] font-bold text-gray-300">7 lbs / cu ft</span>
-                                        <span className="text-[11px] text-gray-600 mt-0.5">DOT Tariff Standard</span>
+                                        <span className="mb-1 text-[10px] uppercase tracking-widest text-slate-400">Weight Baseline</span>
+                                        <span className="text-[13px] font-bold text-slate-200">7 lbs / cu ft</span>
+                                        <span className="mt-0.5 text-[11px] text-slate-400">DOT Tariff Standard</span>
                                     </div>
                                 </div>
 
                                 <div className="flex gap-3 items-start">
-                                    <PackageOpen className="w-4 h-4 text-gray-600 mt-0.5" />
+                                    <PackageOpen className="w-4 h-4 text-slate-500 mt-0.5" />
                                     <div className="flex flex-col">
-                                        <span className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Stacking Factor</span>
-                                        <span className="text-[13px] font-bold text-gray-300">~10% Volume Allowance</span>
-                                        <span className="text-[11px] text-gray-600 mt-0.5">Furniture is not perfectly square</span>
+                                        <span className="mb-1 text-[10px] uppercase tracking-widest text-slate-400">Stacking Factor</span>
+                                        <span className="text-[13px] font-bold text-slate-200">~10% Volume Allowance</span>
+                                        <span className="mt-0.5 text-[11px] text-slate-400">Furniture is not perfectly square</span>
                                     </div>
                                 </div>
 
                                 <div className="flex gap-3 items-start">
-                                    <Box className="w-4 h-4 text-gray-600 mt-0.5" />
+                                    <Box className="w-4 h-4 text-slate-500 mt-0.5" />
                                     <div className="flex flex-col">
-                                        <span className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Box Algorithm</span>
-                                        <span className="text-[13px] font-bold text-gray-300">Auto-Generated</span>
-                                        <span className="text-[11px] text-gray-600 mt-0.5">Min. requirement for safe transport</span>
+                                        <span className="mb-1 text-[10px] uppercase tracking-widest text-slate-400">Box Algorithm</span>
+                                        <span className="text-[13px] font-bold text-slate-200">Auto-Generated</span>
+                                        <span className="mt-0.5 text-[11px] text-slate-400">Min. requirement for safe transport</span>
                                     </div>
                                 </div>
 
                                 <div className="flex gap-3 items-start">
-                                    <Clock className="w-4 h-4 text-gray-600 mt-0.5" />
+                                    <Clock className="w-4 h-4 text-slate-500 mt-0.5" />
                                     <div className="flex flex-col">
-                                        <span className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Labor Algorithm</span>
-                                        <span className="text-[13px] font-bold text-gray-300">Volume + Access Factors</span>
-                                        <span className="text-[11px] text-gray-600 mt-0.5">Accounts for stairs & elevators</span>
+                                        <span className="mb-1 text-[10px] uppercase tracking-widest text-slate-400">Labor Algorithm</span>
+                                        <span className="text-[13px] font-bold text-slate-200">Volume + Access Factors</span>
+                                        <span className="mt-0.5 text-[11px] text-slate-400">Accounts for stairs & elevators</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    {overridesApplied.length > 0 && <div className="text-[11px] text-gray-500 font-bold">Overrides Applied: {overridesApplied.join(", ")}</div>}
+                    {overridesApplied.length > 0 && <div className="text-[11px] font-bold text-slate-600">Overrides Applied: {overridesApplied.join(", ")}</div>}
                 </div>
             </div>
         </div>
@@ -723,7 +723,7 @@ export const ReportPanel = ({
                     </div>
 
                     <div data-no-pdf className="flex flex-col mt-2">
-                        <div className="border-t border-gray-100 md:border-t-0" />
+                        <div className="border-t border-slate-100 md:border-t-0" />
                         <div className="-mx-2 flex w-[calc(100%+1rem)] min-w-0 items-center gap-1 pt-4 md:mx-0 md:w-full md:gap-3">
                             <div className="flex min-w-0 shrink-0 items-center gap-1.5 md:gap-3">
                                 <button onClick={handleCopy} disabled={!hasUsableEstimate} className={`h-[42px] w-[112px] md:h-auto md:w-[220px] flex items-center justify-center gap-1 md:gap-2 px-3 md:px-6 py-3 md:py-4 rounded-xl text-[10px] md:text-[12px] font-bold transition-colors duration-300 active:scale-[0.98] shadow-[0_8px_20px_rgba(0,0,0,0.15)] whitespace-nowrap overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed ${copyStatus === 'success' ? 'bg-emerald-500 text-white' : 'bg-gray-900 text-white hover:bg-black'}`}>

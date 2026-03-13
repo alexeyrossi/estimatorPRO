@@ -135,7 +135,7 @@ const getInventoryModeToggleMeta = (
 ) => {
     if (inventoryMode === 'normalized') {
         return {
-            label: 'Text View',
+            label: 'Text',
             mobileLabel: 'Text',
             title: 'Switch to text view',
             Icon: AlignLeft,
@@ -152,7 +152,7 @@ const getInventoryModeToggleMeta = (
     }
 
     return {
-        label: 'Edit View',
+        label: 'Edit',
         mobileLabel: 'Edit',
         title: 'Switch to edit view',
         Icon: Pencil,
@@ -185,7 +185,7 @@ const SubviewActionButton = ({
             onClick={onClick}
             title={title ?? label}
             aria-label={title ?? label}
-            className={`group relative flex h-9 shrink-0 items-center justify-center rounded-xl text-gray-500 active:scale-[0.98] ${active ? 'bg-gray-100 text-gray-900' : 'hover:bg-gray-100 hover:text-gray-900'} ${hasVisibleLabel ? (hasMobileLabel ? 'gap-1.5 px-2.5 md:gap-2 md:px-3.5' : 'w-9 md:w-auto md:gap-2 md:px-3.5') : 'w-9'}`}
+            className={`group relative flex h-9 shrink-0 items-center justify-center rounded-xl text-slate-500 active:scale-[0.98] ${active ? 'bg-slate-100 text-slate-900' : 'hover:bg-slate-100 hover:text-slate-900'} ${hasVisibleLabel ? (hasMobileLabel ? 'gap-1.5 px-2.5 md:gap-2 md:px-3.5' : 'w-9 md:w-auto md:gap-2 md:px-3.5') : 'w-9'}`}
             style={softActionButtonTransition}
         >
             <Icon className="h-4 w-4 shrink-0" strokeWidth={2} />
@@ -219,7 +219,7 @@ const SurfaceIconButton = ({
         onClick={onClick}
         title={title}
         aria-label={title}
-        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-900 ${className}`}
+        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-900 ${className}`}
     >
         <Icon className="h-3.5 w-3.5 shrink-0" strokeWidth={2} />
     </button>
@@ -648,7 +648,7 @@ export const ConfigPanel = ({
                     <button
                         type="button"
                         onClick={handleClearInventory}
-                        className="rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-red-50 hover:text-red-600"
+                        className="rounded-lg p-1.5 text-slate-500 transition-colors hover:bg-red-50 hover:text-red-600"
                         title="Clear inventory"
                         aria-label="Clear inventory"
                     >
@@ -659,7 +659,7 @@ export const ConfigPanel = ({
                     <button
                         type="button"
                         onClick={handleUndo}
-                        className="rounded-lg bg-gray-50 p-1.5 text-gray-500 transition-all duration-200 hover:bg-gray-100 hover:text-gray-700"
+                        className="rounded-lg bg-slate-50 p-1.5 text-slate-500 transition-all duration-200 hover:bg-slate-100 hover:text-slate-700"
                         title="Undo clear"
                         aria-label="Undo clear"
                     >
@@ -698,7 +698,7 @@ export const ConfigPanel = ({
 
     const renderRawInventoryComposer = (expanded: boolean) => (
         <div className={`flex ${expanded ? 'h-full min-h-0 flex-col' : 'flex-col'}`}>
-            <div className={`relative ${expanded ? 'flex-1 min-h-0 overflow-hidden rounded-2xl border border-gray-200 bg-white' : ''}`}>
+            <div className={`relative ${expanded ? 'flex-1 min-h-0 overflow-hidden rounded-2xl border border-slate-200 bg-white' : ''}`}>
                 <div className="absolute right-2 top-2 z-10">
                     {renderInventoryExpandAction(expanded)}
                 </div>
@@ -713,9 +713,9 @@ export const ConfigPanel = ({
                     }}
                     onFocus={handleRawInventoryFocus}
                     onScroll={handleRawInventoryScroll}
-                    className={`inventory-scrollbar-hidden block w-full resize-none font-mono leading-relaxed text-gray-800 outline-none transition-colors ${expanded
+                    className={`inventory-scrollbar-hidden block w-full resize-none font-mono leading-relaxed text-slate-800 outline-none transition-colors placeholder:text-slate-500 ${expanded
                         ? 'h-full min-h-0 border-0 bg-white px-4 py-4 pr-10 text-[14px] md:px-5 md:py-5 md:pr-10'
-                        : 'min-h-[96px] rounded-2xl border border-gray-200 bg-white px-4 py-3.5 pr-10 text-base sm:p-5 sm:pr-10 md:min-h-[224px] md:pr-10 md:text-[14px]'}`}
+                        : 'min-h-[96px] rounded-2xl border border-slate-200 bg-white px-4 py-3.5 pr-10 text-base sm:p-5 sm:pr-10 md:min-h-[224px] md:pr-10 md:text-[14px]'}`}
                     placeholder="Paste inventory..."
                     style={{
                         WebkitOverflowScrolling: 'touch',
@@ -739,11 +739,11 @@ export const ConfigPanel = ({
 
     const renderNormalizedInventoryEditor = (expanded: boolean) => (
         <div
-            className={`rounded-2xl border border-gray-200 bg-white ${expanded ? 'flex h-full min-h-0 flex-col p-4' : 'p-3'}`}
+            className={`rounded-2xl border border-slate-200 bg-white ${expanded ? 'flex h-full min-h-0 flex-col p-4' : 'p-3'}`}
             style={{ scrollMarginBottom: INVENTORY_SCROLL_MARGIN_BOTTOM }}
         >
             <div className="mb-2 flex items-center gap-3 px-1">
-                <div className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                <div className="text-[10px] font-semibold uppercase tracking-widest text-slate-600">
                     Edit Items
                 </div>
                 <div className="ml-auto">
@@ -764,7 +764,7 @@ export const ConfigPanel = ({
                 }}
             >
                 <div className="min-w-[260px] w-full">
-                    <div className="sticky top-0 z-10 mb-1 grid grid-cols-[1fr_2.5rem_2.5rem_2.5rem_1.75rem] gap-1.5 border-b border-gray-50 bg-white px-1 pb-1 text-[9px] font-bold text-gray-400">
+                    <div className="sticky top-0 z-10 mb-1 grid grid-cols-[1fr_2.5rem_2.5rem_2.5rem_1.75rem] gap-1.5 border-b border-slate-100 bg-white px-1 pb-1 text-[9px] font-semibold text-slate-500">
                         <div>Item</div>
                         <div className="text-center">Qty</div>
                         <div className="text-center">CF/ea</div>
@@ -774,7 +774,7 @@ export const ConfigPanel = ({
                     {normalizedRows.map((row) => (
                         <div key={row.id} className="mb-1 grid grid-cols-[1fr_2.5rem_2.5rem_2.5rem_1.75rem] items-center gap-1.5 text-[10px] font-semibold">
                             <input
-                                className="min-w-0 h-8 rounded border-transparent bg-gray-50 px-2 text-base outline-none transition-all hover:bg-gray-100 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 md:h-7 md:text-[10px]"
+                                className="min-w-0 h-8 rounded border border-transparent bg-slate-50 px-2 text-base text-slate-900 outline-none transition-all hover:bg-slate-100 focus:bg-white focus:border-slate-200 focus:ring-0 md:h-7 md:text-[10px]"
                                 value={row.name}
                                 onChange={(event) => setNormalizedRows((prev) => prev.map((candidate) => candidate.id === row.id ? {
                                     ...candidate,
@@ -786,7 +786,7 @@ export const ConfigPanel = ({
                             />
                             <input
                                 type="number"
-                                className="h-8 rounded border-transparent bg-gray-50 px-1 text-center text-base outline-none transition-all hover:bg-gray-100 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 md:h-7 md:text-[10px]"
+                                className="h-8 rounded border border-transparent bg-slate-50 px-1 text-center text-base text-slate-900 outline-none transition-all hover:bg-slate-100 focus:bg-white focus:border-slate-200 focus:ring-0 md:h-7 md:text-[10px]"
                                 value={row.qty as string | number}
                                 onChange={(event) => handleRowQtyChange(row.id, event.target.value)}
                                 onBlur={() => handleRowQtyChange(row.id, row.qty as string, true)}
@@ -794,7 +794,7 @@ export const ConfigPanel = ({
                             />
                             <input
                                 type="number"
-                                className="h-8 rounded border-transparent bg-gray-50 px-1 text-center text-base outline-none transition-all hover:bg-gray-100 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 md:h-7 md:text-[10px]"
+                                className="h-8 rounded border border-transparent bg-slate-50 px-1 text-center text-base text-slate-900 outline-none transition-all hover:bg-slate-100 focus:bg-white focus:border-slate-200 focus:ring-0 md:h-7 md:text-[10px]"
                                 value={row.cfUnit as string | number}
                                 onChange={(event) => setNormalizedRows((prev) => prev.map((candidate) => candidate.id === row.id ? {
                                     ...candidate,
@@ -816,15 +816,15 @@ export const ConfigPanel = ({
                                         } : candidate))}
                                         aria-label={`Mark ${row.name} as heavy item`}
                                     />
-                                    <div className={`flex h-[22px] w-[22px] items-center justify-center rounded-md shadow-sm transition-all duration-200 ease-out ${row.flags.heavy ? 'border-[1.5px] border-gray-900 bg-gray-900' : 'bg-transparent hover:bg-gray-100'}`}>
-                                        <Weight className={`h-3.5 w-3.5 transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${row.flags.heavy ? 'scale-110 text-white' : 'text-gray-300'}`} strokeWidth={2.5} />
+                                    <div className={`flex h-[22px] w-[22px] items-center justify-center rounded-md shadow-sm transition-all duration-200 ease-out ${row.flags.heavy ? 'border-[1.5px] border-slate-900 bg-slate-900' : 'bg-transparent hover:bg-slate-100'}`}>
+                                        <Weight className={`h-3.5 w-3.5 transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${row.flags.heavy ? 'scale-110 text-white' : 'text-slate-300'}`} strokeWidth={2.5} />
                                     </div>
                                 </label>
                             </div>
                             <button
                                 type="button"
                                 onClick={() => setNormalizedRows((prev) => prev.filter((candidate) => candidate.id !== row.id))}
-                                className="flex items-center justify-center rounded-lg p-1.5 text-gray-300 transition-colors hover:bg-red-50 hover:text-red-600"
+                                className="flex items-center justify-center rounded-lg p-1.5 text-slate-300 transition-colors hover:bg-red-50 hover:text-red-600"
                                 aria-label="Delete item"
                             >
                                 <Trash2 className="h-3.5 w-3.5" />
@@ -833,9 +833,9 @@ export const ConfigPanel = ({
                     ))}
                 </div>
             </div>
-            <div className="mt-2 flex gap-2 border-t border-gray-100 pt-2">
+            <div className="mt-2 flex gap-2 border-t border-slate-100 pt-2">
                 <input
-                    className="h-8 flex-1 rounded-lg border-transparent bg-gray-50 px-2 text-base outline-none transition-all hover:bg-gray-100 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                    className="h-8 flex-1 rounded-lg border border-transparent bg-slate-50 px-2 text-base text-slate-900 outline-none transition-all placeholder:text-slate-500 hover:bg-slate-100 focus:bg-white focus:border-slate-200 focus:ring-0"
                     placeholder="Add item (e.g. piano)"
                     list="volumeSuggestions"
                     value={addRowInput}
@@ -861,11 +861,11 @@ export const ConfigPanel = ({
 
     const renderInventorySectionHeader = (expanded: boolean) => (
         <div className={`flex flex-wrap items-center gap-1.5 ${expanded ? 'mb-3' : 'mb-3 ml-1'}`}>
-            <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
+            <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-600">
                 Inventory
             </span>
 
-            <span className="mr-auto ml-2 inline-flex cursor-default select-none justify-center whitespace-nowrap rounded-md border border-gray-200 bg-[#F2F2F7] px-1.5 py-0.5 text-[9px] font-extrabold text-gray-500">
+            <span className="mr-auto ml-2 inline-flex cursor-default select-none justify-center whitespace-nowrap rounded-md border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-[9px] font-extrabold text-slate-500">
                 <span className="inline-block w-[20px] text-right tabular-nums">{detectedQtyTotal}</span>
                 <span className="ml-0.5 inline-block w-[26px] text-left">{detectedQtyTotal === 1 ? 'item' : 'items'}</span>
             </span>
@@ -884,9 +884,9 @@ export const ConfigPanel = ({
     );
 
     const parametersShellHeader = (
-        <div className="mb-2 hidden items-center gap-2 border-b border-gray-100 pb-5 md:flex">
-            <Settings className="h-4 w-4 text-gray-800" />
-            <span className="text-[10px] font-bold uppercase tracking-widest text-gray-800">Parameters</span>
+        <div className="mb-2 hidden items-center gap-2 border-b border-slate-100 pb-5 md:flex">
+            <Settings className="h-4 w-4 text-slate-500" />
+            <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-600">Parameters</span>
         </div>
     );
 
@@ -921,10 +921,10 @@ export const ConfigPanel = ({
                                 const value = event.target.value.replace(/\D/g, '').replace(/^0+(?=\d)/, '');
                                 setInputs({ ...inputs, distance: value });
                             }}
-                            className="w-full rounded-2xl border-transparent bg-gray-50 px-4 py-3.5 text-base font-bold outline-none transition-all hover:bg-gray-100 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                            className="w-full rounded-2xl border border-transparent bg-slate-50 px-4 py-3.5 text-base font-bold text-slate-900 outline-none transition-all hover:bg-slate-100 focus:bg-white focus:border-slate-200 focus:ring-0"
                             aria-label="Moving distance in miles"
                         />
-                        <MapPin className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-300" />
+                        <MapPin className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                     </div>
                 </div>
             </div>
@@ -987,7 +987,7 @@ export const ConfigPanel = ({
                         <div key={idx} className="mb-3 flex items-center gap-2 animate-in fade-in slide-in-from-top-2 duration-300">
                             <div className="flex-1">
                                 <div className="mb-1.5 flex items-center gap-2">
-                                    <span className="rounded-lg border border-blue-100 bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-blue-600">STOP {idx + 1}</span>
+                                    <span className="rounded-lg border border-blue-200 bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-700">STOP {idx + 1}</span>
                                     <input
                                         type="text"
                                         placeholder="Label (e.g. Storage unit)"
@@ -998,7 +998,7 @@ export const ConfigPanel = ({
                                             nextStops[idx].label = event.target.value;
                                             setInputs({ ...inputs, extraStops: nextStops });
                                         }}
-                                        className="flex-1 rounded-lg border-transparent bg-gray-50 px-2.5 py-2 text-base font-medium outline-none transition-all hover:bg-gray-100 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 md:py-1.5 md:text-[11px]"
+                                        className="flex-1 rounded-lg border border-transparent bg-slate-50 px-2.5 py-2 text-base font-medium text-slate-900 outline-none transition-all placeholder:text-slate-500 hover:bg-slate-100 focus:bg-white focus:border-slate-200 focus:ring-0 md:py-1.5 md:text-[11px]"
                                         aria-label={`Extra stop ${idx + 1} label`}
                                     />
                                     <button
@@ -1032,7 +1032,7 @@ export const ConfigPanel = ({
                                 const nextStops = [...(inputs.extraStops || []), { label: '', access: 'ground' as 'ground' | 'elevator' | 'stairs' }];
                                 setInputs({ ...inputs, extraStops: nextStops });
                             }}
-                            className="flex w-full items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-gray-200 bg-transparent px-3 py-2.5 text-[10px] font-bold text-gray-400 transition-all hover:border-gray-300 hover:bg-gray-50 hover:text-gray-600 active:scale-95"
+                            className="flex w-full items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-slate-200 bg-transparent px-3 py-2.5 text-[10px] font-semibold text-slate-500 transition-all hover:border-slate-300 hover:bg-slate-50 hover:text-slate-600 active:scale-95"
                         >
                             <Plus className="h-3.5 w-3.5" /> ADD EXTRA STOP
                         </button>
@@ -1040,7 +1040,7 @@ export const ConfigPanel = ({
                 </div>
             )}
 
-            <div className="relative flex flex-1 flex-col border-t border-gray-100 pt-2 md:pt-3">
+            <div className="relative flex flex-1 flex-col border-t border-slate-100 pt-2 md:pt-3">
                 {renderInventorySectionHeader(false)}
                 <div className="w-full">
                     {renderInventoryBody(false)}

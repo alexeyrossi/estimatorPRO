@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Bookmark, Calendar, MapPin, Package, Undo2, X } from "lucide-react";
 import type { EstimateHistoryItem } from "@/lib/types/estimator";
+import { dashboardChrome } from "./chromeStyles";
 
 type HistoryPanelProps = {
   historyItems: EstimateHistoryItem[];
@@ -242,13 +243,13 @@ export function HistoryPanel({
 
   const renderedContent = displayedContentState === "loading"
     ? (
-      <div className="flex min-h-[96px] items-center justify-center py-8 text-center text-[11px] font-semibold text-gray-400">
+      <div className="flex min-h-[96px] items-center justify-center py-8 text-center text-[11px] font-semibold text-slate-500">
         Loading...
       </div>
     )
     : displayedContentState === "empty"
       ? (
-        <div className="flex min-h-[96px] items-center justify-center py-8 text-center text-[11px] font-semibold text-gray-400">
+        <div className="flex min-h-[96px] items-center justify-center py-8 text-center text-[11px] font-semibold text-slate-500">
           No saved estimates yet
         </div>
       )
@@ -287,19 +288,19 @@ export function HistoryPanel({
                   <button
                     onClick={() => onLoadEstimate(item.id)}
                     disabled={isExiting}
-                    className="block min-h-[66px] w-full cursor-pointer overflow-hidden rounded-xl border-[1.5px] border-dashed border-gray-200 bg-white px-3.5 py-3 text-left transition-all duration-200 hover:border-gray-400 hover:bg-gray-50/50 disabled:cursor-default disabled:opacity-70"
+                    className={dashboardChrome.historyCard}
                   >
-                    <div className="truncate pr-5 text-[11px] font-bold text-gray-800">{item.client_name}</div>
-                    <div className="mt-1.5 flex items-center gap-1.5 text-[11px] font-bold text-gray-600">
-                      <Package className="h-3 w-3 text-gray-400" strokeWidth={2} />
+                    <div className={dashboardChrome.historyCardTitle}>{item.client_name}</div>
+                    <div className={dashboardChrome.historyCardMeta}>
+                      <Package className={dashboardChrome.historyCardMetaIcon} strokeWidth={2} />
                       <span className="tabular-nums">{(item.net_volume || item.final_volume)?.toLocaleString()} cf</span>
-                      <span className="text-gray-300">·</span>
-                      <MapPin className="h-3 w-3 text-gray-400" strokeWidth={2} />
+                      <span className={dashboardChrome.historyCardMetaDivider}>·</span>
+                      <MapPin className={dashboardChrome.historyCardMetaIcon} strokeWidth={2} />
                       <span>
                         {!item.home_size ? "" : item.home_size === "Commercial" ? "Comm." : item.home_size === "1" ? "1BR/Less" : `${item.home_size}BR`}/{item.move_type === "LD" ? "LD" : item.move_type === "Labor" ? "Labor" : "Local"}
                       </span>
                     </div>
-                    <div className="mt-1 flex items-center gap-1 text-[10px] font-medium text-gray-400">
+                    <div className={dashboardChrome.historyCardDate}>
                       <Calendar className="h-3 w-3" strokeWidth={2} />
                       {new Date(item.created_at).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                     </div>
@@ -310,7 +311,7 @@ export function HistoryPanel({
                       handleDelete(item.id);
                     }}
                     disabled={isExiting}
-                    className="absolute top-2 right-2 flex h-5 w-5 items-center justify-center rounded-md text-gray-400 transition-all hover:bg-red-50 hover:text-red-500 disabled:cursor-default disabled:opacity-40 md:text-gray-300 md:opacity-0 md:group-hover:opacity-100"
+                    className="absolute top-2 right-2 flex h-5 w-5 items-center justify-center rounded-md text-slate-400 transition-all hover:bg-red-50 hover:text-red-500 disabled:cursor-default disabled:opacity-40 md:text-slate-300 md:opacity-0 md:group-hover:opacity-100"
                     aria-label="Delete estimate"
                   >
                     <X className="h-3 w-3" />
@@ -324,7 +325,7 @@ export function HistoryPanel({
               <button
                 type="button"
                 onClick={() => setIsExpanded((current) => !current)}
-                className="rounded-xl px-3 py-2 text-[11px] font-semibold text-gray-500 transition-all duration-200 hover:bg-gray-100 hover:text-gray-900 active:scale-[0.98]"
+                className={dashboardChrome.ghostButton}
                 aria-expanded={expandedHistory}
                 aria-label={expandedHistory ? "Show fewer saved estimates" : `Show all ${totalVisibleCount} saved estimates`}
               >
@@ -337,24 +338,24 @@ export function HistoryPanel({
 
   return (
     <div className="w-full">
-      <div className="rounded-[2rem] border border-gray-100 bg-white p-5 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
+      <div className={`${dashboardChrome.shell} p-5`}>
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Bookmark className="h-4 w-4 text-gray-400" />
-            <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Saved Estimates</span>
+            <Bookmark className={`h-4 w-4 ${dashboardChrome.sectionIcon}`} />
+            <span className={dashboardChrome.sectionLabel}>Saved Estimates</span>
           </div>
-          <div className="flex items-center gap-3 text-gray-400">
+          <div className="flex items-center gap-2 text-slate-500">
             {pendingDeletes.size > 0 && (
               <button
                 onClick={onUndoLastDelete}
-                className="transition-colors hover:text-gray-900"
+                className={dashboardChrome.panelIconButton}
                 title="Undo last delete"
                 aria-label="Undo last delete"
               >
                 <Undo2 className="h-4 w-4" />
               </button>
             )}
-            <button onClick={onClose} className="transition-colors hover:text-gray-900" aria-label="Close history">
+            <button onClick={onClose} className={dashboardChrome.panelIconButton} aria-label="Close history">
               <X className="h-4 w-4" />
             </button>
           </div>
