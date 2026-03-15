@@ -13,15 +13,15 @@
     "extraStops": []
   },
   "expect": {
-    "finalVolume": 525,
-    "netVolume": 420,
-    "billableCF": 450,
-    "truckSpaceCF": 525,
+    "finalVolume": 500,
+    "netVolume": 395,
+    "billableCF": 425,
+    "truckSpaceCF": 500,
     "trucksFinal": 1,
     "truckSizeLabel": "18ft Truck",
     "crew": 3,
     "timeMin": 5,
-    "timeMax": 7,
+    "timeMax": 6,
     "splitRecommended": false,
     "confidence": {
       "score": 100,
@@ -29,14 +29,14 @@
     },
     "materials": {
       "blankets": 40,
-      "boxes": 35,
+      "boxes": 30,
       "wardrobes": 5
     },
     "smartEquipment": [],
     "anyHeavySignal": false,
     "heavyItemNames": [],
     "detectedQtyTotal": 41,
-    "totalManHours": 11.2,
+    "totalManHours": 10.3,
     "daMins": 20,
     "league": 0,
     "boxDensity": 0,

@@ -160,10 +160,10 @@
     }
   ],
   "expect": {
-    "finalVolume": 550,
-    "netVolume": 485,
-    "billableCF": 500,
-    "truckSpaceCF": 550,
+    "finalVolume": 525,
+    "netVolume": 460,
+    "billableCF": 475,
+    "truckSpaceCF": 525,
     "trucksFinal": 1,
     "truckSizeLabel": "18ft Truck + Lift-gate",
     "crew": 3,
@@ -176,7 +176,7 @@
     },
     "materials": {
       "blankets": 20,
-      "boxes": 25,
+      "boxes": 10,
       "wardrobes": 10
     },
     "smartEquipment": [],
@@ -185,7 +185,7 @@
       "treadmill"
     ],
     "detectedQtyTotal": 34,
-    "totalManHours": 10.2,
+    "totalManHours": 10,
     "daMins": 83,
     "league": 1,
     "boxDensity": 71,

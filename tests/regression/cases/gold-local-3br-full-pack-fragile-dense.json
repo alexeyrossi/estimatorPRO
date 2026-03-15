@@ -14,12 +14,12 @@
     "extraStops": []
   },
   "expect": {
-    "finalVolume": 1325,
-    "netVolume": 1092,
-    "billableCF": 1150,
-    "truckSpaceCF": 1325,
+    "finalVolume": 1275,
+    "netVolume": 1042,
+    "billableCF": 1100,
+    "truckSpaceCF": 1275,
     "trucksFinal": 1,
-    "truckSizeLabel": "26ft Truck + Lift-gate",
+    "truckSizeLabel": "24ft Truck + Lift-gate",
     "crew": 4,
     "timeMin": 8,
     "timeMax": 10,
@@ -30,7 +30,7 @@
     },
     "materials": {
       "blankets": 100,
-      "boxes": 70,
+      "boxes": 50,
       "wardrobes": 15
     },
     "smartEquipment": [
@@ -41,7 +41,7 @@
       "china cabinet"
     ],
     "detectedQtyTotal": 96,
-    "totalManHours": 26.9,
+    "totalManHours": 25.1,
     "daMins": 90,
     "league": 0,
     "boxDensity": 0,

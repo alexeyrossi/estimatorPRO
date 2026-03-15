@@ -13,15 +13,15 @@
     "extraStops": []
   },
   "expect": {
-    "finalVolume": 2000,
-    "netVolume": 1525,
-    "billableCF": 1600,
-    "truckSpaceCF": 2000,
+    "finalVolume": 1850,
+    "netVolume": 1400,
+    "billableCF": 1475,
+    "truckSpaceCF": 1850,
     "trucksFinal": 0,
     "truckSizeLabel": "N/A",
     "crew": 4,
     "timeMin": 6,
-    "timeMax": 8,
+    "timeMax": 7,
     "splitRecommended": false,
     "confidence": {
       "score": 100,
@@ -29,7 +29,7 @@
     },
     "materials": {
       "blankets": 100,
-      "boxes": 70,
+      "boxes": 40,
       "wardrobes": 20
     },
     "smartEquipment": [
@@ -42,7 +42,7 @@
       "treadmill"
     ],
     "detectedQtyTotal": 102,
-    "totalManHours": 25.2,
+    "totalManHours": 22.5,
     "daMins": 200,
     "league": 1,
     "boxDensity": 20,

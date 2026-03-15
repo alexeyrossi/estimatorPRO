@@ -101,10 +101,10 @@
     }
   ],
   "expect": {
-    "finalVolume": 375,
-    "netVolume": 355,
-    "billableCF": 375,
-    "truckSpaceCF": 375,
+    "finalVolume": 350,
+    "netVolume": 330,
+    "billableCF": 350,
+    "truckSpaceCF": 350,
     "trucksFinal": 1,
     "truckSizeLabel": "18ft Truck + Lift-gate",
     "crew": 4,
@@ -117,7 +117,7 @@
     },
     "materials": {
       "blankets": 20,
-      "boxes": 25,
+      "boxes": 10,
       "wardrobes": 10
     },
     "smartEquipment": [
@@ -129,7 +129,7 @@
       "server rack"
     ],
     "detectedQtyTotal": 26,
-    "totalManHours": 5.9,
+    "totalManHours": 5.8,
     "daMins": 20,
     "league": 2,
     "boxDensity": 77,

@@ -13,10 +13,10 @@
     "extraStops": []
   },
   "expect": {
-    "finalVolume": 1000,
-    "netVolume": 757,
-    "billableCF": 800,
-    "truckSpaceCF": 1000,
+    "finalVolume": 950,
+    "netVolume": 707,
+    "billableCF": 750,
+    "truckSpaceCF": 950,
     "trucksFinal": 0,
     "truckSizeLabel": "N/A",
     "crew": 3,
@@ -29,14 +29,14 @@
     },
     "materials": {
       "blankets": 60,
-      "boxes": 35,
+      "boxes": 30,
       "wardrobes": 15
     },
     "smartEquipment": [],
     "anyHeavySignal": false,
     "heavyItemNames": [],
     "detectedQtyTotal": 59,
-    "totalManHours": 12.9,
+    "totalManHours": 12.7,
     "daMins": 85,
     "league": 0,
     "boxDensity": 20,

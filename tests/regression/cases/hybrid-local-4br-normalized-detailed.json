@@ -269,14 +269,14 @@
     }
   ],
   "expect": {
-    "finalVolume": 1150,
-    "netVolume": 997,
-    "billableCF": 1050,
-    "truckSpaceCF": 1150,
+    "finalVolume": 1125,
+    "netVolume": 972,
+    "billableCF": 1025,
+    "truckSpaceCF": 1125,
     "trucksFinal": 1,
     "truckSizeLabel": "24ft Truck",
     "crew": 3,
-    "timeMin": 7,
+    "timeMin": 6,
     "timeMax": 8,
     "splitRecommended": false,
     "confidence": {
@@ -292,7 +292,7 @@
     "anyHeavySignal": false,
     "heavyItemNames": [],
     "detectedQtyTotal": 61,
-    "totalManHours": 14.8,
+    "totalManHours": 14.5,
     "daMins": 145,
     "league": 0,
     "boxDensity": 66,

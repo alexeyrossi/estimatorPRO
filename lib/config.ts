@@ -43,7 +43,7 @@ export const PROTOCOL = {
 
   BLANKET_DIVISOR: 35,
   BLANKET_CAP_MULTIPLIER: 2.2,
-  MIN_BOXES: { 0: 10, 1: 20, 2: 35, 3: 50, 4: 70, 5: 90 },
+  MIN_BOXES: { 0: 5, 1: 15, 2: 20, 3: 30, 4: 40, 5: 50 },
 
   MINS_PACK_BOX: 8,
   MINS_WRAP_FURNITURE: 6,

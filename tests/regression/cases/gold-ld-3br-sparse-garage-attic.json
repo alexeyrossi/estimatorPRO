@@ -14,12 +14,12 @@
     "extraStops": []
   },
   "expect": {
-    "finalVolume": 825,
-    "netVolume": 620,
-    "billableCF": 650,
-    "truckSpaceCF": 825,
+    "finalVolume": 750,
+    "netVolume": 570,
+    "billableCF": 600,
+    "truckSpaceCF": 750,
     "trucksFinal": 1,
-    "truckSizeLabel": "24ft Truck + Lift-gate",
+    "truckSizeLabel": "18ft Truck + Lift-gate",
     "crew": 3,
     "timeMin": 3,
     "timeMax": 5,
@@ -39,7 +39,7 @@
       "treadmill"
     ],
     "detectedQtyTotal": 9,
-    "totalManHours": 10.2,
+    "totalManHours": 9.8,
     "daMins": 120,
     "league": 1,
     "boxDensity": 0,
