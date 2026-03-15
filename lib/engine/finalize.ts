@@ -212,8 +212,7 @@ export function buildEstimateResult(
     }
   });
 
-  // 1. Узнаем количество коробок (clientBoxes = уже упаковано, missingBoxesCount = физический дефицит, который нужно привезти)
-  const clientBoxes = parsed.boxCount || 0;
+  // 1. Узнаем количество коробок (missingBoxesCount = физический дефицит, который нужно привезти)
   const minBoxesBySize = !isCommercial ? volumePlan.effectiveMinBoxes : 20;
 
   let boxesBring = 0;
