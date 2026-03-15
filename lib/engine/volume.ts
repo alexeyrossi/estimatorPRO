@@ -40,6 +40,7 @@ export function computeVolumePlan(context: EngineContext): VolumePlan {
     ldFullPackComplexityScore,
     storageFurnitureQty,
     storageContentsHandled,
+    itemBoxSignal,
     boxCoverage,
     highConfidenceDetailedInventory,
     parsed: { hasVague },
@@ -123,17 +124,33 @@ export function computeVolumePlan(context: EngineContext): VolumePlan {
         );
       }
     }
-    // ── Box baseline: hybrid scaling + physical volume cap ──
+    // ── Box baseline: hybrid scaling + item base + physical volume cap ──
     const rawMinBoxes = effectiveMinBoxes;
     if (shouldUseHybridScaling) {
-      const scaledMinBoxes = Math.max(10, Math.round(rawMinBoxes * volumeRatio));
-      const maxPhysicalBoxes = Math.max(10, Math.ceil((parsed.totalVol * 0.40) / 5));
-      effectiveMinBoxes = Math.min(scaledMinBoxes, maxPhysicalBoxes);
+      const scaledMinBoxes = Math.max(5, Math.round(rawMinBoxes * volumeRatio));
+      effectiveMinBoxes = scaledMinBoxes;
       if (effectiveMinBoxes < rawMinBoxes) {
         notes.auditSummary.push(
-          `Box baseline scaled: ${rawMinBoxes} → ${effectiveMinBoxes} (ratio ${volumeRatio.toFixed(2)}, physCap ${maxPhysicalBoxes}).`
+          `Box baseline scaled: ${rawMinBoxes} → ${effectiveMinBoxes} (ratio ${volumeRatio.toFixed(2)}).`
         );
       }
+    }
+
+    let proposedMinBoxes = effectiveMinBoxes;
+    if (inputs.packingLevel !== "None" && itemBoxSignal > 0) {
+      proposedMinBoxes = Math.max(effectiveMinBoxes, itemBoxSignal);
+      if (proposedMinBoxes > effectiveMinBoxes) {
+        notes.auditSummary.push(
+          `Item box signal raised floor: ${effectiveMinBoxes} → ${proposedMinBoxes} (${itemBoxSignal} expected from furniture).`
+        );
+      }
+    }
+
+    const maxPhysicalBoxes = Math.max(10, Math.ceil((parsed.totalVol * 0.40) / 5));
+    effectiveMinBoxes = Math.min(proposedMinBoxes, maxPhysicalBoxes);
+
+    if (effectiveMinBoxes < proposedMinBoxes) {
+      notes.auditSummary.push(`Physical volume cap reduced box expectation from ${proposedMinBoxes} to ${effectiveMinBoxes}.`);
     }
     if (inputs.packingLevel !== "None" && !isTinyScope) {
       const boxDeficit = Math.max(0, effectiveMinBoxes - parsed.boxCount);

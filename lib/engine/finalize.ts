@@ -212,23 +212,21 @@ export function buildEstimateResult(
     }
   });
 
-  // 1. Expected baselines and pure deficit calculation
+  // 1. Узнаем количество коробок (clientBoxes = уже упаковано, missingBoxesCount = физический дефицит, который нужно привезти)
   const clientBoxes = parsed.boxCount || 0;
-  const expectedBoxes = !isCommercial ? volumePlan.effectiveMinBoxes : 20;
-  const unpackedBoxDeficit = Math.max(0, expectedBoxes - clientBoxes);
+  const minBoxesBySize = !isCommercial ? volumePlan.effectiveMinBoxes : 20;
 
-  // 2. Base safety buffer for the trucks
-  const buffer = 10 + (Math.max(1, trucksFinal) * 5);
   let boxesBring = 0;
 
-  // 3. Allocate materials based on packing level
   if (inputs.packingLevel === "Full") {
-    // Full pack: supply boxes ONLY for the unpacked deficit + buffer
-    boxesBring = unpackedBoxDeficit + buffer;
+    // Везем ТОЛЬКО пустые коробки для неупакованных вещей (дефицит) + дежурный буфер
+    const buffer = 10 + (Math.max(1, trucksFinal) * 5);
+    boxesBring = volumePlan.missingBoxesCount + buffer;
   } else if (inputs.packingLevel === "Partial") {
-    // Partial pack: supply boxes for ~35% of the home, but capped fiercely by the actual deficit
-    const partialBase = isCommercial ? 25 : Math.max(25, Math.ceil(expectedBoxes * 0.35));
-    boxesBring = Math.min(partialBase, unpackedBoxDeficit) + 10;
+    // Частичная упаковка: 35% от норматива, но ограничено реальным дефицитом + небольшой буфер
+    const safeFloor = Math.ceil(minBoxesBySize * 0.35);
+    const partialBase = isCommercial ? 25 : Math.max(15, safeFloor);
+    boxesBring = Math.min(partialBase, volumePlan.missingBoxesCount) + 10;
   } else {
     // No packing: never supply boxes except for a strict safety buffer (ignoring missingBoxesCount AND clientBoxes)
     boxesBring = isCommercial ? 15 : 10;

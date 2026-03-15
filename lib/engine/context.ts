@@ -6,8 +6,11 @@ import {
   TRUE_HEAVY_REGEX_CACHE,
   matchesAnyRegex,
   matchesAnyRegexAcross,
+  ITEM_BOX_TABLE,
+  ITEM_BOX_KEYS,
+  ITEM_BOX_REGEX_CACHE,
 } from "../dictionaries";
-import { parseInventory, summarizeNormalizedRows } from "../parser";
+import { parseInventory, summarizeNormalizedRows, matchLongestKey } from "../parser";
 import type { EstimateInputs, NormalizedRow } from "../types/estimator";
 import type { CommercialSignals, EngineContext, EngineNotes, ParsedInventorySummary } from "./types";
 
@@ -336,6 +339,17 @@ export function buildEngineContext(
       ) ? "sparse"
         : "coarse";
 
+  let itemBoxSignal = 0;
+  if (!isCommercial) {
+    items.forEach((item) => {
+      const itemName = (item.name || "").toLowerCase();
+      const longestKey = matchLongestKey(itemName, ITEM_BOX_KEYS, ITEM_BOX_REGEX_CACHE);
+      if (longestKey) {
+        itemBoxSignal += (ITEM_BOX_TABLE[longestKey] || 0) * (item.qty || 1);
+      }
+    });
+  }
+
   return {
     inputs,
     normalizedRows,
@@ -389,5 +403,6 @@ export function buildEngineContext(
     highConfidenceDetailedInventory,
     microDetailedLocal,
     inventoryCompleteness,
+    itemBoxSignal,
   };
 }

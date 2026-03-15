@@ -89,10 +89,10 @@
     }
   ],
   "expect": {
-    "finalVolume": 950,
-    "netVolume": 790,
-    "billableCF": 825,
-    "truckSpaceCF": 950,
+    "finalVolume": 925,
+    "netVolume": 765,
+    "billableCF": 800,
+    "truckSpaceCF": 925,
     "trucksFinal": 1,
     "truckSizeLabel": "24ft Truck",
     "crew": 3,
@@ -105,14 +105,14 @@
     },
     "materials": {
       "blankets": 25,
-      "boxes": 40,
+      "boxes": 20,
       "wardrobes": 20
     },
     "smartEquipment": [],
     "anyHeavySignal": false,
     "heavyItemNames": [],
     "detectedQtyTotal": 14,
-    "totalManHours": 11.8,
+    "totalManHours": 10.9,
     "daMins": 35,
     "league": 0,
     "boxDensity": 71,

@@ -227,6 +227,17 @@ export const VOLUME_TABLE = {
   "ignore_item": 0
 };
 
+export const ITEM_BOX_TABLE: Record<string, number> = {
+  "bookshelf": 3, "bookcase": 4, "shelving unit": 2, "shelf": 2,
+  "dresser": 2, "chest of drawers": 3, "triple dresser": 4,
+  "armoire": 3, "wardrobe": 2, "nightstand": 1, "drawer unit": 1,
+  "china cabinet": 5, "hutch": 4, "buffet": 3, "sideboard": 3,
+  "credenza": 3, "kitchen island": 3,
+  "file cabinet": 4, "desk": 2, "l desk": 3, "executive desk": 3,
+  "curio cabinet": 3, "display cabinet": 3, "glass cabinet": 3,
+  "bar cabinet": 2, "shoe cabinet": 2, "storage bench": 1, "cabinet": 2,
+};
+
 export const STRICT_NO_BLANKET_ITEMS = [
   "box", "bin", "tote", "pack", "bag", "luggage", "suitcase", "crate", "carton",
   "ladder", "hose", "sink", "equipment", "electronics", "vacuum", "fan", "microwave",
@@ -620,6 +631,8 @@ export const DA_KEYS = Object.keys(DA_TIME_TABLE).sort((a, b) => b.length - a.le
 
 export const SORTED_KEYS = Object.keys(VOLUME_TABLE).sort((a, b) => b.length - a.length);
 
+export const ITEM_BOX_KEYS = Object.keys(ITEM_BOX_TABLE).sort((a, b) => b.length - a.length);
+
 export function buildKeyRegex(key: string) {
   if (key === "tv") return /\btv('?s)?\b/i;
   const parts = key.split(" ");
@@ -637,6 +650,8 @@ export const KEY_REGEX = Object.fromEntries(SORTED_KEYS.map((k) => [k, buildKeyR
 export const BLANKET_REGEX_CACHE = Object.fromEntries(BLANKET_KEYS.map(k => [k, buildKeyRegex(k)]));
 
 export const DA_REGEX_CACHE = Object.fromEntries(DA_KEYS.map(k => [k, buildKeyRegex(k)]));
+
+export const ITEM_BOX_REGEX_CACHE = Object.fromEntries(ITEM_BOX_KEYS.map(k => [k, buildKeyRegex(k)]));
 
 export const FRAGILE_REGEX_CACHE = FRAGILE_KEYWORDS.map(k => new RegExp(`\\b${reEscape(k)}\\b`, "i"));
 

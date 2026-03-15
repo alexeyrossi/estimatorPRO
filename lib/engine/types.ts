@@ -75,6 +75,7 @@ export interface EngineContext {
   boxCoverage: number;
   smallItemSignals: number;
   storageFurnitureQty: number;
+  itemBoxSignal: number;
   largeHome: boolean;
   largeInventoryForLD: boolean;
   ldFullPackLargeHome: boolean;
