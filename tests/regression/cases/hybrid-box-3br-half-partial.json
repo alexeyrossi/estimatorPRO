@@ -1,0 +1,183 @@
+{
+  "id": "hybrid-box-3br-half-partial",
+  "tier": "gold",
+  "kind": "engine",
+  "description": "3BR 375CF Partial Pack — box baseline must scale to ~50% of rigid 50-box minimum.",
+  "input": {
+    "homeSize": "3",
+    "moveType": "Local",
+    "distance": "12",
+    "packingLevel": "Partial",
+    "accessOrigin": "ground",
+    "accessDest": "ground",
+    "inventoryText": "",
+    "inventoryMode": "normalized",
+    "extraStops": []
+  },
+  "normalizedRows": [
+    {
+      "id": "r1",
+      "name": "sofa",
+      "qty": 1,
+      "cfUnit": 55,
+      "raw": "sofa",
+      "room": "Living room",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r2",
+      "name": "loveseat",
+      "qty": 1,
+      "cfUnit": 30,
+      "raw": "loveseat",
+      "room": "Living room",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r3",
+      "name": "coffee table",
+      "qty": 1,
+      "cfUnit": 15,
+      "raw": "coffee table",
+      "room": "Living room",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r4",
+      "name": "medium box",
+      "qty": 8,
+      "cfUnit": 5,
+      "raw": "8 boxes",
+      "room": "Living room",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r5",
+      "name": "king bed",
+      "qty": 1,
+      "cfUnit": 80,
+      "raw": "king bed",
+      "room": "Bedroom",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r6",
+      "name": "dresser",
+      "qty": 1,
+      "cfUnit": 35,
+      "raw": "dresser",
+      "room": "Bedroom",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r7",
+      "name": "nightstand",
+      "qty": 2,
+      "cfUnit": 5,
+      "raw": "2 nightstands",
+      "room": "Bedroom",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r8",
+      "name": "medium box",
+      "qty": 6,
+      "cfUnit": 5,
+      "raw": "6 boxes",
+      "room": "Bedroom",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r9",
+      "name": "full bed",
+      "qty": 1,
+      "cfUnit": 50,
+      "raw": "full bed",
+      "room": "Bedroom 2",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r10",
+      "name": "desk",
+      "qty": 1,
+      "cfUnit": 35,
+      "raw": "desk",
+      "room": "Bedroom 2",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r11",
+      "name": "medium box",
+      "qty": 4,
+      "cfUnit": 5,
+      "raw": "4 boxes",
+      "room": "Bedroom 2",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    }
+  ],
+  "expect": {
+    "finalVolume": 775,
+    "netVolume": 650,
+    "billableCF": 675,
+    "truckSpaceCF": 775,
+    "trucksFinal": 1,
+    "truckSizeLabel": "18ft Truck",
+    "crew": 3,
+    "timeMin": 5,
+    "timeMax": 7,
+    "splitRecommended": false,
+    "confidence": {
+      "score": 100,
+      "label": "High"
+    },
+    "materials": {
+      "blankets": 20,
+      "boxes": 30,
+      "wardrobes": 15
+    },
+    "smartEquipment": [],
+    "anyHeavySignal": false,
+    "heavyItemNames": [],
+    "detectedQtyTotal": 27,
+    "totalManHours": 11.7,
+    "daMins": 73,
+    "league": 0,
+    "boxDensity": 67,
+    "extraStopCount": 0,
+    "risks": [],
+    "overridesApplied": []
+  }
+}

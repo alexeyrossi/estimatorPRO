@@ -96,6 +96,7 @@ export interface VolumePlan {
   inventoryVolume: number;
   hiddenVolume: number;
   missingBoxesCount: number;
+  effectiveMinBoxes: number;
   llPct: number;
   llBasePct: number;
   llReasons: string[];

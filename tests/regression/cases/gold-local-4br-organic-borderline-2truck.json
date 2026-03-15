@@ -18,11 +18,11 @@
     "netVolume": 1420,
     "billableCF": 1500,
     "truckSpaceCF": 1725,
-    "trucksFinal": 2,
+    "trucksFinal": 1,
     "truckSizeLabel": "26ft Truck",
     "crew": 6,
-    "timeMin": 8,
-    "timeMax": 9,
+    "timeMin": 7,
+    "timeMax": 8,
     "splitRecommended": false,
     "confidence": {
       "score": 100,
@@ -30,7 +30,7 @@
     },
     "materials": {
       "blankets": 100,
-      "boxes": 30,
+      "boxes": 35,
       "wardrobes": 20
     },
     "smartEquipment": [
@@ -45,6 +45,7 @@
     "boxDensity": 0,
     "extraStopCount": 0,
     "risks": [],
-    "overridesApplied": []
+    "overridesApplied": [],
+    "truckFitNote": "Near full 26ft load; 2nd truck may be needed if add-ons appear."
   }
 }

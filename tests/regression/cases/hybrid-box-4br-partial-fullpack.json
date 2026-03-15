@@ -1,0 +1,123 @@
+{
+  "id": "hybrid-box-4br-partial-fullpack",
+  "tier": "gold",
+  "kind": "engine",
+  "description": "4BR 200CF Full Pack — box baseline must scale down, not use rigid 70-box minimum.",
+  "input": {
+    "homeSize": "4",
+    "moveType": "Local",
+    "distance": "10",
+    "packingLevel": "Full",
+    "accessOrigin": "ground",
+    "accessDest": "ground",
+    "inventoryText": "",
+    "inventoryMode": "normalized",
+    "extraStops": []
+  },
+  "normalizedRows": [
+    {
+      "id": "r1",
+      "name": "sofa",
+      "qty": 1,
+      "cfUnit": 55,
+      "raw": "sofa",
+      "room": "Living room",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r2",
+      "name": "coffee table",
+      "qty": 1,
+      "cfUnit": 15,
+      "raw": "coffee table",
+      "room": "Living room",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r3",
+      "name": "medium box",
+      "qty": 5,
+      "cfUnit": 5,
+      "raw": "5 boxes",
+      "room": "Living room",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r4",
+      "name": "queen bed",
+      "qty": 1,
+      "cfUnit": 60,
+      "raw": "queen bed",
+      "room": "Bedroom",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r5",
+      "name": "dresser",
+      "qty": 1,
+      "cfUnit": 35,
+      "raw": "dresser",
+      "room": "Bedroom",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r6",
+      "name": "medium box",
+      "qty": 5,
+      "cfUnit": 5,
+      "raw": "5 boxes",
+      "room": "Bedroom",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    }
+  ],
+  "expect": {
+    "finalVolume": 1000,
+    "netVolume": 840,
+    "billableCF": 875,
+    "truckSpaceCF": 1000,
+    "trucksFinal": 1,
+    "truckSizeLabel": "24ft Truck",
+    "crew": 3,
+    "timeMin": 6,
+    "timeMax": 8,
+    "splitRecommended": false,
+    "confidence": {
+      "score": 100,
+      "label": "High"
+    },
+    "materials": {
+      "blankets": 25,
+      "boxes": 40,
+      "wardrobes": 20
+    },
+    "smartEquipment": [],
+    "anyHeavySignal": false,
+    "heavyItemNames": [],
+    "detectedQtyTotal": 14,
+    "totalManHours": 13.5,
+    "daMins": 35,
+    "league": 0,
+    "boxDensity": 71,
+    "extraStopCount": 0,
+    "risks": [],
+    "overridesApplied": []
+  }
+}

@@ -18,11 +18,11 @@
     "netVolume": 2535,
     "billableCF": 2650,
     "truckSpaceCF": 3325,
-    "trucksFinal": 3,
+    "trucksFinal": 2,
     "truckSizeLabel": "26ft Truck + Lift-gate",
     "crew": 7,
     "timeMin": 12,
-    "timeMax": 15,
+    "timeMax": 14,
     "splitRecommended": true,
     "confidence": {
       "score": 100,
@@ -30,7 +30,7 @@
     },
     "materials": {
       "blankets": 170,
-      "boxes": 40,
+      "boxes": 45,
       "wardrobes": 20
     },
     "smartEquipment": [

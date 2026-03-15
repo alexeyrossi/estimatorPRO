@@ -1,0 +1,255 @@
+{
+  "id": "hybrid-local-3br-normalized-detailed",
+  "tier": "gold",
+  "kind": "engine",
+  "description": "3BR normalized detailed local — hybrid HV MUST activate (deficit×ratio).",
+  "input": {
+    "homeSize": "3",
+    "moveType": "Local",
+    "distance": "14",
+    "packingLevel": "Partial",
+    "accessOrigin": "ground",
+    "accessDest": "elevator",
+    "inventoryText": "",
+    "inventoryMode": "normalized",
+    "extraStops": []
+  },
+  "normalizedRows": [
+    {
+      "id": "r1",
+      "name": "sofa",
+      "qty": 1,
+      "cfUnit": 55,
+      "raw": "sofa",
+      "room": "Living room",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r2",
+      "name": "loveseat",
+      "qty": 1,
+      "cfUnit": 30,
+      "raw": "loveseat",
+      "room": "Living room",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r3",
+      "name": "coffee table",
+      "qty": 1,
+      "cfUnit": 15,
+      "raw": "coffee table",
+      "room": "Living room",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r4",
+      "name": "tv stand",
+      "qty": 1,
+      "cfUnit": 20,
+      "raw": "tv stand",
+      "room": "Living room",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r5",
+      "name": "medium box",
+      "qty": 12,
+      "cfUnit": 5,
+      "raw": "12 boxes",
+      "room": "Living room",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r6",
+      "name": "dining table",
+      "qty": 1,
+      "cfUnit": 40,
+      "raw": "dining table",
+      "room": "Dining room",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r7",
+      "name": "dining chair",
+      "qty": 4,
+      "cfUnit": 7,
+      "raw": "4 dining chairs",
+      "room": "Dining room",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r8",
+      "name": "king bed",
+      "qty": 1,
+      "cfUnit": 80,
+      "raw": "king bed",
+      "room": "Bedroom",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r9",
+      "name": "dresser",
+      "qty": 1,
+      "cfUnit": 35,
+      "raw": "dresser",
+      "room": "Bedroom",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r10",
+      "name": "nightstand",
+      "qty": 2,
+      "cfUnit": 5,
+      "raw": "2 nightstands",
+      "room": "Bedroom",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r11",
+      "name": "medium box",
+      "qty": 8,
+      "cfUnit": 5,
+      "raw": "8 boxes",
+      "room": "Bedroom",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r12",
+      "name": "queen bed",
+      "qty": 1,
+      "cfUnit": 60,
+      "raw": "queen bed",
+      "room": "Bedroom 2",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r13",
+      "name": "dresser",
+      "qty": 1,
+      "cfUnit": 35,
+      "raw": "dresser",
+      "room": "Bedroom 2",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r14",
+      "name": "medium box",
+      "qty": 6,
+      "cfUnit": 5,
+      "raw": "6 boxes",
+      "room": "Bedroom 2",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r15",
+      "name": "full bed",
+      "qty": 1,
+      "cfUnit": 50,
+      "raw": "full bed",
+      "room": "Bedroom 3",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r16",
+      "name": "desk",
+      "qty": 1,
+      "cfUnit": 35,
+      "raw": "desk",
+      "room": "Bedroom 3",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r17",
+      "name": "medium box",
+      "qty": 4,
+      "cfUnit": 5,
+      "raw": "4 boxes",
+      "room": "Bedroom 3",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    }
+  ],
+  "expect": {
+    "finalVolume": 875,
+    "netVolume": 768,
+    "billableCF": 800,
+    "truckSpaceCF": 875,
+    "trucksFinal": 1,
+    "truckSizeLabel": "24ft Truck",
+    "crew": 4,
+    "timeMin": 5,
+    "timeMax": 7,
+    "splitRecommended": false,
+    "confidence": {
+      "score": 100,
+      "label": "High"
+    },
+    "materials": {
+      "blankets": 30,
+      "boxes": 25,
+      "wardrobes": 15
+    },
+    "smartEquipment": [],
+    "anyHeavySignal": false,
+    "heavyItemNames": [],
+    "detectedQtyTotal": 47,
+    "totalManHours": 14.8,
+    "daMins": 108,
+    "league": 0,
+    "boxDensity": 64,
+    "extraStopCount": 0,
+    "risks": [],
+    "overridesApplied": []
+  }
+}

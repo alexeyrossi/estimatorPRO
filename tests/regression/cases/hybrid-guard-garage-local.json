@@ -1,0 +1,218 @@
+{
+  "id": "hybrid-guard-garage-local",
+  "kind": "engine",
+  "description": "Garage-mention normalized local — hybrid HV must NOT activate (guard: mentionsGarageOrAttic).",
+  "input": {
+    "homeSize": "2",
+    "moveType": "Local",
+    "distance": "12",
+    "packingLevel": "Partial",
+    "accessOrigin": "ground",
+    "accessDest": "ground",
+    "inventoryText": "Garage: bike, tool chest",
+    "inventoryMode": "normalized",
+    "extraStops": []
+  },
+  "normalizedRows": [
+    {
+      "id": "r1",
+      "name": "sofa",
+      "qty": 1,
+      "cfUnit": 55,
+      "raw": "sofa",
+      "room": "Living room",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r2",
+      "name": "loveseat",
+      "qty": 1,
+      "cfUnit": 30,
+      "raw": "loveseat",
+      "room": "Living room",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r3",
+      "name": "coffee table",
+      "qty": 1,
+      "cfUnit": 15,
+      "raw": "coffee table",
+      "room": "Living room",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r4",
+      "name": "tv stand",
+      "qty": 1,
+      "cfUnit": 20,
+      "raw": "tv stand",
+      "room": "Living room",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r5",
+      "name": "medium box",
+      "qty": 10,
+      "cfUnit": 5,
+      "raw": "10 boxes",
+      "room": "Living room",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r6",
+      "name": "queen bed",
+      "qty": 1,
+      "cfUnit": 60,
+      "raw": "queen bed",
+      "room": "Bedroom",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r7",
+      "name": "dresser",
+      "qty": 1,
+      "cfUnit": 35,
+      "raw": "dresser",
+      "room": "Bedroom",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r8",
+      "name": "nightstand",
+      "qty": 2,
+      "cfUnit": 5,
+      "raw": "2 nightstands",
+      "room": "Bedroom",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r9",
+      "name": "medium box",
+      "qty": 8,
+      "cfUnit": 5,
+      "raw": "8 boxes",
+      "room": "Bedroom",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r10",
+      "name": "full bed",
+      "qty": 1,
+      "cfUnit": 50,
+      "raw": "full bed",
+      "room": "Bedroom 2",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r11",
+      "name": "desk",
+      "qty": 1,
+      "cfUnit": 35,
+      "raw": "desk",
+      "room": "Bedroom 2",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r12",
+      "name": "medium box",
+      "qty": 6,
+      "cfUnit": 5,
+      "raw": "6 boxes",
+      "room": "Bedroom 2",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r13",
+      "name": "bike",
+      "qty": 1,
+      "cfUnit": 25,
+      "raw": "bike",
+      "room": "Storage/Outdoor",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r14",
+      "name": "tool chest",
+      "qty": 1,
+      "cfUnit": 20,
+      "raw": "tool chest",
+      "room": "Storage/Outdoor",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    }
+  ],
+  "expect": {
+    "finalVolume": 650,
+    "netVolume": 575,
+    "billableCF": 600,
+    "truckSpaceCF": 650,
+    "trucksFinal": 1,
+    "truckSizeLabel": "18ft Truck + Lift-gate",
+    "crew": 3,
+    "timeMin": 5,
+    "timeMax": 7,
+    "splitRecommended": false,
+    "confidence": {
+      "score": 100,
+      "label": "High"
+    },
+    "materials": {
+      "blankets": 20,
+      "boxes": 25,
+      "wardrobes": 10
+    },
+    "smartEquipment": [],
+    "anyHeavySignal": false,
+    "heavyItemNames": [],
+    "detectedQtyTotal": 36,
+    "totalManHours": 11.1,
+    "daMins": 68,
+    "league": 1,
+    "boxDensity": 67,
+    "extraStopCount": 0,
+    "risks": [],
+    "overridesApplied": []
+  }
+}

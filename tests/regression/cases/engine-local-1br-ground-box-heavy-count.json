@@ -29,7 +29,7 @@
     },
     "materials": {
       "blankets": 20,
-      "boxes": 50,
+      "boxes": 10,
       "wardrobes": 5
     },
     "smartEquipment": [],

@@ -1,0 +1,86 @@
+{
+  "id": "hybrid-guard-sparse-local",
+  "kind": "engine",
+  "description": "Sparse normalized local — hybrid HV must NOT activate (guard: sparse inventory).",
+  "input": {
+    "homeSize": "3",
+    "moveType": "Local",
+    "distance": "10",
+    "packingLevel": "None",
+    "accessOrigin": "ground",
+    "accessDest": "ground",
+    "inventoryText": "",
+    "inventoryMode": "normalized",
+    "extraStops": []
+  },
+  "normalizedRows": [
+    {
+      "id": "r1",
+      "name": "sofa",
+      "qty": 1,
+      "cfUnit": 55,
+      "raw": "sofa",
+      "room": "Living room",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r2",
+      "name": "queen bed",
+      "qty": 1,
+      "cfUnit": 60,
+      "raw": "queen bed",
+      "room": "Bedroom",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r3",
+      "name": "dresser",
+      "qty": 1,
+      "cfUnit": 35,
+      "raw": "dresser",
+      "room": "Bedroom",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    }
+  ],
+  "expect": {
+    "finalVolume": 700,
+    "netVolume": 575,
+    "billableCF": 600,
+    "truckSpaceCF": 700,
+    "trucksFinal": 1,
+    "truckSizeLabel": "18ft Truck",
+    "crew": 3,
+    "timeMin": 4,
+    "timeMax": 5,
+    "splitRecommended": false,
+    "confidence": {
+      "score": 100,
+      "label": "High"
+    },
+    "materials": {
+      "blankets": 20,
+      "boxes": 10,
+      "wardrobes": 15
+    },
+    "smartEquipment": [],
+    "anyHeavySignal": false,
+    "heavyItemNames": [],
+    "detectedQtyTotal": 3,
+    "totalManHours": 6.7,
+    "daMins": 20,
+    "league": 0,
+    "boxDensity": 0,
+    "extraStopCount": 0,
+    "risks": [],
+    "overridesApplied": []
+  }
+}

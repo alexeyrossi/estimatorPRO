@@ -1,0 +1,303 @@
+{
+  "id": "hybrid-local-4br-normalized-detailed",
+  "tier": "gold",
+  "kind": "engine",
+  "description": "4BR normalized detailed local — hybrid HV MUST activate (deficit×ratio).",
+  "input": {
+    "homeSize": "4",
+    "moveType": "Local",
+    "distance": "16",
+    "packingLevel": "None",
+    "accessOrigin": "ground",
+    "accessDest": "ground",
+    "inventoryText": "",
+    "inventoryMode": "normalized",
+    "extraStops": []
+  },
+  "normalizedRows": [
+    {
+      "id": "r1",
+      "name": "sectional sofa",
+      "qty": 1,
+      "cfUnit": 80,
+      "raw": "sectional sofa",
+      "room": "Living room",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r2",
+      "name": "coffee table",
+      "qty": 1,
+      "cfUnit": 15,
+      "raw": "coffee table",
+      "room": "Living room",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r3",
+      "name": "media console",
+      "qty": 1,
+      "cfUnit": 25,
+      "raw": "media console",
+      "room": "Living room",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r4",
+      "name": "medium box",
+      "qty": 10,
+      "cfUnit": 5,
+      "raw": "10 boxes",
+      "room": "Living room",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r5",
+      "name": "dining table",
+      "qty": 1,
+      "cfUnit": 40,
+      "raw": "dining table",
+      "room": "Dining room",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r6",
+      "name": "dining chair",
+      "qty": 6,
+      "cfUnit": 7,
+      "raw": "6 dining chairs",
+      "room": "Dining room",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r7",
+      "name": "buffet",
+      "qty": 1,
+      "cfUnit": 30,
+      "raw": "buffet",
+      "room": "Dining room",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r8",
+      "name": "medium box",
+      "qty": 6,
+      "cfUnit": 5,
+      "raw": "6 boxes",
+      "room": "Dining room",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r9",
+      "name": "king bed",
+      "qty": 1,
+      "cfUnit": 80,
+      "raw": "king bed",
+      "room": "Bedroom",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r10",
+      "name": "dresser",
+      "qty": 1,
+      "cfUnit": 35,
+      "raw": "dresser",
+      "room": "Bedroom",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r11",
+      "name": "nightstand",
+      "qty": 2,
+      "cfUnit": 5,
+      "raw": "2 nightstands",
+      "room": "Bedroom",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r12",
+      "name": "medium box",
+      "qty": 8,
+      "cfUnit": 5,
+      "raw": "8 boxes",
+      "room": "Bedroom",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r13",
+      "name": "queen bed",
+      "qty": 1,
+      "cfUnit": 60,
+      "raw": "queen bed",
+      "room": "Bedroom 2",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r14",
+      "name": "dresser",
+      "qty": 1,
+      "cfUnit": 35,
+      "raw": "dresser",
+      "room": "Bedroom 2",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r15",
+      "name": "medium box",
+      "qty": 6,
+      "cfUnit": 5,
+      "raw": "6 boxes",
+      "room": "Bedroom 2",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r16",
+      "name": "queen bed",
+      "qty": 1,
+      "cfUnit": 60,
+      "raw": "queen bed",
+      "room": "Bedroom 3",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r17",
+      "name": "dresser",
+      "qty": 1,
+      "cfUnit": 35,
+      "raw": "dresser",
+      "room": "Bedroom 3",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r18",
+      "name": "medium box",
+      "qty": 6,
+      "cfUnit": 5,
+      "raw": "6 boxes",
+      "room": "Bedroom 3",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r19",
+      "name": "twin bed",
+      "qty": 1,
+      "cfUnit": 40,
+      "raw": "twin bed",
+      "room": "Bedroom 4",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r20",
+      "name": "desk",
+      "qty": 1,
+      "cfUnit": 35,
+      "raw": "desk",
+      "room": "Bedroom 4",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r21",
+      "name": "medium box",
+      "qty": 4,
+      "cfUnit": 5,
+      "raw": "4 boxes",
+      "room": "Bedroom 4",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    }
+  ],
+  "expect": {
+    "finalVolume": 1150,
+    "netVolume": 997,
+    "billableCF": 1050,
+    "truckSpaceCF": 1150,
+    "trucksFinal": 1,
+    "truckSizeLabel": "24ft Truck",
+    "crew": 3,
+    "timeMin": 7,
+    "timeMax": 8,
+    "splitRecommended": false,
+    "confidence": {
+      "score": 100,
+      "label": "High"
+    },
+    "materials": {
+      "blankets": 40,
+      "boxes": 10,
+      "wardrobes": 20
+    },
+    "smartEquipment": [],
+    "anyHeavySignal": false,
+    "heavyItemNames": [],
+    "detectedQtyTotal": 61,
+    "totalManHours": 14.8,
+    "daMins": 145,
+    "league": 0,
+    "boxDensity": 66,
+    "extraStopCount": 0,
+    "risks": [],
+    "overridesApplied": []
+  }
+}

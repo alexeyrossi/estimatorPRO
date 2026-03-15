@@ -212,16 +212,42 @@ export function buildEstimateResult(
     }
   });
 
-  let boxesBring = parsed.boxCount || 0;
-  const minBoxesBySize = !isCommercial ? (PROTOCOL.MIN_BOXES[Math.min(bedroomCount, 5) as keyof typeof PROTOCOL.MIN_BOXES] || 10) : 20;
-  if (inputs.packingLevel === "Full") boxesBring = Math.max(boxesBring, minBoxesBySize) + 10 + (Math.max(1, trucksFinal) * 5);
-  else if (inputs.packingLevel === "Partial") boxesBring = Math.max(boxesBring, isCommercial ? 25 : Math.max(25, Math.ceil(minBoxesBySize * 0.35)));
-  else boxesBring = Math.max(boxesBring, isCommercial ? 15 : 10);
+  // 1. Expected baselines and pure deficit calculation
+  const clientBoxes = parsed.boxCount || 0;
+  const expectedBoxes = !isCommercial ? volumePlan.effectiveMinBoxes : 20;
+  const unpackedBoxDeficit = Math.max(0, expectedBoxes - clientBoxes);
 
+  // 2. Base safety buffer for the trucks
+  const buffer = 10 + (Math.max(1, trucksFinal) * 5);
+  let boxesBring = 0;
+
+  // 3. Allocate materials based on packing level
+  if (inputs.packingLevel === "Full") {
+    // Full pack: supply boxes ONLY for the unpacked deficit + buffer
+    boxesBring = unpackedBoxDeficit + buffer;
+  } else if (inputs.packingLevel === "Partial") {
+    // Partial pack: supply boxes for ~35% of the home, but capped fiercely by the actual deficit
+    const partialBase = isCommercial ? 25 : Math.max(25, Math.ceil(expectedBoxes * 0.35));
+    boxesBring = Math.min(partialBase, unpackedBoxDeficit) + 10;
+  } else {
+    // No packing: never supply boxes except for a strict safety buffer (ignoring missingBoxesCount AND clientBoxes)
+    boxesBring = isCommercial ? 15 : 10;
+  }
+
+  // 3. Risk modifiers
   if (fragileCount > 5) boxesBring += 5;
   if (hasVague) boxesBring += 5;
 
-  boxesBring = roundUpTo(Math.ceil(Math.min(boxesBring, inputs.packingLevel === "Full" ? Math.ceil(finalVolume / 12 + 40) : Math.ceil(finalVolume / 20 + 20))), 10);
+  // 4. Global physical cap from REAL volume (parsed.totalVol)
+  // Protects against extreme outliers even if deficit is miscalculated
+  const absoluteCap = inputs.packingLevel === "Full" 
+    ? Math.max(15, Math.ceil(parsed.totalVol / 12 + 20)) 
+    : Math.max(10, Math.ceil(parsed.totalVol / 20 + 10));
+
+  boxesBring = Math.min(boxesBring, absoluteCap);
+
+  // 5. Sharper rounding to 5 (instead of 10)
+  boxesBring = roundUpTo(boxesBring, 5);
   let wardrobes = roundUpTo(!isCommercial ? (bedroomCount * 4) : 0, 5);
 
   if (context.overrides.blankets !== undefined && context.overrides.blankets !== null) {

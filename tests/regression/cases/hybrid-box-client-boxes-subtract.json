@@ -1,0 +1,183 @@
+{
+  "id": "hybrid-box-client-boxes-subtract",
+  "tier": "gold",
+  "kind": "engine",
+  "description": "Validates that client PBO boxes accurately subtract from the required supplies without inflating total boxesBring.",
+  "input": {
+    "homeSize": "3",
+    "moveType": "Local",
+    "distance": "12",
+    "packingLevel": "Full",
+    "accessOrigin": "ground",
+    "accessDest": "ground",
+    "inventoryText": "",
+    "inventoryMode": "normalized",
+    "extraStops": []
+  },
+  "normalizedRows": [
+    {
+      "id": "r1",
+      "name": "sofa",
+      "qty": 1,
+      "cfUnit": 55,
+      "raw": "sofa",
+      "room": "Living room",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r2",
+      "name": "loveseat",
+      "qty": 1,
+      "cfUnit": 30,
+      "raw": "loveseat",
+      "room": "Living room",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r3",
+      "name": "coffee table",
+      "qty": 1,
+      "cfUnit": 15,
+      "raw": "coffee table",
+      "room": "Living room",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r4",
+      "name": "large box",
+      "qty": 30,
+      "cfUnit": 5,
+      "raw": "30 boxes LG PBO",
+      "room": "Living room",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r5",
+      "name": "king bed",
+      "qty": 1,
+      "cfUnit": 80,
+      "raw": "king bed",
+      "room": "Bedroom",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r6",
+      "name": "dresser",
+      "qty": 1,
+      "cfUnit": 35,
+      "raw": "dresser",
+      "room": "Bedroom",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r7",
+      "name": "nightstand",
+      "qty": 2,
+      "cfUnit": 5,
+      "raw": "2 nightstands",
+      "room": "Bedroom",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r8",
+      "name": "medium box",
+      "qty": 15,
+      "cfUnit": 5,
+      "raw": "15 boxes MED PBO",
+      "room": "Bedroom",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r9",
+      "name": "full bed",
+      "qty": 1,
+      "cfUnit": 50,
+      "raw": "full bed",
+      "room": "Bedroom 2",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r10",
+      "name": "desk",
+      "qty": 1,
+      "cfUnit": 35,
+      "raw": "desk",
+      "room": "Bedroom 2",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    },
+    {
+      "id": "r11",
+      "name": "small box",
+      "qty": 5,
+      "cfUnit": 5,
+      "raw": "5 boxes SMALL PBO",
+      "room": "Bedroom 2",
+      "flags": {
+        "heavy": false,
+        "heavyWeight": false
+      }
+    }
+  ],
+  "expect": {
+    "finalVolume": 825,
+    "netVolume": 710,
+    "billableCF": 750,
+    "truckSpaceCF": 825,
+    "trucksFinal": 1,
+    "truckSizeLabel": "24ft Truck",
+    "crew": 3,
+    "timeMin": 7,
+    "timeMax": 9,
+    "splitRecommended": false,
+    "confidence": {
+      "score": 100,
+      "label": "High"
+    },
+    "materials": {
+      "blankets": 20,
+      "boxes": 15,
+      "wardrobes": 15
+    },
+    "smartEquipment": [],
+    "anyHeavySignal": false,
+    "heavyItemNames": [],
+    "detectedQtyTotal": 59,
+    "totalManHours": 16,
+    "daMins": 73,
+    "league": 0,
+    "boxDensity": 85,
+    "extraStopCount": 0,
+    "risks": [],
+    "overridesApplied": []
+  }
+}

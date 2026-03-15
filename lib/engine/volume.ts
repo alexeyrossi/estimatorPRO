@@ -2,6 +2,27 @@ import { HV_TABLE, PROTOCOL } from "../config";
 import { parseOverrideValue, roundUpTo } from "../parser";
 import type { EngineContext, VolumePlan } from "./types";
 
+// ── Hybrid HV Experiment ───────────────────────────────────────
+const ENABLE_HYBRID_HV = true;
+
+function round25(value: number) {
+  return Math.round(value / 25) * 25;
+}
+
+function getHybridHiddenVolume(params: {
+  deficit: number;
+  parsedTotalVol: number;
+  hvRowMin: number;
+}) {
+  const { deficit, parsedTotalVol, hvRowMin } = params;
+  if (parsedTotalVol <= 0 || hvRowMin <= 0) return { ratio: 0, hiddenVolume: 0 };
+  const ratio = Math.min(parsedTotalVol / hvRowMin, 1);
+  return {
+    ratio,
+    hiddenVolume: Math.max(25, round25(deficit * ratio)),
+  };
+}
+
 export function computeVolumePlan(context: EngineContext): VolumePlan {
   const {
     inputs,
@@ -28,12 +49,27 @@ export function computeVolumePlan(context: EngineContext): VolumePlan {
   let hiddenVolume = 0;
   let missingBoxesCount = 0;
   let baseHomeHiddenVolume = 0;
+  let effectiveMinBoxes = PROTOCOL.MIN_BOXES[Math.min(bedroomCount, 5) as keyof typeof PROTOCOL.MIN_BOXES] || 10;
   const coverageContributors: Array<{ label: string; amount: number; detail: string }> = [];
   const isTinyScope = bedroomCount === 0 && parsed.totalVol < 120;
 
+  // ── Shared hybrid signals (used by both HV and box scaling) ──
+  const hvRow = !isCommercial ? HV_TABLE[Math.min(bedroomCount, 5)] : null;
+  const volumeRatio = hvRow && hvRow.min > 0 ? Math.min(parsed.totalVol / hvRow.min, 1) : 1;
+  const shouldUseHybridScaling =
+    ENABLE_HYBRID_HV
+    && !isCommercial
+    && context.useNormalized
+    && inputs.moveType === "Local"
+    && inventoryCompleteness === "detailed"
+    && !microDetailedLocal
+    && !parsed.mentionsGarageOrAttic
+    && !context.anyHeavySignal
+    && parsed.totalVol > 0
+    && overrides.volume == null;
+
   if (!isCommercial) {
-    if (!isTinyScope && !isLD) {
-      const hvRow = HV_TABLE[Math.min(bedroomCount, 5)];
+    if (!isTinyScope && !isLD && hvRow) {
       if (parsed.totalVol < hvRow.min) {
         const deficit = Math.max(0, hvRow.min - parsed.totalVol);
         const hvFactor = microDetailedLocal ? 0 : inventoryCompleteness === "detailed" ? 0.25 : inventoryCompleteness === "coarse" ? 0.45 : 0.65;
@@ -45,14 +81,35 @@ export function computeVolumePlan(context: EngineContext): VolumePlan {
                 : bedroomCount === 4 ? 250
                   : bedroomCount >= 5 ? 350
                     : 0;
-        const hvAdd = microDetailedLocal ? 100 : Math.max(computedHvAdd, localHvMinimum);
-        const usedLocalMinimum = !microDetailedLocal && localHvMinimum > 0 && hvAdd === localHvMinimum && localHvMinimum > computedHvAdd;
-        const hvNotes = microDetailedLocal
-          ? ["micro local reduced floor"]
-          : [
-            ...(inventoryCompleteness === "sparse" ? [] : [`${inventoryCompleteness} inventory`]),
-            ...(usedLocalMinimum ? ["local minimum floor"] : []),
-          ];
+
+        const standardHvAdd = microDetailedLocal ? 100 : Math.max(computedHvAdd, localHvMinimum);
+
+        const hybrid = shouldUseHybridScaling
+          ? getHybridHiddenVolume({ deficit, parsedTotalVol: parsed.totalVol, hvRowMin: hvRow.min })
+          : null;
+
+        const hvAdd = shouldUseHybridScaling ? hybrid!.hiddenVolume : standardHvAdd;
+
+        const usedLocalMinimum =
+          !shouldUseHybridScaling
+          && !microDetailedLocal
+          && localHvMinimum > 0
+          && hvAdd === localHvMinimum
+          && localHvMinimum > computedHvAdd;
+
+        const hvNotes = shouldUseHybridScaling
+          ? [
+              "hybrid detailed normalized floor",
+              `ratio ${hybrid!.ratio.toFixed(2)}`,
+              `standard ${standardHvAdd} cf`,
+            ]
+          : microDetailedLocal
+            ? ["micro local reduced floor"]
+            : [
+                ...(inventoryCompleteness === "sparse" ? [] : [`${inventoryCompleteness} inventory`]),
+                ...(usedLocalMinimum ? ["local minimum floor"] : []),
+              ];
+
         baseHomeHiddenVolume += hvAdd;
         hiddenVolume += hvAdd;
         coverageContributors.push({
@@ -61,12 +118,25 @@ export function computeVolumePlan(context: EngineContext): VolumePlan {
           detail: `Low volume for ${hvRow.label}${hvNotes.length ? `, ${hvNotes.join(", ")}` : ""}.`,
         });
         notes.logs.push(`Volume Check: +${hvAdd} cf added.`);
-        notes.auditSummary.push(`Added +${hvAdd} cf (low volume for ${hvRow.label}${hvNotes.length ? `, ${hvNotes.join(", ")}` : ""}).`);
+        notes.auditSummary.push(
+          `Added +${hvAdd} cf (low volume for ${hvRow.label}${hvNotes.length ? `, ${hvNotes.join(", ")}` : ""}).`
+        );
       }
     }
-    const minBoxes = PROTOCOL.MIN_BOXES[Math.min(bedroomCount, 5) as keyof typeof PROTOCOL.MIN_BOXES] || 10;
+    // ── Box baseline: hybrid scaling + physical volume cap ──
+    const rawMinBoxes = effectiveMinBoxes;
+    if (shouldUseHybridScaling) {
+      const scaledMinBoxes = Math.max(10, Math.round(rawMinBoxes * volumeRatio));
+      const maxPhysicalBoxes = Math.max(10, Math.ceil((parsed.totalVol * 0.40) / 5));
+      effectiveMinBoxes = Math.min(scaledMinBoxes, maxPhysicalBoxes);
+      if (effectiveMinBoxes < rawMinBoxes) {
+        notes.auditSummary.push(
+          `Box baseline scaled: ${rawMinBoxes} → ${effectiveMinBoxes} (ratio ${volumeRatio.toFixed(2)}, physCap ${maxPhysicalBoxes}).`
+        );
+      }
+    }
     if (inputs.packingLevel !== "None" && !isTinyScope) {
-      const boxDeficit = Math.max(0, minBoxes - parsed.boxCount);
+      const boxDeficit = Math.max(0, effectiveMinBoxes - parsed.boxCount);
       if (boxDeficit > 0) {
         const boxFactor = inventoryCompleteness === "detailed" ? 0.20 : inventoryCompleteness === "coarse" ? 0.40 : 0.60;
         const boxCap = bedroomCount <= 1 ? 15 : bedroomCount === 2 ? 20 : bedroomCount === 3 ? 30 : bedroomCount === 4 ? 40 : 50;
@@ -85,7 +155,7 @@ export function computeVolumePlan(context: EngineContext): VolumePlan {
         }
       }
     } else if (!isTinyScope && !microDetailedLocal) {
-      const softCap = Math.min(minBoxes, parsed.boxCount + 10);
+      const softCap = Math.min(effectiveMinBoxes, parsed.boxCount + 10);
       const softDeficit = Math.max(0, softCap - parsed.boxCount);
       if (softDeficit > 0) {
         const softBoxFactor = inventoryCompleteness === "detailed" ? 0.10 : inventoryCompleteness === "coarse" ? 0.20 : 0.35;
@@ -244,7 +314,7 @@ export function computeVolumePlan(context: EngineContext): VolumePlan {
     notes.auditSummary.push(`Loose load +${Math.round(appliedLLDelta * 100)}% (${llReasons.join(", ")}).`);
   }
 
-  const round25 = (num: number) => Math.round(num / 25) * 25;
+
   const rawVolume = parsed.totalVol + hiddenVolume;
   const preRoundedBillable = rawVolume * 1.05;
   const billableCF = round25(preRoundedBillable);
@@ -277,6 +347,7 @@ export function computeVolumePlan(context: EngineContext): VolumePlan {
     inventoryVolume: parsed.totalVol,
     hiddenVolume,
     missingBoxesCount,
+    effectiveMinBoxes,
     llPct,
     llBasePct,
     llReasons,
